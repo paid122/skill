@@ -1,0 +1,22 @@
+{
+  "name": "ai-voice-receptionist",
+  "version": "0.1.0",
+  "description": "Vapi-based AI voice receptionist: answers calls, checks calendar availability, books appointments, and transfers to a human when needed.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "create-assistant": "node src/vapi/createAssistant.js",
+    "setup-phone-number": "node scripts/setup-phone-number.js",
+    "google-auth": "node scripts/get-google-refresh-token.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "googleapis": "^140.0.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
