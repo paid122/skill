@@ -44,7 +44,23 @@ npm run setup-phone-number -- --area-code 415
 ```
 Prints the new number and its ID. Call it — you're talking to your AI receptionist.
 
-## 7. Iterate
+## 7. (Optional) Set up outbound missed-call follow-up
+Calls a lead back automatically instead of waiting for them to call again.
+
+1. `npm run create-outbound-assistant` — creates a second assistant (different opening
+   line and goals, since it's calling *them*) and saves `VAPI_OUTBOUND_ASSISTANT_ID` to `.env`.
+2. Set `MISSED_CALL_WEBHOOK_SECRET` in `.env` to a random string, redeploy.
+3. Point whatever detects a missed lead (a Twilio missed-call webhook, a form tool, a
+   Zapier/Make automation, a CRM trigger) at:
+   ```
+   POST https://your-app.up.railway.app/trigger-missed-call
+   Headers: x-webhook-secret: <your MISSED_CALL_WEBHOOK_SECRET>
+   Body: { "phone": "+14155551234", "name": "Jane Doe" }
+   ```
+   `phone` must be E.164 format. This places a real, billable outbound call — test with
+   your own number first.
+
+## 8. Iterate
 - Edit the system prompt / tool descriptions in `src/vapi/assistantConfig.js`, re-run `npm run create-assistant`.
 - Watch `docs/SETUP.md` → server logs (or Slack, if configured) for tool-call and end-of-call activity while testing.
 - Common tuning: adjust `firstMessage`, tighten the system prompt against caller edge cases you hit in test calls, adjust `voiceId` for tone.

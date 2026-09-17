@@ -1,7 +1,9 @@
 # AI Voice Receptionist
 
-A Vapi-based AI phone receptionist: answers inbound calls, checks calendar
-availability, books appointments, and transfers to a human when it should.
+A Vapi-based AI phone agent, two-directional:
+- **Inbound** — answers calls, checks calendar availability, books appointments, transfers to a human when it should.
+- **Outbound** — automatically calls back missed leads (a missed call, an unfinished form) and tries to book them.
+
 Built to be reskinned per client — swap the business info, tools, and voice.
 
 ## How it works
@@ -40,16 +42,21 @@ Full walkthrough, including Google Calendar OAuth: **[docs/SETUP.md](docs/SETUP.
 
 ```
 src/
-  server.js              Express server — receives Vapi's tool-call & end-of-call webhooks
+  server.js                     Express server — Vapi tool-call/end-of-call webhooks + /trigger-missed-call
   vapi/
-    assistantConfig.js   The assistant definition: system prompt, tools, voice, transcriber
-    createAssistant.js   Script to push assistantConfig.js to the Vapi API
+    assistantConfig.js          Inbound assistant: system prompt, tools, voice, transcriber
+    outboundAssistantConfig.js  Outbound follow-up assistant (different opening line/goals)
+    pushAssistant.js            Shared create-or-update logic used by both create scripts
+    createAssistant.js          Pushes assistantConfig.js to the Vapi API
+    createOutboundAssistant.js  Pushes outboundAssistantConfig.js to the Vapi API
   tools/
-    checkAvailability.js Tool handler: checks Google Calendar free/busy
-    bookAppointment.js   Tool handler: creates a Calendar event, notifies Slack
+    checkAvailability.js        Tool handler: checks Google Calendar free/busy
+    bookAppointment.js          Tool handler: creates a Calendar event, notifies Slack
+  outbound/
+    triggerCallback.js          Places an outbound call via Vapi's /call API
   integrations/
-    googleCalendar.js    Google Calendar API wrapper (falls back to "always free" if unconfigured)
-    slackNotify.js        Posts call summaries / bookings to a Slack webhook
+    googleCalendar.js           Google Calendar API wrapper (falls back to "always free" if unconfigured)
+    slackNotify.js              Posts call summaries / bookings to a Slack webhook
 scripts/
   setup-phone-number.js       Buys/links a phone number via Vapi
   get-google-refresh-token.js One-time OAuth flow for Calendar access

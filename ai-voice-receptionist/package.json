@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "create-assistant": "node src/vapi/createAssistant.js",
+    "create-outbound-assistant": "node src/vapi/createOutboundAssistant.js",
     "setup-phone-number": "node scripts/setup-phone-number.js",
     "google-auth": "node scripts/get-google-refresh-token.js"
   },

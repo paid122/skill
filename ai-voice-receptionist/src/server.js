@@ -5,6 +5,7 @@ const { notifySlack } = require("./integrations/slackNotify");
 
 const checkAvailability = require("./tools/checkAvailability");
 const bookAppointment = require("./tools/bookAppointment");
+const { triggerCallback } = require("./outbound/triggerCallback");
 
 const app = express();
 app.use(express.json());
@@ -100,6 +101,30 @@ async function handleEndOfCall(message) {
     }`
   );
 }
+
+// Called by an external system (Twilio missed-call webhook, a form tool, Zapier, etc.)
+// to have the outbound assistant call a lead back. Places a real, billable phone call —
+// always require the shared secret, unlike the Vapi webhook which is safe to leave open
+// in early dev.
+app.post("/trigger-missed-call", async (req, res) => {
+  const expected = process.env.MISSED_CALL_WEBHOOK_SECRET;
+  if (!expected) {
+    logger.error("MISSED_CALL_WEBHOOK_SECRET is not set — refusing to place outbound calls.");
+    return res.status(503).json({ error: "outbound callback not configured" });
+  }
+  if (req.headers["x-webhook-secret"] !== expected) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+
+  const { phone, name } = req.body || {};
+  try {
+    const call = await triggerCallback({ phone, name });
+    return res.status(200).json({ triggered: true, callId: call.id });
+  } catch (err) {
+    logger.error("Failed to trigger callback:", err.message);
+    return res.status(400).json({ error: err.message });
+  }
+});
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
