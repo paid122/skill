@@ -19,7 +19,7 @@ Optional — model-backed Ledgr AI: copy `.env.example` to `.env.local` and set 
 npm test                                   # calculation-engine unit tests (Vitest)
 npm run lint                               # TypeScript type check
 npm run build && npm start                 # production build
-BASE_URL=http://localhost:3000 node tests/e2e/acceptance.cjs   # end-to-end acceptance checks (needs Playwright + Chromium)
+BASE_URL=http://localhost:3000 npm run test:e2e   # 21 end-to-end acceptance checks (needs Playwright + Chromium)
 ```
 
 ## What's inside
@@ -44,7 +44,7 @@ BASE_URL=http://localhost:3000 node tests/e2e/acceptance.cjs   # end-to-end acce
 ## Architecture
 
 - **Next.js 16 · TypeScript · Tailwind CSS 4 · Recharts.**
-- **Local-first storage.** All records live in the browser (IndexedDB), with images/PDFs in a separate blob store and cross-tab sync. Backups (JSON, optionally with images) are available in Settings.
+- **Local-first storage.** All records live in the browser (IndexedDB), with images/PDFs in a separate blob store and cross-tab sync. Every change is also written synchronously to a write-ahead copy, so a reload or tab close mid-save cannot lose data. Backups (JSON, optionally with images) are available in Settings.
 - **Relational schema for hosting.** `supabase/migrations/0001_ledgr_schema.sql` defines every table (users/profiles, accounts, trades, executions, attachments, tags, strategies, confluences, journals, study, verses, reports, AI conversations, settings, goals), validation constraints, owner-only row-level security on every table, parent-ownership checks, and a private storage bucket scoped to each user's folder. The app does not yet sync to it — see *Status* below.
 - **Calculation engine** in `src/lib/calc.ts`; every formula is documented in [`docs/CALCULATIONS.md`](docs/CALCULATIONS.md).
 - **Verses** in `src/lib/verses.ts` — KJV (public domain) text; page verses follow the brief; context-aware selection uses only process signals (journal completeness, recorded emotions), never P&L. Unlicensed translations are listed but disabled.

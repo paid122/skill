@@ -14,26 +14,40 @@ import type { LedgrState } from "./types";
 const DB_NAME = "ledgr";
 const DB_VERSION = 1;
 const STATE_KEY = "state";
+// Write-ahead copy: written synchronously on every change so a reload or tab close
+// before IndexedDB commits cannot lose data. Cleared once IndexedDB confirms the write.
+const PENDING_KEY = "ledgr.pending";
+let writeSeq = 0;
 
 let state: LedgrState | null = null;
 let hydrated = false;
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let saveScheduled = false;
 let lastError: string | null = null;
 const listeners = new Set<() => void>();
 let channel: BroadcastChannel | null = null;
 const tabId = Math.random().toString(36).slice(2);
 
+let dbPromise: Promise<IDBDatabase> | null = null;
+let dbHandle: IDBDatabase | null = null;
+
+/** One long-lived connection, so writes can start synchronously after a change. */
 function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
       if (!db.objectStoreNames.contains("blobs")) db.createObjectStore("blobs");
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      dbHandle = req.result;
+      dbHandle.onversionchange = () => { dbHandle?.close(); dbHandle = null; dbPromise = null; };
+      resolve(req.result);
+    };
+    req.onerror = () => { dbPromise = null; reject(req.error); };
   });
+  return dbPromise;
 }
 
 async function idb<T>(store: "kv" | "blobs", mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest): Promise<T> {
@@ -43,7 +57,6 @@ async function idb<T>(store: "kv" | "blobs", mode: IDBTransactionMode, fn: (s: I
     const req = fn(tx.objectStore(store));
     req.onsuccess = () => resolve(req.result as T);
     req.onerror = () => reject(req.error);
-    tx.oncomplete = () => db.close();
   });
 }
 
@@ -51,10 +64,24 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+function writeState(db: IDBDatabase, snapshot: LedgrState): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("kv", "readwrite");
+    tx.objectStore("kv").put(snapshot, STATE_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
 async function persist() {
   if (!state) return;
+  const snapshot = state;
+  const seq = writeSeq;
   try {
-    await idb("kv", "readwrite", (s) => s.put(state, STATE_KEY));
+    // Start the transaction synchronously when the connection is already open.
+    await writeState(dbHandle ?? (await openDB()), snapshot);
+    if (seq === writeSeq) { try { localStorage.removeItem(PENDING_KEY); } catch { /* ignore */ } }
     lastError = null;
     channel?.postMessage({ type: "changed", from: tabId });
   } catch (e) {
@@ -67,7 +94,10 @@ export async function hydrate() {
   if (hydrated) return;
   try {
     const raw = await idb<LedgrState | undefined>("kv", "readonly", (s) => s.get(STATE_KEY));
-    state = raw ? migrate(raw) : emptyState();
+    let pending: LedgrState | null = null;
+    try { const p = localStorage.getItem(PENDING_KEY); if (p) pending = JSON.parse(p); } catch { /* ignore */ }
+    state = pending ? migrate(pending) : raw ? migrate(raw) : emptyState();
+    if (pending) void persist(); // finish the interrupted write
   } catch {
     state = emptyState();
     lastError = "Browser storage is unavailable. Changes will not be saved.";
@@ -96,19 +126,24 @@ export function getState(): LedgrState {
 export function setState(recipe: (s: LedgrState) => LedgrState) {
   if (!state) return;
   state = recipe(state);
+  writeSeq++;
+  try { localStorage.setItem(PENDING_KEY, JSON.stringify(state)); } catch { /* quota or unavailable: IndexedDB write still proceeds */ }
   emit();
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(persist, 250);
+  // Coalesce synchronous bursts of updates into one write, but never delay it:
+  // a reload or tab close right after saving must not lose data.
+  if (!saveScheduled) { saveScheduled = true; queueMicrotask(() => { saveScheduled = false; void persist(); }); }
 }
 
 /** Flush pending writes immediately (used before navigation-sensitive operations and tests). */
 export async function flush() {
-  if (saveTimer) clearTimeout(saveTimer);
+  saveScheduled = false;
   await persist();
 }
 
 export function replaceState(next: LedgrState) {
   state = migrate(next);
+  writeSeq++;
+  try { localStorage.setItem(PENDING_KEY, JSON.stringify(state)); } catch { /* ignore */ }
   emit();
   return flush();
 }
@@ -193,6 +228,8 @@ export async function allBlobKeys(): Promise<string[]> {
 export async function clearAll() {
   await idb("blobs", "readwrite", (s) => s.clear());
   state = emptyState();
+  writeSeq++;
+  try { localStorage.removeItem(PENDING_KEY); } catch { /* ignore */ }
   emit();
   await flush();
 }

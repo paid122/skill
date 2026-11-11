@@ -172,14 +172,14 @@ function Message({ m, byNumber }: { m: AIMessage; byNumber: Map<number, string> 
   );
 }
 
-/** Minimal, safe markdown: paragraphs, lists, **bold**, _italic_, and validated record citations. */
+/** Minimal, safe markdown: headings, paragraphs, lists, **bold**, _italic_, and validated record citations. */
 function renderMarkdown(text: string, byNumber: Map<number, string>): ReactNode[] {
   const inline = (s: string, key: string): ReactNode[] => {
-    const parts = s.split(/(\*\*[^*]+\*\*|_[^_]+_|\[T#\d+\]|\[D:\d{4}-\d{2}-\d{2}\])/g);
+    const parts = s.split(/(\*\*[^*]+\*\*|\b_[^_]+_\b|\[T#\d+\]|\[D:\d{4}-\d{2}-\d{2}\])/g);
     return parts.map((p, i) => {
       const k = `${key}-${i}`;
-      if (/^\*\*[^*]+\*\*$/.test(p)) return <strong key={k} className="font-semibold">{p.slice(2, -2)}</strong>;
-      if (/^_[^_]+_$/.test(p)) return <em key={k} className="text-text-2">{p.slice(1, -1)}</em>;
+      if (/^\*\*[^*]+\*\*$/.test(p)) return <strong key={k} className="font-semibold">{inline(p.slice(2, -2), k)}</strong>;
+      if (/^_[^_]+_$/.test(p)) return <em key={k} className="text-text-2">{inline(p.slice(1, -1), k)}</em>;
       const t = p.match(/^\[T#(\d+)\]$/);
       if (t) { const id = byNumber.get(Number(t[1])); return id ? <Link key={k} href={`/journal/${id}`} className="num rounded border border-accent/40 px-1 text-[12px] text-accent hover:bg-accent/10">#{t[1]}</Link> : <span key={k} className="text-muted line-through" title="Not found in your journal">#{t[1]}</span>; }
       const d = p.match(/^\[D:(\d{4}-\d{2}-\d{2})\]$/);
@@ -187,15 +187,26 @@ function renderMarkdown(text: string, byNumber: Map<number, string>): ReactNode[
       return <Fragment key={k}>{p}</Fragment>;
     });
   };
-  const blocks = text.trim().split(/\n{2,}/);
-  return blocks.map((b, i) => {
-    const lines = b.split("\n");
-    if (lines.every((l) => /^\s*([-*•]|\d+\.)\s+/.test(l))) {
-      const ordered = /^\s*\d+\./.test(lines[0]);
-      const items = lines.map((l, j) => <li key={j}>{inline(l.replace(/^\s*([-*•]|\d+\.)\s+/, ""), `${i}-${j}`)}</li>);
-      return ordered ? <ol key={i} className="ml-5 list-decimal space-y-1">{items}</ol> : <ul key={i} className="ml-5 list-disc space-y-1 marker:text-muted">{items}</ul>;
+  const LIST = /^\s*([-*•]|\d+\.)\s+/;
+  const out: ReactNode[] = [];
+  const lines = text.trim().split("\n");
+  let para: string[] = [];
+  let list: { ordered: boolean; items: string[] } | null = null;
+  const flushPara = () => { if (para.length) { const k = `p${out.length}`; out.push(<p key={k} className="whitespace-pre-wrap">{para.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{inline(l, `${k}-${j}`)}</Fragment>)}</p>); para = []; } };
+  const flushList = () => { if (list) { const k = `l${out.length}`; const items = list.items.map((l, j) => <li key={j}>{inline(l, `${k}-${j}`)}</li>); out.push(list.ordered ? <ol key={k} className="ml-5 list-decimal space-y-1">{items}</ol> : <ul key={k} className="ml-5 list-disc space-y-1 marker:text-muted">{items}</ul>); list = null; } };
+  for (const line of lines) {
+    if (!line.trim()) { flushPara(); flushList(); continue; }
+    if (LIST.test(line)) {
+      flushPara();
+      const ordered = /^\s*\d+\./.test(line);
+      if (!list || list.ordered !== ordered) { flushList(); list = { ordered, items: [] }; }
+      list.items.push(line.replace(LIST, ""));
+      continue;
     }
-    if (/^#{1,3}\s/.test(b)) return <p key={i} className="font-semibold">{inline(b.replace(/^#{1,3}\s/, ""), `${i}`)}</p>;
-    return <p key={i} className="whitespace-pre-wrap">{lines.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{inline(l, `${i}-${j}`)}</Fragment>)}</p>;
-  });
+    flushList();
+    if (/^#{1,4}\s/.test(line)) { flushPara(); out.push(<p key={`h${out.length}`} className="font-semibold">{inline(line.replace(/^#{1,4}\s/, ""), `h${out.length}`)}</p>); continue; }
+    para.push(line);
+  }
+  flushPara(); flushList();
+  return out;
 }

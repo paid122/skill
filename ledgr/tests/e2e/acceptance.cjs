@@ -12,15 +12,23 @@ const ROUTES = ["/dashboard", "/journal", "/daily-journal", "/weekly-review", "/
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
 
 const results = [];
+let currentPage = null;
 async function check(name, fn) {
   try { await fn(); results.push(["PASS", name]); console.log("PASS", name); }
-  catch (e) { results.push(["FAIL", name, e.message]); console.log("FAIL", name, "\n   ", e.message.split("\n")[0]); }
+  catch (e) {
+    results.push(["FAIL", name, e.message]);
+    console.log("FAIL", name, "\n   ", e.message.split("\n").slice(0, 3).join(" | "));
+    if (process.env.SHOTS && currentPage) await currentPage.screenshot({ path: `${process.env.SHOTS}/fail-${results.length}.png` }).catch(() => {});
+    if (currentPage) await currentPage.keyboard.press("Escape").catch(() => {});
+  }
 }
 
 (async () => {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 }, acceptDownloads: true });
   const page = await ctx.newPage();
+  currentPage = page;
+  page.setDefaultTimeout(Number(process.env.STEP_TIMEOUT || 10000));
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   const go = async (path) => { await page.goto(BASE + path); await page.waitForLoadState("networkidle"); await page.waitForTimeout(400); };
@@ -46,9 +54,9 @@ async function check(name, fn) {
 
   await check("Sidebar navigation reaches every route with an active state", async () => {
     await go("/dashboard");
-    for (const label of ["Trade Journal", "Analytics", "Study Room", "Settings"]) {
+    for (const [label, path] of [["Trade Journal", "/journal"], ["Analytics", "/analytics"], ["Study Room", "/study"], ["Settings", "/settings"]]) {
       await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: label }).click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForURL((u) => new URL(u).pathname === path);
       const current = page.getByRole("navigation", { name: "Primary" }).locator('[aria-current="page"]');
       assert.equal((await current.textContent()).trim(), label);
     }
@@ -200,7 +208,7 @@ async function check(name, fn) {
     assert.equal(await page.locator("html").getAttribute("data-theme"), "light");
     await main().getByLabel("Custom accent hex").fill("#FFFFF0");
     await main().getByLabel("Custom accent hex").press("Enter");
-    await page.getByRole("alert").waitFor();
+    await page.getByRole("alert").filter({ hasText: "contrast" }).waitFor();
     await main().getByRole("button", { name: /^Midnight/ }).click();
   });
 
@@ -209,7 +217,7 @@ async function check(name, fn) {
     await main().getByRole("button", { name: "Delete" }).click();
     await dialog().getByRole("button", { name: "Delete trade" }).click();
     await page.waitForURL(/\/journal$/);
-    assert.equal(await main().locator("tbody tr", { hasText: "ES" }).count(), 0);
+    assert.equal(await main().locator("tbody tr td:nth-child(2)").filter({ hasText: /^ES$/ }).count(), 0);
   });
 
   await check("Mobile layout: bottom navigation and no horizontal overflow", async () => {

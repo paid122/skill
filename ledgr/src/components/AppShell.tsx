@@ -118,7 +118,6 @@ function Sidebar({ collapsed, translucent }: { collapsed: boolean; translucent: 
 
   return (
     <aside
-      aria-label="Primary"
       className={cx(
         "fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line-soft transition-[width] duration-200 lg:flex",
         collapsed ? "w-[72px]" : "w-[248px]",
@@ -136,7 +135,7 @@ function Sidebar({ collapsed, translucent }: { collapsed: boolean; translucent: 
           </IconButton>
         )}
       </div>
-      <nav ref={navRef} className="flex-1 overflow-y-auto px-3 pb-4 scroll-thin">
+      <nav ref={navRef} aria-label="Primary" className="flex-1 overflow-y-auto px-3 pb-4 scroll-thin">
         {NAV.map((g) => (
           <div key={g.label} className="mt-4 first:mt-1">
             {!collapsed ? <p className="mb-1.5 px-3 text-[11px] font-medium text-muted">{g.label}</p> : <div className="mx-auto mb-2 h-px w-6 bg-line-soft" />}
