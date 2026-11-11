@@ -7,14 +7,14 @@ import {
 import { useLedgr } from "@/lib/store";
 import { fmtDate, fmtMoney, fmtNum } from "@/lib/util";
 
-export interface ThemeColors { pos: string; neg: string; accent: string; text: string; text2: string; muted: string; grid: string; card: string; card2: string; border: string; series: string[] }
+export interface ThemeColors { neutral: string; pos: string; neg: string; accent: string; text: string; text2: string; muted: string; grid: string; card: string; card2: string; border: string; series: string[] }
 
 const read = (): ThemeColors => {
   const cs = getComputedStyle(document.documentElement);
   const v = (n: string) => cs.getPropertyValue(n).trim();
-  return { pos: v("--pos"), neg: v("--neg"), accent: v("--accent"), text: v("--text"), text2: v("--text-2"), muted: v("--muted"), grid: v("--grid"), card: v("--card"), card2: v("--card-2"), border: v("--border"), series: [1, 2, 3, 4, 5].map((i) => v(`--series-${i}`)) };
+  return { neutral: v("--neutral"), pos: v("--pos"), neg: v("--neg"), accent: v("--accent"), text: v("--text"), text2: v("--text-2"), muted: v("--muted"), grid: v("--grid"), card: v("--card"), card2: v("--card-2"), border: v("--border"), series: [1, 2, 3, 4, 5].map((i) => v(`--series-${i}`)) };
 };
-const FALLBACK: ThemeColors = { pos: "#42B883", neg: "#E36E73", accent: "#C5A66D", text: "#F1F2F0", text2: "#A4AAB1", muted: "#747E89", grid: "rgba(255,255,255,.04)", card: "#151A20", card2: "#1A2027", border: "#262D36", series: ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181"] };
+const FALLBACK: ThemeColors = { neutral: "#D6B36C", pos: "#42B883", neg: "#E36E73", accent: "#C5A66D", text: "#F1F2F0", text2: "#A4AAB1", muted: "#747E89", grid: "rgba(255,255,255,.04)", card: "#151A20", card2: "#1A2027", border: "#262D36", series: ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181"] };
 
 /** Resolved theme colours for SVG attributes; re-reads when appearance changes. */
 export function useThemeColors(): ThemeColors {
@@ -149,7 +149,7 @@ export function CountBars({ data, height = 220, xLabel, color }: { data: { label
           <YAxis {...axisProps} tick={{ fill: c.muted }} allowDecimals={false} width={40} />
           <Tooltip content={<ChartTooltip render={(p) => (<><p className="text-muted">{xLabel}: {String(p.label)}</p><p className="num mt-1">{p.value as number} trades</p></>)} />} />
           <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={36} animationDuration={500}>
-            {data.map((d, i) => <Cell key={i} fill={d.tone === "pos" ? c.pos : d.tone === "neg" ? c.neg : color ?? c.accent} />)}
+            {data.map((d, i) => <Cell key={i} fill={d.tone === "pos" ? c.pos : d.tone === "neg" ? c.neg : color === "neutral" ? c.neutral : color ?? c.accent} />)}
           </Bar>
         </BarChart>
       </ResponsiveContainer>

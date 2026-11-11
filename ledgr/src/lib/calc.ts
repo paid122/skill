@@ -384,3 +384,8 @@ export function median(xs: number[]): number | null {
   const mid = Math.floor(s.length / 2);
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
+
+/** Trades linked to a strategy explicitly, or (when unlinked) by matching setup name. */
+export function tradesForStrategy(all: EnrichedTrade[], s: { id: string; name: string }) {
+  return all.filter((x) => x.trade.strategyId === s.id || (!x.trade.strategyId && x.trade.setup.trim().toLowerCase() === s.name.toLowerCase()));
+}
