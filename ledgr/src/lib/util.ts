@@ -195,3 +195,8 @@ export function safeUrl(url: string): string | null {
     return null;
   }
 }
+
+export function gradeLabel(points: number) {
+  const scale: [number, string][] = [[4.15, "A+"], [3.5, "A"], [2.5, "B"], [1.5, "C"], [0.5, "D"], [-1, "F"]];
+  return `${scale.find(([p]) => points >= p)![1]} (${fmtNum(points, 1)})`;
+}

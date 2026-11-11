@@ -42,5 +42,5 @@ export function BlobImage({ blobId, alt, className }: { blobId: string; alt: str
   if (missing) return <div className={cx("grid place-items-center bg-card-2 text-muted", className)}><ImageOff size={18} /></div>;
   if (!url) return <div className={cx("skeleton", className)} />;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt={alt} className={cx("object-cover", className)} />;
+  return <img src={url} alt={alt} className={cx(!className?.includes("object-") && "object-cover", className)} />;
 }
