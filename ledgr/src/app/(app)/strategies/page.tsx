@@ -37,7 +37,7 @@ export default function StrategiesPage() {
             <p className="text-xs text-muted">Trades link to a strategy when selected in the editor, or when their setup name matches. Select up to four cards to compare.</p>
             <div className="w-56"><Toggle label="Show archived" checked={showArchived} onChange={setShowArchived} /></div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 xl:grid-cols-3">
             {rows.map(({ s, stats, curve }) => {
               const on = compare.includes(s.id);
               return (

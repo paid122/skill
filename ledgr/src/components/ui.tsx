@@ -70,7 +70,7 @@ export function Tooltip({ text, children, side = "top", className }: { text: Rea
   return (
     <span className={cx("group/tt relative inline-flex", className)}>
       {children}
-      <span role="tooltip" className={cx("pointer-events-none absolute z-50 w-max max-w-[260px] rounded-lg border border-line bg-card-2 px-2.5 py-1.5 text-xs font-normal leading-snug text-text opacity-0 shadow-xl transition-opacity duration-150 group-hover/tt:opacity-100 group-focus-within/tt:opacity-100", pos)}>
+      <span role="tooltip" className={cx("pointer-events-none absolute z-50 w-max max-w-[260px] hidden rounded-lg border border-line bg-card-2 px-2.5 py-1.5 text-xs font-normal leading-snug text-text shadow-xl animate-fade group-hover/tt:block group-focus-within/tt:block", pos)}>
         {text}
       </span>
     </span>

@@ -42,7 +42,7 @@ function Library() {
       <Tabs value={tab} onChange={setTab} tabs={[{ value: "browse", label: "Browse" }, { value: "favourites", label: `Favourites (${favourites.length})` }, { value: "history", label: "Previously shown" }]} />
 
       {tab === "browse" && (
-        <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
           <Card className="flex flex-col gap-5 xl:sticky xl:top-24">
             <div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search text or reference" className="pl-9" aria-label="Search verses" /></div>
             <div><p className="mb-2 text-xs text-muted">Topics</p><Chips options={TOPICS} value={topics} onChange={setTopics} /></div>
@@ -67,7 +67,7 @@ function Library() {
 
       {tab === "favourites" && (
         favourites.length === 0 ? <EmptyState title="No favourites yet" body="Select the heart on any verse to keep it here and write your own reflection." /> : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2">
             {[...favourites].reverse().map((f) => {
               const v = VERSE_BY_ID.get(f.verseId);
               if (!v) return null;

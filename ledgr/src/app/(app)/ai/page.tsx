@@ -83,7 +83,7 @@ export default function AIPage() {
       <PageIntro title="Ledgr AI" sub="A historical analyst for your own journal. It reviews what you have recorded — it never gives financial advice or tells you what to trade." actions={<ScopeControls />} />
       <PageVerse page="ai" compact />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
         <Card pad={false} className="p-2">
           <Button className="mb-2 w-full" icon={<Plus size={14} />} onClick={() => { const c = newConversation(); setActiveId(c.id); }}>New conversation</Button>
           <ul className="max-h-[60vh] overflow-y-auto scroll-thin">
@@ -114,7 +114,7 @@ export default function AIPage() {
                   <p className="text-[15px] font-medium">Ask about your records</p>
                   <p className="mt-1 text-[13px] text-muted">Trade reviews, weekly summaries, setup and emotion patterns. Answers cite the trades they draw on.</p>
                 </div>
-                <div className="grid w-full gap-2 sm:grid-cols-2">
+                <div className="grid grid-cols-[minmax(0,1fr)] w-full gap-2 sm:grid-cols-2">
                   {SUGGESTED.map((s) => <button key={s} type="button" disabled={busy} onClick={() => send(s)} className="rounded-xl border border-line-soft bg-bg-2/50 px-3 py-2.5 text-left text-[13px] text-text-2 transition-colors hover:border-line hover:text-text">{s}</button>)}
                 </div>
               </div>

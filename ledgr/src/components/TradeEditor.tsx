@@ -253,7 +253,7 @@ function ExecutionTab({ t, set, m }: TabProps & { m: ReturnType<typeof tradeMetr
           <Button size="sm" onClick={() => { if (custom.trim()) { set({ confluences: [...new Set([...t.confluences, custom.trim()])] }); setCustom(""); } }}>Add</Button>
         </div>
       </Field>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
         <Field label="Entry notes"><Textarea value={t.entryNotes} onChange={(e) => set({ entryNotes: e.target.value })} placeholder="Why did you enter here?" /></Field>
         <Field label="Exit notes"><Textarea value={t.exitNotes} onChange={(e) => set({ exitNotes: e.target.value })} placeholder="Why did you exit here?" /></Field>
       </div>
@@ -344,7 +344,7 @@ function AttachmentsTab({ t, set, onUploaded }: TabProps & { onUploaded: (id: st
         return (
           <section key={g.role}>
             <h3 className="mb-2 text-[13px] font-semibold">{g.label}</h3>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
               {items.map((a) => (
                 <div key={a.id} className="overflow-hidden rounded-xl border border-line-soft bg-bg-2/40">
                   <BlobImage blobId={a.blobId} alt={a.name} className="aspect-video w-full" />

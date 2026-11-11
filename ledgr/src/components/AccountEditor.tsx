@@ -17,7 +17,7 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
   };
   return (
     <Modal open onClose={onClose} size="lg" title={initial.name ? `Edit ${initial.name}` : "New account"} description="Simulated and historical records only. Ledgr never connects to a broker." footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="accent" onClick={save}>Save account</Button></>}>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
         <Field label="Account name"><Input value={a.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} /></Field>
         <Field label="Type"><Select value={a.type} onChange={(e) => set({ type: e.target.value as AccountType })}>{ACCOUNT_TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
         <Field label="Virtual starting balance"><NumberInput value={a.startingBalance} allowEmpty={false} onChange={(n) => set({ startingBalance: n ?? 0 })} /></Field>

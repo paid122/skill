@@ -74,7 +74,7 @@ function Weekly() {
         <Stat label="Journal days" value={`${journalDays} / ${new Set(week.map((x) => x.trade.date)).size || 0}`} hint="Post-session entries / trading days" />
       </Card>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Card>
           <SectionTitle title="Your reflection" action={<span className="inline-flex items-center gap-1 text-xs text-muted">{saved === "saving" ? "Saving…" : saved === "saved" ? <><Check size={12} className="text-pos" /> Saved</> : "Saves automatically"}</span>} />
           <div className="grid gap-4">

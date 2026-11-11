@@ -54,12 +54,12 @@ export default function StrategyDetailPage() {
         <Stat label="Max drawdown" value={fmtMoney(stats.maxDD.amount, currency)} />
       </Card>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <div className="flex flex-col gap-6">
           <Card>
             <SectionTitle title="Definition" />
             <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-text">{s.description || <span className="text-muted">No description.</span>}</p>
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
               <Criteria title="Entry criteria" items={lines(s.entryCriteria)} />
               <Criteria title="Exit criteria" items={lines(s.exitCriteria)} />
             </div>

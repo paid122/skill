@@ -67,7 +67,7 @@ function Notes() {
   };
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
       <div className="flex flex-col gap-4">
         <Card pad={false} className="p-2">
           <div className="flex items-center justify-between px-2 py-1.5"><span className="text-xs font-medium text-muted">Folders</span><IconButton label="New folder" className="h-7 w-7" onClick={() => { setFolderError(null); setFolderEdit({ id: null, name: "" }); }}><FolderPlus size={14} /></IconButton></div>

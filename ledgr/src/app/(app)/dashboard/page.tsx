@@ -71,8 +71,8 @@ export default function DashboardPage() {
 
       <MainChart current={current} currency={currency} />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="grid items-start gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)]">
           <Card>
             <SectionTitle title="Performance calendar" sub="Daily net, closed trades. Gold dot: journal entry." />
             <PerformanceCalendar daily={daily} currency={currency} journalDates={new Set(journals.map((j) => j.date))} />

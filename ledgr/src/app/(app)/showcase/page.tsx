@@ -39,7 +39,7 @@ export default function ShowcasePage() {
       {pinned.length === 0 ? (
         <EmptyState icon={<Trophy size={18} />} title="No trades in your showcase yet" body="Pin a closed trade to describe what made it a good example of your process." action={<Button variant="accent" onClick={() => setAdding(true)}>Choose a trade</Button>} />
       ) : (
-        <div className="grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
           <Card pad={false} className="overflow-hidden">
             <ul className="max-h-[70vh] divide-y divide-line-soft overflow-y-auto scroll-thin">
               {pinned.map((x) => (
@@ -101,7 +101,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
   };
 
   return (
-    <div className="grid items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="overflow-x-auto">
         <ShareSurface ref={ref} theme={bg} footer={`${fmtDate(t.date)} · Simulated record`}>
           <div className="flex items-start justify-between gap-4">

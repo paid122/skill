@@ -126,6 +126,7 @@ body {
   color: var(--text);
 }
 body {
+  overflow-x: clip;
   font-family: var(--font-sans);
   font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;

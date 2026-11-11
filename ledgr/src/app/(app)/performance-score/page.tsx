@@ -56,7 +56,7 @@ export default function PerformanceScorePage() {
       </Card>
       {!perf.enough && <p className="-mt-2 text-[13px] text-text-2">Not enough journal data yet. Statistical quality needs at least {minSample} closed trades in range (you have {stats.closed}). The threshold can be changed in Analytics → Pattern insights → Configure.</p>}
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-2">
         <Card>
           <SectionTitle title="Discipline components" sub="Process — never uses P&L" />
           <ul className="flex flex-col gap-4">

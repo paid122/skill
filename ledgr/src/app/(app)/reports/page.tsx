@@ -93,7 +93,7 @@ export default function ReportsPage() {
       <PageIntro title="Reports" sub="Shareable summaries built only from your saved records. Choose what to include — nothing private is added unless you select it." />
       <PageVerse page="reports" compact />
 
-      <div className="grid items-start gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
         <div className="flex flex-col gap-6">
           <Card>
             <SectionTitle title="Build" />

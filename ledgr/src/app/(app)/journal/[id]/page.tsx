@@ -89,7 +89,7 @@ export default function TradeDetailPage() {
         <Stat label="Duration" value={m.durationMinutes === null ? "—" : m.durationMinutes >= 60 ? `${Math.floor(m.durationMinutes / 60)}h ${Math.round(m.durationMinutes % 60)}m` : `${Math.round(m.durationMinutes)} min`} />
       </Card>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-6">
           <Card>
             <SectionTitle title="Chart" sub={hero ? `${hero.role === "after" ? "After exit" : hero.role === "before" ? "Before entry" : "Additional"} · click to enlarge` : undefined} action={<Button size="sm" onClick={() => openEditor(t.id, "attachments")}>Manage images</Button>} />
@@ -151,7 +151,7 @@ export default function TradeDetailPage() {
 
           <Card>
             <SectionTitle title="Execution notes" />
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
               <TextBlock label="Entry notes" text={t.entryNotes} />
               <TextBlock label="Exit notes" text={t.exitNotes} />
             </div>

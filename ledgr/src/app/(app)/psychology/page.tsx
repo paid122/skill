@@ -43,7 +43,7 @@ export default function PsychologyPage() {
       <PageIntro title="Psychology & discipline" sub="Notice patterns in how you feel and decide. This is a private space for honest observation — not for judgement." actions={<ScopeControls />} />
       <PageVerse page="psychology" context={{ emotionsToday: todayEmotions }} />
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card>
           <SectionTitle title="Discipline score" sub="A process measure. Profit and loss are never used." />
           {disc.score === null ? <NotEnoughData note="Log trades to begin measuring your process." /> : (
@@ -83,7 +83,7 @@ export default function PsychologyPage() {
         </div>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-2">
         <Card>
           <SectionTitle title="Historical consistency" sub="Weekly discipline score" />
           {weekly.filter((w) => w.score !== null).length >= 2 ? <TrendLine data={weekly.map((w) => ({ label: w.label, value: w.score, n: w.n }))} name="Discipline" format={(v) => fmtNum(v, 0)} /> : <NotEnoughData note="Needs at least two weeks of trades." />}
@@ -94,7 +94,7 @@ export default function PsychologyPage() {
         </Card>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-2">
         <MistakeTracker categories={mistakeCats} counts={mistakes} />
         <Card>
           <SectionTitle title="Changes over time" sub="Earlier half of your trades in range compared with the later half" />

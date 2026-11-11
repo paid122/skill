@@ -36,7 +36,7 @@ export function StrategyEditor({ initial, onClose }: { initial: Strategy; onClos
 
   return (
     <Modal open onClose={() => onClose()} size="lg" title={initial.name ? `Edit ${initial.name}` : "New strategy"} description="Document how you intend to trade it. Ledgr never suggests strategies." footer={<><Button variant="ghost" onClick={() => onClose()}>Cancel</Button><Button variant="accent" onClick={save}>Save strategy</Button></>}>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-3">
         <Field label="Name" className="md:col-span-3"><Input value={s.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Opening range break" /></Field>
         <Field label="Description" className="md:col-span-3"><Textarea value={s.description} onChange={(e) => set({ description: e.target.value })} /></Field>
         <Field label="Market"><Input value={s.market} maxLength={40} onChange={(e) => set({ market: e.target.value })} placeholder="Futures" /></Field>

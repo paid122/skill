@@ -54,7 +54,7 @@ export default function AccountsPage() {
             <Segmented ariaLabel="Account status" value={view} onChange={setView} options={[{ value: "active", label: `Active (${summaries.filter((x) => x.a.status !== "archived").length})` }, { value: "archived", label: `Archived (${summaries.filter((x) => x.a.status === "archived").length})` }]} />
             <Link href="/account-history" className="text-[13px] text-text-2 hover:text-text">Account history</Link>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 xl:grid-cols-3">
             {shown.map(({ a, s }) => <AccountCard key={a.id} a={a} s={s} onEdit={() => setEditing(a)} />)}
             {shown.length === 0 && <p className="text-[13px] text-muted">No {view} accounts.</p>}
           </div>
@@ -67,7 +67,7 @@ export default function AccountsPage() {
           {evals.length > 0 && (
             <Card>
               <SectionTitle title="Evaluation practice tracker" sub="Educational progress against the rules you set. Simulated records do not represent a verified or funded status." />
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
                 {evals.map(({ a, s }) => {
                   const r = a.rules;
                   const items = [

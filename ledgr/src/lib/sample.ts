@@ -70,7 +70,7 @@ export function buildSampleState(base?: LedgrState): LedgrState {
       const session = pick(sessions);
       const stressed = r() < 0.22;
       const emotions: Emotion[] = stressed ? [pick(["Frustrated", "Impatient", "Distracted", "Hesitant"] as Emotion[])] : [pick(["Calm", "Patient", "Confident"] as Emotion[])];
-      if (r() < 0.2) emotions.push(pick(["Hesitant", "Confident", "Calm"] as Emotion[]));
+      if (r() < 0.2) { const extra = pick(["Hesitant", "Confident", "Calm"] as Emotion[]); if (!emotions.includes(extra)) emotions.push(extra); }
       const followed = stressed ? (r() < 0.35 ? "yes" : r() < 0.6 ? "partial" : "no") : r() < 0.82 ? "yes" : "partial";
       // Process quality influences the simulated outcome distribution slightly.
       const edge = (followed === "yes" ? 0.12 : followed === "partial" ? -0.05 : -0.25) + (session === "Asia" ? -0.1 : 0);

@@ -85,7 +85,7 @@ function Charts({ list, currency, stats }: { list: EnrichedTrade[]; currency: st
   const money = (v: number) => fmtMoney(v, currency, { compact: true });
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
       <ChartCard className="lg:col-span-2" title="1 · Equity curve" sub="Cumulative net by trade. Drag the handles to zoom." enough={enough}><EquityChart data={eqData} currency={currency} /></ChartCard>
       <ChartCard title="2 · Daily P&L" enough={daily.length > 0}><PnlBars data={daily} currency={currency} /></ChartCard>
       <ChartCard title="3 · Monthly P&L" enough={monthly.length > 0}><PnlBars data={monthly} currency={currency} /></ChartCard>
@@ -133,7 +133,7 @@ function Breakdowns({ list, currency }: { list: EnrichedTrade[]; currency: strin
         <p className="text-[13px] text-text-2">Compare groups by one measure. Trades without the attribute are left out.</p>
         <Segmented ariaLabel="Metric" value={metric} onChange={setMetric} options={[{ value: "avgR", label: "Average R" }, { value: "net", label: "Net" }, { value: "winRate", label: "Win rate" }]} />
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
         {dims.map((d) => {
           const rows = groupStats(list, d.key).map((g) => ({ label: g.key, n: g.stats.closed, value: metric === "avgR" ? g.stats.avgR : metric === "net" ? g.stats.net : g.stats.winRate === null ? null : g.stats.winRate * 100, extra: `${fmtPct(g.stats.winRate, 0)} win · ${fmtMoney(g.stats.net, currency, { compact: true })}` })).filter((r): r is { label: string; n: number; value: number; extra: string } => r.value !== null);
           return (
@@ -167,7 +167,7 @@ function Insights({ list }: { list: EnrichedTrade[] }) {
         <p className="flex items-center gap-2 text-[13px] text-text-2"><Info size={14} className="text-muted" /> Insights appear once you have {cfg.minSample} closed trades in range. They describe your records; they do not show cause or predict results.</p>
         <button type="button" onClick={() => setConfiguring(true)} className="inline-flex items-center gap-1.5 text-[13px] text-text-2 hover:text-text"><Settings2 size={14} /> Configure ({shown.length}/{insights.length})</button>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 xl:grid-cols-3">
         {shown.map((i) => (
           <Card key={i.key} className="flex flex-col">
             <div className="mb-2 flex items-start justify-between gap-2">
@@ -267,7 +267,7 @@ function WhatIf({ list, currency }: { list: EnrichedTrade[]; currency: string })
         <FlaskConical size={16} className="mt-0.5 shrink-0 text-accent" />
         <p><span className="font-semibold text-text">Hypothetical, for learning only.</span> This replays your recorded trades under assumptions you choose. It is not a prediction, does not account for how different decisions would have changed later trades, and is not a recommendation.</p>
       </div>
-      <div className="grid items-start gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <Card>
           <SectionTitle title="Assumptions" action={active ? <button type="button" className="text-[13px] text-text-2 hover:text-text" onClick={() => setSc(EMPTY_SCENARIO)}>Reset</button> : undefined} />
           <div className="grid gap-5">

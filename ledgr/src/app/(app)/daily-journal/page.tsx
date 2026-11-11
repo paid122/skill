@@ -73,11 +73,11 @@ function Daily() {
       />
       <PageVerse page="daily" context={{ journalIncomplete: !isComplete(j), emotionsToday }} />
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex flex-col gap-6">
           <Card>
             <SectionTitle title="Pre-session" sub="Before you begin" action={<SaveState status={status} />} />
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
               <Field label="What are my intentions?" className="md:col-span-2"><Textarea value={j.pre.intentions} onChange={(e) => setPre({ intentions: e.target.value })} placeholder="e.g. Trade only my written setups. Log every trade straight after." /></Field>
               <Field label="What am I learning today?"><Textarea value={j.pre.learning} onChange={(e) => setPre({ learning: e.target.value })} /></Field>
               <Field label="What habits do I want to practise?"><Textarea value={j.pre.habits} onChange={(e) => setPre({ habits: e.target.value })} /></Field>
@@ -88,7 +88,7 @@ function Daily() {
 
           <Card>
             <SectionTitle title="Post-session" sub="After the session" action={<SaveState status={status} />} />
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
               <Field label="What happened?" className="md:col-span-2"><Textarea rows={4} value={j.post.happened} onChange={(e) => setPost({ happened: e.target.value })} /></Field>
               <Field label="What did I learn?"><Textarea value={j.post.learned} onChange={(e) => setPost({ learned: e.target.value })} /></Field>
               <Field label="What was difficult?"><Textarea value={j.post.difficult} onChange={(e) => setPost({ difficult: e.target.value })} /></Field>
