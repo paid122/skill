@@ -2,6 +2,7 @@
 import { X } from "lucide-react";
 import Link from "next/link";
 import {
+  cloneElement, isValidElement, type ReactElement,
   createContext, forwardRef, useCallback, useContext, useEffect, useId, useRef, useState,
   type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes,
 } from "react";
@@ -139,11 +140,24 @@ export function NotEnoughData({ note }: { note?: string }) {
 // Form controls
 // ---------------------------------------------------------------------------
 
+const LABELABLE = new Set<unknown>(["input", "select", "textarea"]);
+
+/** Labelled form field. A single input-like child is associated with the label automatically. */
 export function Field({ label, hint, error, children, className, htmlFor }: { label: ReactNode; hint?: ReactNode; error?: string | null; children: ReactNode; className?: string; htmlFor?: string }) {
+  const autoId = useId();
+  let id = htmlFor;
+  let content = children;
+  if (!id && isValidElement(children)) {
+    const el = children as ReactElement<{ id?: string }>;
+    if (LABELABLE.has(el.type) || el.type === Input || el.type === Textarea || el.type === Select || el.type === NumberInput) {
+      id = el.props.id ?? autoId;
+      content = cloneElement(el, { id });
+    }
+  }
   return (
     <div className={cx("flex flex-col gap-1.5", className)}>
-      <label className="label" htmlFor={htmlFor}>{label}</label>
-      {children}
+      {id ? <label className="label" htmlFor={id}>{label}</label> : <span className="label">{label}</span>}
+      {content}
       {error ? <p className="text-xs text-neg">{error}</p> : hint ? <p className="text-xs text-muted">{hint}</p> : null}
     </div>
   );
