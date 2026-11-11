@@ -7,7 +7,7 @@
  *
  * The relational schema in /supabase/migrations mirrors this model for hosted deployments.
  */
-import { useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { emptyState, migrate } from "./defaults";
 import type { LedgrState } from "./types";
 
@@ -128,14 +128,36 @@ export function useStorageError() {
   return useSyncExternalStore(subscribe, () => lastError, serverSnapshot);
 }
 
-/** Select from state. The selector must return a stable reference (state slices, not new objects). */
+/**
+ * Select from state. Results are cached per state snapshot, so selectors may derive
+ * new arrays/objects (e.g. filters) without causing render loops.
+ */
 export function useLedgr<T>(selector: (s: LedgrState) => T): T {
-  return useSyncExternalStore(
-    subscribe,
-    () => selector(state ?? FALLBACK),
-    () => selector(FALLBACK),
-  );
+  const cache = useRef<{ src: LedgrState | null; fn: (s: LedgrState) => T; value: T } | null>(null);
+  const sel = useRef(selector);
+  sel.current = selector;
+  const get = () => {
+    const src = state ?? FALLBACK;
+    if (cache.current && cache.current.src === src && cache.current.fn === sel.current) return cache.current.value;
+    const value = sel.current(src);
+    if (cache.current && cache.current.src === src && shallowEqual(cache.current.value, value)) {
+      cache.current = { src, fn: sel.current, value: cache.current.value };
+      return cache.current.value;
+    }
+    cache.current = { src, fn: sel.current, value };
+    return value;
+  };
+  return useSyncExternalStore(subscribe, get, get);
 }
+function shallowEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || !a || !b) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const ka = Object.keys(a), kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  return ka.every((k) => Object.is((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+}
+
 const FALLBACK = emptyStateStable();
 function emptyStateStable(): LedgrState {
   // Deterministic placeholder used only for server render / before hydration.
