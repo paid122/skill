@@ -42,7 +42,7 @@ export function guessSource(t: Pick<Trade, "symbol" | "market">): { provider: Ca
   // Everything else: Yahoo Finance (free, no key). Futures use the front contract (NQ=F),
   // forex pairs EURUSD=X, stocks their ticker. CFDs map to the matching future, whose
   // prices differ slightly; the card flags a mismatch instead of hiding it.
-  const CFD: Record<string, string> = { NAS100: "NQ", US100: "NQ", USTEC: "NQ", NDX: "NQ", US30: "YM", DJ30: "YM", WS30: "YM", SPX500: "ES", US500: "ES", SPX: "ES", US2000: "RTY", USOIL: "CL", WTI: "CL", UKOIL: "BZ", NATGAS: "NG", GOLD: "GC", SILVER: "SI", XAUUSD: "GC", XAGUSD: "SI", XPTUSD: "PL", XPDUSD: "PA" };
+  const CFD: Record<string, string> = { NAS100: "NQ", US100: "NQ", USTEC: "NQ", NDX: "NQ", US30: "YM", DJ30: "YM", WS30: "YM", SPX500: "ES", US500: "ES", SPX: "ES", US2000: "RTY", USOIL: "CL", WTI: "CL", UKOIL: "BZ", NATGAS: "NG", GOLD: "GC", SILVER: "SI", XAUUSD: "GC", XAGUSD: "SI", XPTUSD: "PL", XPDUSD: "PA", XCUUSD: "HG", COPPER: "HG", PLATINUM: "PL", PALLADIUM: "PA" };
   if (CFD[clean]) return { provider: "yahoo", dataSymbol: `${CFD[clean]}=F` };
   if (t.market === "Futures" || t.market === "Commodities" || t.market === "Indices") {
     const root = clean.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || clean; // NQZ6 → NQ

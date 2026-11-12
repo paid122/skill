@@ -10,6 +10,12 @@ import { useBlobUrl } from "./BlobImage";
 import { LogoMark } from "./Logo";
 import { themeColors } from "./ShareCard";
 
+/** Price with 2 decimals (up to 3 under 1,000, up to 5 under 10), without trailing zeros (6.27200 → 6.272). */
+function fmtPrice(p: number | null) {
+  if (p === null) return "—";
+  return p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: p >= 1000 ? 2 : p >= 10 ? 3 : 5 });
+}
+
 export interface PosterOptions { amounts: boolean; account: string | null; handle: string; currency: string }
 
 /** Background media (the user's own image or video), dimmed and optionally blurred for legibility. */
@@ -147,7 +153,10 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
   const good = (m.r ?? m.net ?? 0) >= 0;
   const big = opts.amounts ? fmtMoney(m.net, opts.currency, { sign: true }) : fmtR(m.r);
   const date = parseISODate(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
-  const size = m.entryQty ? `${fmtNum(m.entryQty, m.entryQty % 1 ? 2 : 0)} ${t.market === "Futures" ? (m.entryQty === 1 ? "contract" : "contracts") : t.market === "Stocks" ? "shares" : t.market === "Forex" ? "lots" : "units"}` : "—";
+  const noun = t.market === "Futures" ? "contract" : t.market === "Stocks" ? "share" : t.market === "Forex" || t.market === "Commodities" || t.market === "Indices" ? "lot" : "unit";
+  const size = m.entryQty ? `${fmtNum(m.entryQty, m.entryQty % 1 ? 2 : 0)} ${noun}${m.entryQty === 1 ? "" : "s"}` : "—";
+  // Big number shrinks for long amounts so it never runs into the chart.
+  const bigSize = big.length <= 8 ? 92 : big.length <= 10 ? 78 : big.length <= 12 ? 66 : 56;
 
   return (
     <div ref={ref} className="relative overflow-hidden rounded-[28px]" style={{ width: 960, height: 504, background: theme.gradient ? `${theme.gradient}, ${theme.bg}` : theme.bg, color: fg, fontFamily: "'Inter Variable', Inter, system-ui, sans-serif" }}>
@@ -160,12 +169,12 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
             <span className="text-[15px] font-semibold uppercase tracking-[0.14em]" style={{ color: sub }}>{t.direction ?? ""} · {date}</span>
           </div>
           <div>
-            <p className="text-[92px] font-extrabold leading-none tracking-[-0.04em]" style={{ color: onMedia ? fg : good ? theme.pos : theme.neg, textShadow: onMedia ? "0 8px 40px rgba(0,0,0,0.45)" : undefined }}>{big}</p>
+            <p className="font-extrabold leading-none tracking-[-0.04em]" style={{ fontSize: bigSize, color: onMedia ? fg : good ? theme.pos : theme.neg, textShadow: onMedia ? "0 8px 40px rgba(0,0,0,0.45)" : undefined }}>{big}</p>
             {opts.amounts && m.r !== null && <p className="mt-2 font-mono text-[18px]" style={{ color: sub }}>{fmtR(m.r)}</p>}
           </div>
           <dl className="grid w-fit grid-cols-[110px_auto] gap-y-3 text-[22px]">
-            <dt style={{ color: sub }}>Entry</dt><dd className="font-semibold">{fmtNum(m.avgEntry, m.avgEntry !== null && m.avgEntry < 10 ? 5 : 2)}</dd>
-            <dt style={{ color: sub }}>Exit</dt><dd className="font-semibold">{fmtNum(m.avgExit, m.avgExit !== null && m.avgExit < 10 ? 5 : 2)}</dd>
+            <dt style={{ color: sub }}>Entry</dt><dd className="font-semibold">{fmtPrice(m.avgEntry)}</dd>
+            <dt style={{ color: sub }}>Exit</dt><dd className="font-semibold">{fmtPrice(m.avgExit)}</dd>
             <dt style={{ color: sub }}>Size</dt><dd className="font-semibold">{size}</dd>
           </dl>
           <div className="flex items-center gap-3 text-[17px] font-bold">

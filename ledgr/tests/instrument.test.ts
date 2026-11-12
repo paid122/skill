@@ -26,6 +26,10 @@ describe("symbolImage", () => {
     expect(symbolImage("ESZ6", "Futures")).toEqual({ kind: "single", src: "/api/logo?s=SPGI" });
     expect(symbolImage("NAS100", "Indices")).toEqual({ kind: "single", src: "/api/logo?s=NDAQ" });
     expect(symbolImage("CL", "Futures")).toEqual({ kind: "single", src: "/api/logo?s=CME" });
+    expect(symbolImage("GCZ6", "Futures")).toEqual({ kind: "single", src: "/symbols/metals/xau.svg" });
+    expect(symbolImage("HG", "Futures")).toEqual({ kind: "single", src: "/symbols/metals/xcu.svg" });
+    expect(symbolImage("XCUUSD", "Commodities")).toEqual({ kind: "single", src: "/symbols/metals/xcu.svg" });
+    expect(symbolImage("COPPER", null)).toEqual({ kind: "single", src: "/symbols/metals/xcu.svg" });
     expect(symbolImage("BTCUSD", "Crypto")).toEqual({ kind: "single", src: "/symbols/crypto/btc.svg" });
     expect(symbolImage("EURUSD", "Forex")).toEqual({ kind: "pair", a: "/symbols/flags/eu.svg", b: "/symbols/flags/us.svg" });
     expect(symbolImage("AAPL", "Stocks")).toEqual({ kind: "single", src: "/api/logo?s=AAPL" });

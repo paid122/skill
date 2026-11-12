@@ -8,7 +8,7 @@ export type MarketGlyph = { text: string; icon?: undefined } | { icon: "oil" | "
 
 const CCY: Record<string, string> = { EUR: "€", GBP: "£", USD: "$", JPY: "¥", AUD: "A$", NZD: "N$", CAD: "C$", CHF: "₣", CNH: "¥", MXN: "M$", ZAR: "R", SEK: "kr", NOK: "kr" };
 const CRYPTO: Record<string, string> = { BTC: "₿", ETH: "Ξ", SOL: "◎", XRP: "✕", LTC: "Ł", DOGE: "Ð", ADA: "₳" };
-const METAL: Record<string, string> = { XAU: "Au", GC: "Au", MGC: "Au", GOLD: "Au", XAG: "Ag", SI: "Ag", SIL: "Ag", SILVER: "Ag", XPT: "Pt", PL: "Pt", XPD: "Pd", PA: "Pd", HG: "Cu", COPPER: "Cu" };
+const METAL: Record<string, string> = { XAU: "Au", GC: "Au", MGC: "Au", GOLD: "Au", XAG: "Ag", SI: "Ag", SIL: "Ag", SILVER: "Ag", XPT: "Pt", PL: "Pt", XPD: "Pd", PA: "Pd", XCU: "Cu", HG: "Cu", MHG: "Cu", COPPER: "Cu" };
 const OIL = new Set(["CL", "MCL", "QM", "BZ", "USOIL", "UKOIL", "WTI", "BRENT"]);
 const GAS = new Set(["NG", "QG", "NATGAS"]);
 const INDEX_CFD: Record<string, string> = { NAS100: "NQ", US100: "NQ", USTEC: "NQ", US30: "YM", DJ30: "YM", WS30: "YM", SPX500: "ES", US500: "ES", US2000: "RTY", GER40: "DAX", DE40: "DAX", UK100: "FT", JP225: "NK" };
@@ -56,7 +56,10 @@ export function symbolImage(symbol: string, market: Market | null): SymbolImage 
   const s = (symbol || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!s) return null;
   const root = market === "Futures" ? s.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || s : s;
-  if (/^(XAU|XAG|XPT|XPD)/.test(root)) return metalImage(root);
+  if (/^(XAU|XAG|XPT|XPD|XCU)/.test(root)) return metalImage(root.slice(0, 3));
+  // Metal futures and names use the same bullion icons.
+  const METAL_ROOT: Record<string, string> = { GC: "XAU", MGC: "XAU", GOLD: "XAU", SI: "XAG", SIL: "XAG", SILVER: "XAG", PL: "XPT", PLATINUM: "XPT", PA: "XPD", PALLADIUM: "XPD", HG: "XCU", MHG: "XCU", COPPER: "XCU" };
+  if (METAL_ROOT[root] && market !== "Stocks") return metalImage(METAL_ROOT[root]);
   if (market === "Futures" || market === "Indices" || market === "Commodities" || (!market && FUTURE_OWNER[root])) {
     return FUTURE_OWNER[root] ? { kind: "single", src: `/api/logo?s=${FUTURE_OWNER[root]}` } : null;
   }
