@@ -40,10 +40,10 @@ export default function LandingPage() {
   return (
     <>
       {/* Hero */}
-      <section className="grain relative isolate flex min-h-[100svh] items-center overflow-hidden">
-        <Hero3D className="absolute inset-0 -z-10" />
-        <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(80%_60%_at_20%_40%,rgba(0,0,0,0.85),transparent_70%)]" />
-        <div className="mx-auto w-full max-w-[1200px] px-5 pb-20 pt-32 sm:px-8">
+      <section className="grain relative isolate flex min-h-[100svh] flex-col overflow-hidden lg:flex-row lg:items-center">
+        <Hero3D className="relative mt-16 h-[300px] w-full sm:h-[380px] lg:absolute lg:inset-0 lg:-z-10 lg:mt-0 lg:h-auto" />
+        <div aria-hidden className="absolute inset-0 -z-10 hidden bg-[radial-gradient(80%_60%_at_20%_40%,rgba(0,0,0,0.85),transparent_70%)] lg:block" />
+        <div className="mx-auto w-full max-w-[1200px] px-5 pb-20 pt-4 sm:px-8 lg:pt-32">
           <Reveal>
             <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-[12.5px] text-white/70 backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-white" /> Free to use · Private by default

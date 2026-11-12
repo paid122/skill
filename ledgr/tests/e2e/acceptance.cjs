@@ -220,6 +220,29 @@ async function check(name, fn) {
     assert.equal(await main().locator("tbody tr td:nth-child(2)").filter({ hasText: /^ES$/ }).count(), 0);
   });
 
+  await check("Public website pages load with the 3D hero and working navigation", async () => {
+    await page.goto(BASE + "/"); await page.waitForTimeout(1500);
+    assert.ok(await page.getByRole("heading", { name: "Discipline over impulse." }).isVisible());
+    await page.locator("canvas").first().waitFor({ state: "attached" });
+    for (const [label, heading] of [["Features", /Every feature/], ["Pricing", /Simple\. Free\./], ["Reviews", /^Reviews$/], ["Community", /Grow alongside/], ["Affiliates", /Share Ledgr/]]) {
+      await page.getByRole("navigation", { name: "Site" }).getByRole("link", { name: label }).click();
+      await page.getByRole("heading", { level: 1, name: heading }).waitFor();
+    }
+    for (const r of ["/privacy", "/terms"]) { await page.goto(BASE + r); await page.getByRole("heading", { level: 1 }).waitFor(); }
+  });
+
+  await check("Sign-up explains when accounts are not connected and still lets you in", async () => {
+    await page.goto(BASE + "/signup"); await page.waitForTimeout(800);
+    const notConnected = await page.getByRole("heading", { name: /Accounts aren't switched on yet/ }).isVisible().catch(() => false);
+    if (notConnected) {
+      await page.getByRole("link", { name: "Continue without an account" }).click();
+      await page.waitForURL(/\/dashboard$/);
+    } else {
+      assert.ok(await page.getByLabel("Email").isVisible());
+      assert.ok(await page.getByRole("button", { name: "Continue with Google" }).isVisible());
+    }
+  });
+
   await check("Mobile layout: bottom navigation and no horizontal overflow", async () => {
     const m = await browser.newContext({ ...devices["iPhone 13"] });
     const mp = await m.newPage();

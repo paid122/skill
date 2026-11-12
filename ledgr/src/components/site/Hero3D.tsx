@@ -33,6 +33,7 @@ export function Hero3D({ className }: { className?: string }) {
       renderer.toneMappingExposure = 1.05;
       el.appendChild(renderer.domElement);
       renderer.domElement.setAttribute("aria-hidden", "true");
+      renderer.domElement.style.cssText = "display:block;width:100%;height:100%";
 
       const scene = new THREE.Scene();
       const pmrem = new THREE.PMREMGenerator(renderer);
@@ -88,6 +89,8 @@ export function Hero3D({ className }: { className?: string }) {
 
       // --- Interaction ------------------------------------------------------
       const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+      let baseX = 0;
+      let scrollFactor = 1.2;
       const onMove = (e: PointerEvent) => { pointer.tx = (e.clientX / window.innerWidth - 0.5) * 2; pointer.ty = (e.clientY / window.innerHeight - 0.5) * 2; };
       window.addEventListener("pointermove", onMove, { passive: true });
 
@@ -95,9 +98,15 @@ export function Hero3D({ className }: { className?: string }) {
         const w = el.clientWidth, h = el.clientHeight;
         renderer.setSize(w, h, false);
         camera.aspect = w / Math.max(1, h);
-        // Pull back on narrow screens so the mark stays in frame.
-        camera.position.z = camera.aspect < 1 ? 13 : 9.5;
-        mark.position.x = camera.aspect > 1.4 ? 1.9 : 0;
+        // Keep the mark clear of the headline: right-hand side on wide screens,
+        // smaller and behind the copy (dimmed by the overlay) on narrow ones.
+        // Desktop: the canvas fills the hero and the mark sits right of the headline.
+        // Mobile: the canvas is its own band above the copy, with the mark centred.
+        const desktop = window.innerWidth >= 1024;
+        camera.position.z = desktop ? 13 : 11;
+        baseX = desktop ? Math.min(3.6, 1.2 + camera.aspect * 1.3) : 0;
+        mark.scale.setScalar(desktop ? 0.9 : 0.62);
+        scrollFactor = desktop ? 1.2 : 0;
         camera.updateProjectionMatrix();
       };
       const ro = new ResizeObserver(resize);
@@ -119,7 +128,8 @@ export function Hero3D({ className }: { className?: string }) {
         const scroll = Math.min(1, window.scrollY / Math.max(1, el.clientHeight));
         mark.rotation.y = -0.42 + Math.sin(t * 0.35) * 0.18 + pointer.x * 0.35 + scroll * 0.9;
         mark.rotation.x = -0.12 + Math.cos(t * 0.3) * 0.06 + pointer.y * 0.18;
-        mark.position.y = Math.sin(t * 0.8) * 0.08 - scroll * 1.2;
+        mark.position.y = Math.sin(t * 0.8) * 0.08 - scroll * scrollFactor;
+        mark.position.x = baseX;
         for (const l of lineData) l.mesh.position.x = l.base + Math.sin(t * l.speed + l.phase) * 0.6;
         lines.rotation.y = pointer.x * 0.05;
         dust.rotation.y = t * 0.01;
@@ -128,7 +138,7 @@ export function Hero3D({ className }: { className?: string }) {
         camera.lookAt(0, 0, 0);
         renderer.render(scene, camera);
       };
-      if (reduce) renderer.render(scene, camera); else frame();
+      if (reduce) { mark.position.x = baseX; renderer.render(scene, camera); } else frame();
 
       cleanup = () => {
         cancelAnimationFrame(raf);

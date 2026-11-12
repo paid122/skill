@@ -22,6 +22,22 @@ npm run build && npm start                 # production build
 BASE_URL=http://localhost:3000 npm run test:e2e   # 21 end-to-end acceptance checks (needs Playwright + Chromium)
 ```
 
+## Turn on accounts (Supabase)
+
+Ledgr works without accounts. To enable sign up, log in, Google sign-in, cloud sync, reviews and site sign-ups:
+
+1. Create a free project at supabase.com.
+2. In the project's **SQL Editor**, run `supabase/migrations/0001_ledgr_schema.sql`, then `0002_accounts_sync_site.sql`.
+3. In **Settings → API**, copy the Project URL and the anon/public key into `.env.local`:
+   `NEXT_PUBLIC_SUPABASE_URL=…` and `NEXT_PUBLIC_SUPABASE_ANON_KEY=…`
+4. In **Authentication → URL Configuration**, set the Site URL to your domain and add `https://YOUR-DOMAIN/auth/callback` and `https://YOUR-DOMAIN/reset-password` as redirect URLs.
+5. Optional: enable **Google** under Authentication → Providers.
+6. Reviews appear on the site only after you set their `status` to `approved` in the `reviews` table. Community and affiliate sign-ups are in `site_signups`.
+
+## Public website
+
+`/` (landing with a 3D hero), `/features`, `/pricing`, `/reviews`, `/community`, `/affiliates`, `/privacy`, `/terms`, `/login`, `/signup`, `/forgot-password`. The app itself starts at `/dashboard`.
+
 ## What's inside
 
 | Route | Purpose |
@@ -52,6 +68,6 @@ BASE_URL=http://localhost:3000 npm run test:e2e   # 21 end-to-end acceptance che
 
 ## Status and known limits
 
-- Data is stored per browser. Supabase authentication and sync are **not wired in yet**; the schema is ready and has been verified (migration applies cleanly; RLS isolation tested between two users).
+- Without Supabase configured, data is stored per browser. With it, the journal syncs as one snapshot per user (`user_snapshots`) plus files in a private bucket; the fully relational tables in `0001` are ready for a future normalised sync. Both migrations and their row-level security were verified on PostgreSQL; sign-up/sync against a live Supabase project has not been tested in this environment.
 - The Ledgr AI route has a simple per-instance rate limit; production deployments should add authentication in front of it.
 - YouTube is the only embeddable video source for timestamped notes.
