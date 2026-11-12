@@ -96,6 +96,8 @@ export interface Trade {
     media?: { blobId: ID; kind: "image" | "video"; dim: number; blur: number } | null;
     /** Real candles from a market-data provider, saved when the user loads them. */
     chart?: TradeChart | null;
+    /** Optional custom market icon (an uploaded image). */
+    icon?: ID | null;
   } | null;
   isDraft: boolean;
   activity: ActivityEntry[];

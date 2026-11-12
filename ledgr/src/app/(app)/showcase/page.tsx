@@ -114,6 +114,20 @@ function Editor({ x }: { x: EnrichedTrade }) {
     setShowcase({ layout: "poster", media: { blobId, kind: file.type.startsWith("video/") ? "video" : "image", dim: media?.dim ?? 0.45, blur: media?.blur ?? 0 } });
     if (fileRef.current) fileRef.current.value = "";
   };
+  const iconRef = useRef<HTMLInputElement>(null);
+  const uploadIcon = async (file: File | undefined) => {
+    if (!file) return;
+    const problem = validateUpload(file, ["image"]);
+    if (problem) { setUploadError(problem); return; }
+    if (file.size > 2 * 1024 * 1024) { setUploadError("Icon must be under 2 MB."); return; }
+    setUploadError(null);
+    const blobId = uid("blob");
+    await putBlob(blobId, file);
+    if (sc.icon) await deleteBlob(sc.icon).catch(() => undefined);
+    setShowcase({ icon: blobId });
+    if (iconRef.current) iconRef.current.value = "";
+  };
+  const removeIcon = async () => { if (sc.icon) await deleteBlob(sc.icon).catch(() => undefined); setShowcase({ icon: null }); };
   const removeMedia = async () => { if (media) await deleteBlob(media.blobId).catch(() => undefined); setShowcase({ media: null }); };
 
   const exportCard = async () => {
@@ -189,6 +203,15 @@ function Editor({ x }: { x: EnrichedTrade }) {
                 <input ref={fileRef} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" onChange={(e) => upload(e.target.files?.[0])} />
               </div>
               {uploadError && <p className="mt-2 text-xs text-neg">{uploadError}</p>}
+            </Field>
+          )}
+          {layout === "poster" && (
+            <Field label="Market icon" hint={sc.icon ? "Your uploaded icon." : "Drawn by Ledgr from the symbol. Upload your own square image to replace it."}>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" icon={<ImagePlus size={14} />} onClick={() => iconRef.current?.click()}>{sc.icon ? "Replace icon" : "Upload icon"}</Button>
+                {sc.icon && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeIcon}>Use default</Button>}
+                <input ref={iconRef} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => uploadIcon(e.target.files?.[0])} aria-label="Upload market icon" />
+              </div>
             </Field>
           )}
           {layout === "poster" && <ChartSource key={t.id} x={x} onSave={(chart) => setShowcase({ chart })} />}

@@ -1,5 +1,6 @@
 "use client";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { Droplet, Flame } from "lucide-react";
+import { marketGlyph } from "@/lib/instrument";
 import { forwardRef, useMemo } from "react";
 import { fillsMatch, INTERVAL_MS, PROVIDERS, type TradeChart } from "@/lib/candles";
 import type { TradeMetrics } from "@/lib/calc";
@@ -37,6 +38,24 @@ function Pill({ at, text, below, color, label, labelText }: { at: readonly [numb
         <text x="0" y="5" textAnchor="middle" fontSize="14" fontWeight="700" fill={labelText} fontFamily="'Inter Variable', Inter, sans-serif">{text}</text>
       </g>
     </g>
+  );
+}
+
+/** Round market badge (top left): the user's own icon if uploaded, else a Ledgr-drawn glyph. */
+function MarketBadge({ trade, bg, fg }: { trade: Trade; bg: string; fg: string }) {
+  const iconId = trade.showcase?.icon ?? null;
+  const { url } = useBlobUrl(iconId);
+  const g = marketGlyph(trade.symbol, trade.market);
+  const size = g.text ? (g.text.length <= 1 ? 30 : g.text.length === 2 ? 24 : 19) : 0;
+  return (
+    <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full" style={{ background: bg, color: fg, boxShadow: "0 6px 24px rgba(0,0,0,0.25)" }} aria-label={`${trade.symbol} icon`}>
+      {iconId && url
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img src={url} alt="" className="h-full w-full object-cover" />
+        : g.icon === "oil" ? <Droplet size={26} strokeWidth={2.4} fill={fg} />
+        : g.icon === "gas" ? <Flame size={26} strokeWidth={2.4} />
+        : <span className="font-extrabold leading-none tracking-[-0.03em]" style={{ fontSize: size }}>{g.text}</span>}
+    </span>
   );
 }
 
@@ -111,7 +130,6 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
   const big = opts.amounts ? fmtMoney(m.net, opts.currency, { sign: true }) : fmtR(m.r);
   const date = parseISODate(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
   const size = m.entryQty ? `${fmtNum(m.entryQty, m.entryQty % 1 ? 2 : 0)} ${t.market === "Futures" ? (m.entryQty === 1 ? "contract" : "contracts") : t.market === "Stocks" ? "shares" : t.market === "Forex" ? "lots" : "units"}` : "—";
-  const Arrow = t.direction === "short" ? ArrowDownRight : ArrowUpRight;
 
   return (
     <div ref={ref} className="relative overflow-hidden rounded-[28px]" style={{ width: 960, height: 504, background: theme.gradient ? `${theme.gradient}, ${theme.bg}` : theme.bg, color: fg, fontFamily: "'Inter Variable', Inter, system-ui, sans-serif" }}>
@@ -119,7 +137,7 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
       <div className="relative flex h-full">
         <div className="flex flex-1 flex-col justify-between p-12">
           <div className="flex items-center gap-4">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl" style={{ background: onMedia ? "rgba(255,255,255,0.14)" : theme.line, backdropFilter: "blur(8px)" }}><Arrow size={24} strokeWidth={2.2} /></span>
+            <MarketBadge trade={t} bg={onMedia ? "#FFFFFF" : theme.fg} fg={onMedia ? "#0A0A0A" : theme.bg} />
             <span className="text-[34px] font-bold tracking-tight">{t.symbol || "—"}</span>
             <span className="text-[15px] font-semibold uppercase tracking-[0.14em]" style={{ color: sub }}>{t.direction ?? ""} · {date}</span>
           </div>
