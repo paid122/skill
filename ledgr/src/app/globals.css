@@ -393,3 +393,15 @@ select.input {
   --sc-r1: #1b1e23; --sc-r2: #24282e; --sc-r3: #2e333a; --sc-r4: #121418;
   --sc-snow1: #2a2e34; --sc-snow2: #0a0a0a; --sc-fog: #8a94a3; --sc-fog-o: .22; --sc-mist: rgba(150,160,175,.18); --sc-walker: #d9dde3;
 }
+
+/* ---- Custom cursor ---- */
+.cursor-custom, .cursor-custom * { cursor: none !important; }
+/* the wrapper layer uses mix-blend-mode: difference, so white pieces invert whatever is under them */
+.cursor-ring, .cursor-dot, .cursor-bar { position: fixed; left: 0; top: 0; opacity: 0; will-change: transform; transition: opacity .15s; }
+.cursor-ring { width: 34px; height: 34px; border-radius: 17px; border: 1.5px solid #fff; transition: opacity .15s, background-color .2s, border-color .2s; }
+.cursor-ring[data-snap="1"] { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.9); }
+.cursor-dot { width: 6px; height: 6px; border-radius: 9999px; background: #fff; transition: opacity .15s; }
+.cursor-bar { width: 2px; height: 22px; border-radius: 2px; background: #fff; animation: cursor-blink 1.05s steps(1) infinite; }
+@keyframes cursor-blink { 50% { background: rgba(255,255,255,.35); } }
+.cursor-ripple { position: fixed; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 9999px; border: 1.5px solid #fff; animation: cursor-ripple .55s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes cursor-ripple { from { transform: scale(1); opacity: .9; } to { transform: scale(7); opacity: 0; } }

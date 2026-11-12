@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CursorRing } from "@/components/CursorRing";
 import { LogoMark, Wordmark } from "@/components/Logo";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Link href="/" className="flex items-center gap-2.5 text-ink lg:hidden"><LogoMark size={26} /><Wordmark className="text-ink" /></Link>
         <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-12">{children}</div>
       </main>
+      <CursorRing />
     </div>
   );
 }
