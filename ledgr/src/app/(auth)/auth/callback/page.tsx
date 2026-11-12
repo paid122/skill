@@ -3,9 +3,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NotConfigured } from "@/components/site/AuthBits";
-import { supabaseConfigured, useSession } from "@/lib/supabase";
+import { supabase, supabaseConfigured, useSession } from "@/lib/supabase";
 
-/** Landing point for email confirmation and Google sign-in. The Supabase client exchanges the code automatically. */
+/**
+ * Landing point for email confirmation, Google and Tradovate sign-in.
+ * Google/email codes are exchanged by the Supabase client automatically; Tradovate
+ * arrives with a one-time token hash from our server, redeemed here.
+ */
 export default function AuthCallbackPage() {
   const router = useRouter();
   const session = useSession();
@@ -13,7 +17,16 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search + window.location.hash.replace(/^#/, "&"));
     const e = p.get("error_description");
-    if (e) setError(e);
+    if (e) { setError(e); return; }
+    const tokenHash = p.get("token_hash");
+    const sb = supabase();
+    if (tokenHash && sb) {
+      (async () => {
+        let r = await sb.auth.verifyOtp({ token_hash: tokenHash, type: "email" });
+        if (r.error) r = await sb.auth.verifyOtp({ token_hash: tokenHash, type: "magiclink" });
+        if (r.error) setError(r.error.message);
+      })();
+    }
   }, []);
   useEffect(() => { if (session) router.replace("/dashboard"); }, [session, router]);
   if (!supabaseConfigured) return <NotConfigured />;

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AuthButton, AuthError, AuthField, Divider, GoogleButton, NotConfigured } from "@/components/site/AuthBits";
+import { AuthButton, AuthError, AuthField, Divider, GoogleButton, NotConfigured, OAuthNote, TradovateButton } from "@/components/site/AuthBits";
 import { authMessage, supabase, supabaseConfigured } from "@/lib/supabase";
 
 export default function SignupPage() {
@@ -43,7 +43,8 @@ export default function SignupPage() {
     <div>
       <h1 className="text-[32px] font-semibold tracking-[-0.03em]">Create your account</h1>
       <p className="mt-2 text-[15px] text-ink/55">Free. Back up your journal and use it anywhere.</p>
-      <div className="mt-8"><GoogleButton label="Continue with Google" /></div>
+      <div className="mt-8 grid gap-2.5"><GoogleButton label="Continue with Google" /><TradovateButton label="Continue with Tradovate" /></div>
+      <OAuthNote />
       <Divider />
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
         <AuthField label="Name" name="name" autoComplete="given-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="What should Ledgr call you?" />

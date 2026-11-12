@@ -367,9 +367,10 @@ select.input {
 .drift { animation: drift 7s ease-in-out infinite; }
 
 /* ---- Cinematic scenes (website) ---- */
-.scene-text { text-shadow: 0 2px 0 rgba(0,0,0,.08), 0 10px 40px rgba(20,24,30,.45); transition: opacity .15s linear; }
-@keyframes mist-drift { from { transform: translateX(-6%); } to { transform: translateX(6%); } }
-.mist { animation: mist-drift 18s ease-in-out infinite alternate; }
+.scene-text { text-shadow: 0 2px 0 rgba(0,0,0,.08), 0 10px 40px rgba(20,24,30,.45); }
+.scene-layer { will-change: transform; }
+@keyframes mist-drift { from { transform: translate3d(-6%,0,0); } to { transform: translate3d(6%,0,0); } }
+.mist { animation: mist-drift 18s ease-in-out infinite alternate; will-change: transform; }
 .mist-slow { animation-duration: 28s; animation-direction: alternate-reverse; }
 @keyframes walker-bob { 0%, 100% { transform: translate(800px, 790px); } 50% { transform: translate(800px, 788.6px); } }
 .walker { animation: walker-bob 1.1s ease-in-out infinite; }

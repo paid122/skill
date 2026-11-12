@@ -42,6 +42,23 @@ export function GoogleButton({ label }: { label: string }) {
   );
 }
 
+/**
+ * "Continue with Tradovate": a plain link to our server route, which runs the OAuth flow.
+ * Ledgr only reads your name and email from Tradovate — never trades, balances or orders.
+ */
+export function TradovateButton({ label }: { label: string }) {
+  return (
+    <a href="/api/auth/tradovate/start" className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-ink/15 text-[15px] text-ink transition-colors hover:border-ink/40">
+      <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l5-5 4 4 8-8" /><path d="M15 8h5v5" /></svg>
+      {label}
+    </a>
+  );
+}
+
+export function OAuthNote() {
+  return <p className="mt-3 text-center text-[12px] leading-relaxed text-ink/40">With Tradovate, Ledgr only reads your name and email to sign you in. It never sees your trades, balance or orders.</p>;
+}
+
 export function Divider() {
   return <div className="my-6 flex items-center gap-3 text-[12px] text-ink/35"><span className="h-px flex-1 bg-ink/10" />or<span className="h-px flex-1 bg-ink/10" /></div>;
 }
