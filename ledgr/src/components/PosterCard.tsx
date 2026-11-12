@@ -31,11 +31,11 @@ function Media({ blobId, kind, dim, blur }: { blobId: string; kind: "image" | "v
 function Pill({ at, text, below, color, label, labelText }: { at: readonly [number, number, ...unknown[]]; text: string; below: boolean; color: string; label: string; labelText: string }) {
   return (
     <g transform={`translate(${at[0]},${at[1]})`}>
-      <circle r="5" fill={color} stroke={labelText} strokeWidth="2" />
-      <g transform={`translate(0,${below ? 34 : -34})`}>
-        <path d={below ? "M-7,-15 L0,-24 L7,-15 Z" : "M-7,15 L0,24 L7,15 Z"} fill={label} />
-        <rect x="-36" y="-16" width="72" height="32" rx="11" fill={label} style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.35))" }} />
-        <text x="0" y="5" textAnchor="middle" fontSize="14" fontWeight="700" fill={labelText} fontFamily="'Inter Variable', Inter, sans-serif">{text}</text>
+      <circle r="4" fill={color} />
+      <g transform={`translate(0,${below ? 30 : -30})`}>
+        <path d={below ? "M-8,-17 L0,-26 L8,-17 Z" : "M-8,17 L0,26 L8,17 Z"} fill={label} />
+        <rect x="-42" y="-18" width="84" height="36" rx="12" fill={label} style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.35))" }} />
+        <text x="0" y="6" textAnchor="middle" fontSize="17" fontWeight="800" fill={labelText} fontFamily="'Inter Variable', Inter, sans-serif">{text}</text>
       </g>
     </g>
   );
@@ -65,7 +65,7 @@ function MarketBadge({ trade, bg, fg }: { trade: Trade; bg: string; fg: string }
  */
 function PriceChart({ trade, chart, color, label, labelText }: { trade: Trade; chart: TradeChart; color: string; label: string; labelText: string }) {
   const bars = chart.bars;
-  const W = 420, H = 300, pad = 30;
+  const W = 460, H = 330, pad = 12;
   const iv = INTERVAL_MS[chart.interval];
   const ex = [...trade.executions].sort((a, b) => a.time.localeCompare(b.time));
   const lo = Math.min(...bars.map((b) => b.c), ...ex.map((e) => e.price));
@@ -84,7 +84,7 @@ function PriceChart({ trade, chart, color, label, labelText }: { trade: Trade; c
   const line = bars.map((b, i) => `${i ? "L" : "M"}${xi(i).toFixed(1)},${y(b.c).toFixed(1)}`).join(" ");
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-label={`${chart.interval} price line with recorded entry and exit`} className="overflow-visible">
-      <path d={line} fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 8px ${color}55)` }} />
+      <path d={line} fill="none" stroke={color} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.35))" }} />
       {entry && <Pill at={[xt(entry.time), y(entry.price)]} text="Entry" below={y(entry.price) < H / 2} color={color} label={label} labelText={labelText} />}
       {exit && <Pill at={[xt(exit.time), y(exit.price)]} text="Exit" below={y(exit.price) < H / 2} color={color} label={label} labelText={labelText} />}
     </svg>
@@ -98,7 +98,7 @@ function PriceChart({ trade, chart, color, label, labelText }: { trade: Trade; c
 function ExecutionPath({ trade, color, label, labelText }: { trade: Trade; color: string; label: string; labelText: string }) {
   const ex = [...trade.executions].sort((a, b) => a.time.localeCompare(b.time));
   if (ex.length < 2) return null;
-  const W = 420, H = 300, pad = 36;
+  const W = 460, H = 330, pad = 40;
   const ts = ex.map((e) => new Date(e.time).getTime());
   const ps = ex.map((e) => e.price);
   const t0 = Math.min(...ts), t1 = Math.max(...ts), pMin = Math.min(...ps), pMax = Math.max(...ps);
@@ -152,27 +152,26 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
           </dl>
           <div className="flex items-center gap-3 text-[17px] font-bold">
             <span className="inline-flex items-center gap-2"><LogoMark size={26} /> LEDGR</span>
-            {opts.handle && <><span style={{ color: sub }}>×</span><span>{opts.handle}</span></>}
+            {opts.handle && (
+              <>
+                <span style={{ color: sub }}>×</span>
+                <span className="grid h-8 w-8 place-items-center rounded-full text-[14px] font-extrabold" style={{ background: onMedia ? "#FFFFFF" : theme.fg, color: onMedia ? "#0A0A0A" : theme.bg }}>{opts.handle.replace(/^@/, "").charAt(0).toUpperCase() || "·"}</span>
+                <span>{opts.handle}</span>
+              </>
+            )}
             {opts.account && <span className="ml-2 text-[13px] font-medium" style={{ color: sub }}>{opts.account}</span>}
           </div>
         </div>
-        <div className="flex w-[440px] shrink-0 flex-col items-center justify-center pr-8">
-          {chart ? (
-            <>
-              <PriceChart trade={t} chart={chart} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
-              <p className="mt-3 text-center text-[11px]" style={{ color: sub }}>
-                Price line · {chart.interval} · {chart.dataSymbol} · {PROVIDERS[chart.provider].name}
-                {!matches && " · fills differ from this feed"}
-              </p>
-            </>
-          ) : (
-            <>
-              <ExecutionPath trade={t} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
-              <p className="mt-3 text-[11px]" style={{ color: sub }}>Simulated record · line joins recorded executions</p>
-            </>
-          )}
-        </div>
       </div>
+      {/* Chart fills the right half, like a poster. */}
+      <div className="absolute" style={{ left: 470, top: 74, width: 460, height: 330 }}>
+        {chart
+          ? <PriceChart trade={t} chart={chart} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
+          : <ExecutionPath trade={t} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />}
+      </div>
+      <p className="absolute bottom-12 right-12 text-right text-[13px] font-medium" style={{ color: sub }}>
+        {chart ? <>{chart.dataSymbol} · {chart.interval} · {PROVIDERS[chart.provider].name}{!matches && " · fills differ from feed"}</> : "Simulated record · line joins fills"}
+      </p>
     </div>
   );
 });
