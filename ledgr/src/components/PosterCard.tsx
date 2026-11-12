@@ -1,6 +1,7 @@
 "use client";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { forwardRef } from "react";
+import { forwardRef, useMemo } from "react";
+import { fillsMatch, INTERVAL_MS, PROVIDERS, type TradeChart } from "@/lib/candles";
 import type { TradeMetrics } from "@/lib/calc";
 import type { Trade } from "@/lib/types";
 import { fmtMoney, fmtNum, fmtR, parseISODate } from "@/lib/util";
@@ -26,6 +27,61 @@ function Media({ blobId, kind, dim, blur }: { blobId: string; kind: "image" | "v
   );
 }
 
+function Pill({ at, text, below, color, label, labelText }: { at: readonly [number, number, ...unknown[]]; text: string; below: boolean; color: string; label: string; labelText: string }) {
+  return (
+    <g transform={`translate(${at[0]},${at[1]})`}>
+      <circle r="6" fill={color} stroke={labelText} strokeWidth="2" />
+      <g transform={`translate(0,${below ? 30 : -30})`}>
+        <rect x="-34" y="-15" width="68" height="30" rx="10" fill={label} />
+        <text x="0" y="5" textAnchor="middle" fontSize="14" fontWeight="700" fill={labelText} fontFamily="'Inter Variable', Inter, sans-serif">{text}</text>
+      </g>
+    </g>
+  );
+}
+
+/**
+ * Real candles from the saved provider data, with Entry and Exit placed at the recorded
+ * fill times and prices. Bars are spaced evenly (closed-market gaps are skipped).
+ */
+function PriceChart({ trade, chart, color, label, labelText }: { trade: Trade; chart: TradeChart; color: string; label: string; labelText: string }) {
+  const bars = chart.bars;
+  const W = 420, H = 300, pad = 30;
+  const iv = INTERVAL_MS[chart.interval];
+  const ex = [...trade.executions].sort((a, b) => a.time.localeCompare(b.time));
+  const lo = Math.min(...bars.map((b) => b.l), ...ex.map((e) => e.price));
+  const hi = Math.max(...bars.map((b) => b.h), ...ex.map((e) => e.price));
+  const step = (W - pad * 2) / bars.length;
+  const xi = (i: number) => pad + (i + 0.5) * step;
+  const y = (p: number) => (hi > lo ? pad + (1 - (p - lo) / (hi - lo)) * (H - pad * 2) : H / 2);
+  const xt = (iso: string) => {
+    const t = new Date(iso).getTime();
+    let i = bars.findIndex((b) => t >= b.t && t < b.t + iv);
+    if (i < 0) i = t < bars[0].t ? 0 : bars.length - 1;
+    return pad + (i + Math.min(1, Math.max(0, (t - bars[i].t) / iv))) * step;
+  };
+  const bw = Math.max(1.5, Math.min(9, step * 0.62));
+  const entry = ex.find((e) => e.kind === "entry");
+  const exit = [...ex].reverse().find((e) => e.kind === "exit");
+  const pts = ex.map((e) => [xt(e.time), y(e.price)] as const);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-label={`${chart.interval} price candles with recorded entry and exit`} className="overflow-visible">
+      {bars.map((b, i) => {
+        const up = b.c >= b.o;
+        const top = y(Math.max(b.o, b.c)), bot = y(Math.min(b.o, b.c));
+        return (
+          <g key={b.t} opacity={up ? 0.95 : 0.55}>
+            <line x1={xi(i)} x2={xi(i)} y1={y(b.h)} y2={y(b.l)} stroke={color} strokeWidth="1.2" />
+            <rect x={xi(i) - bw / 2} y={top} width={bw} height={Math.max(1, bot - top)} rx="1" fill={up ? color : "none"} stroke={color} strokeWidth="1.2" />
+          </g>
+        );
+      })}
+      {pts.length > 1 && <path d={pts.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)},${py.toFixed(1)}`).join(" ")} fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="5 5" opacity=".8" />}
+      {entry && <Pill at={[xt(entry.time), y(entry.price)]} text="Entry" below={y(entry.price) < H / 2} color={color} label={label} labelText={labelText} />}
+      {exit && <Pill at={[xt(exit.time), y(exit.price)]} text="Exit" below={y(exit.price) < H / 2} color={color} label={label} labelText={labelText} />}
+    </svg>
+  );
+}
+
 /**
  * The execution path: one point per recorded execution (time → price), in order.
  * Ledgr has no market data, so nothing between executions is drawn or implied.
@@ -43,27 +99,20 @@ function ExecutionPath({ trade, color, label, labelText }: { trade: Trade; color
   const d = pts.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)},${py.toFixed(1)}`).join(" ");
   const firstEntry = pts.find((p) => p[2] === "entry")!;
   const lastExit = [...pts].reverse().find((p) => p[2] === "exit");
-  const Pill = ({ at, text, below }: { at: readonly [number, number, string]; text: string; below: boolean }) => (
-    <g transform={`translate(${at[0]},${at[1]})`}>
-      <circle r="6" fill={color} />
-      <g transform={`translate(0,${below ? 30 : -30})`}>
-        <rect x="-34" y="-15" width="68" height="30" rx="10" fill={label} />
-        <text x="0" y="5" textAnchor="middle" fontSize="14" fontWeight="700" fill={labelText} fontFamily="'Inter Variable', Inter, sans-serif">{text}</text>
-      </g>
-    </g>
-  );
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-label="Execution path from recorded entries and exits" className="overflow-visible">
       <path d={d} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 10px ${color}66)` }} />
       {pts.slice(1, -1).map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="4" fill={color} opacity=".7" />)}
-      <Pill at={firstEntry} text="Entry" below={firstEntry[1] > H / 2 ? false : true} />
-      {lastExit && <Pill at={lastExit} text="Exit" below={lastExit[1] > H / 2 ? false : true} />}
+      <Pill at={firstEntry} text="Entry" below={firstEntry[1] <= H / 2} color={color} label={label} labelText={labelText} />
+      {lastExit && <Pill at={lastExit} text="Exit" below={lastExit[1] <= H / 2} color={color} label={label} labelText={labelText} />}
     </svg>
   );
 }
 
 export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMetrics; opts: PosterOptions }>(function PosterCard({ trade: t, m, opts }, ref) {
   const media = t.showcase?.media ?? null;
+  const chart = t.showcase?.chart?.bars.length ? t.showcase.chart : null;
+  const matches = useMemo(() => !chart || fillsMatch(chart.bars, chart.interval, t.executions), [chart, t.executions]);
   const theme = themeColors(t.showcase?.background ?? "ledger");
   const onMedia = !!media;
   const fg = onMedia ? "#FFFFFF" : theme.fg;
@@ -100,8 +149,20 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
           </div>
         </div>
         <div className="flex w-[440px] shrink-0 flex-col items-center justify-center pr-8">
-          <ExecutionPath trade={t} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
-          <p className="mt-3 text-[11px]" style={{ color: sub }}>Simulated record · line joins recorded executions</p>
+          {chart ? (
+            <>
+              <PriceChart trade={t} chart={chart} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
+              <p className="mt-3 text-center text-[11px]" style={{ color: sub }}>
+                {chart.interval} candles · {chart.dataSymbol} · {PROVIDERS[chart.provider].name}
+                {!matches && " · fills differ from this feed"}
+              </p>
+            </>
+          ) : (
+            <>
+              <ExecutionPath trade={t} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
+              <p className="mt-3 text-[11px]" style={{ color: sub }}>Simulated record · line joins recorded executions</p>
+            </>
+          )}
         </div>
       </div>
     </div>

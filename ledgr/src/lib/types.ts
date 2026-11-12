@@ -1,3 +1,4 @@
+import type { TradeChart } from "./candles";
 // Ledgr domain model. Every persisted entity lives here.
 // All money values are in the owning account's currency and are simulated / historical records only.
 
@@ -93,6 +94,8 @@ export interface Trade {
     background: string;
     layout?: "classic" | "poster";
     media?: { blobId: ID; kind: "image" | "video"; dim: number; blur: number } | null;
+    /** Real candles from a market-data provider, saved when the user loads them. */
+    chart?: TradeChart | null;
   } | null;
   isDraft: boolean;
   activity: ActivityEntry[];
