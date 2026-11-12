@@ -2,24 +2,11 @@ import { Check } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CtaLink } from "@/components/site/CtaLink";
+import { INCLUDED } from "@/components/site/included";
 import { Reveal, SectionHeading } from "@/components/site/SiteChrome";
 
 export const metadata: Metadata = { title: "Pricing", description: "Ledgr is free. Every feature, no card required." };
 
-const INCLUDED = [
-  "Unlimited trades, accounts and strategies",
-  "Quick Log and the full five-tab trade editor",
-  "14 analytics charts and 14 pattern checks",
-  "What-if analysis and performance score",
-  "Psychology, discipline score and mistake tracker",
-  "Daily journal, weekly review and checklist",
-  "Study room with video notes and boards",
-  "Verse library with favourites and reflections",
-  "Ledgr AI (offline analysis; model analysis where enabled)",
-  "Reports and share cards — PNG and PDF",
-  "Cloud backup and sync with a free account",
-  "Full data export at any time",
-];
 
 export default function PricingPage() {
   return (
@@ -28,7 +15,7 @@ export default function PricingPage() {
         <h1 className="text-[48px] font-semibold leading-[1] tracking-[-0.045em] sm:text-[72px]">Simple. Free.</h1>
         <p className="mt-6 text-[17px] text-ink/60">Every feature is included. No card, no trial clock.</p>
       </Reveal>
-      <div className="mx-auto mt-16 grid max-w-[980px] gap-5 md:grid-cols-[1.35fr_1fr]">
+      <div className="mx-auto mt-16 grid max-w-[980px] items-start gap-5 md:grid-cols-[1.35fr_1fr]">
         <Reveal className="rounded-[28px] bg-ink p-9 text-paper">
           <p className="text-[14px] font-medium">Free</p>
           <p className="mt-4 flex items-end gap-2"><span className="text-[64px] font-semibold leading-none tracking-[-0.04em]">$0</span><span className="mb-2 text-paper/50">forever for the features below</span></p>
@@ -41,7 +28,7 @@ export default function PricingPage() {
           <p className="text-[14px] font-medium text-ink/80">Pro</p>
           <p className="mt-4 text-[34px] font-semibold tracking-[-0.03em]">Coming later</p>
           <p className="mt-4 text-[15px] leading-relaxed text-ink/60">We're not selling a paid plan yet. If one arrives, everything listed under Free stays free.</p>
-          <Link href="/community" className="mt-auto inline-flex h-12 items-center justify-center rounded-full border border-ink/25 text-[15px] text-ink transition-colors hover:border-ink/60">Get updates</Link>
+          <Link href="/community" className="mt-8 inline-flex h-12 items-center justify-center rounded-full border border-ink/25 text-[15px] text-ink transition-colors hover:border-ink/60">Get updates</Link>
         </Reveal>
       </div>
       <p className="mx-auto mt-10 max-w-xl text-center text-[13px] text-ink/40">Model-backed Ledgr AI requires the site owner to configure an AI provider; without it, Ledgr AI answers with offline analysis calculated from your records.</p>

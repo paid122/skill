@@ -1,7 +1,11 @@
-import { ArrowRight, Brain, ChartNoAxesCombined, NotebookPen, Sparkles, SquareLibrary, Wallet } from "lucide-react";
+import { ArrowRight, Brain, Check, ChartNoAxesCombined, NotebookPen, Sparkles, SquareLibrary, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Bento } from "@/components/site/Bento";
+import { ScrollScene } from "@/components/site/Cinematic";
+import { Explorer } from "@/components/site/Explorer";
+import { Compare, HomePricing, Install } from "@/components/site/HomeSections";
+import { Mark } from "@/components/site/Mark";
 import { CtaLink } from "@/components/site/CtaLink";
 import { Faq } from "@/components/site/Faq";
 import { Hero3D } from "@/components/site/Hero3D";
@@ -78,29 +82,47 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* ------------------------------------------------ Cinematic scene */}
+      <ScrollScene
+        lines={["Discipline is quiet.", "It shows up in the record.", "Write it down. Read it back. Do better."]}
+        after={<p className="text-[17px] leading-relaxed text-ink/60">Most trading mistakes repeat because nobody wrote them down. Ledgr keeps the honest record — every entry, every emotion, every lesson — so the next session starts wiser than the last.</p>}
+      />
+
       {/* --------------------------------------------------- Scroll story */}
       <section id="showcase" className="mx-auto max-w-[1200px] scroll-mt-20 px-5 pt-28 sm:px-8">
-        <Reveal><SectionHeading kicker="How Ledgr works" title="Five habits. One honest record." sub="Scroll through the loop that turns a trading session into a lesson you keep." /></Reveal>
+        <Reveal><SectionHeading kicker="How Ledgr works" title={<>Five habits. One <Mark>honest</Mark> record.</>} sub="Scroll through the loop that turns a trading session into a lesson you keep." /></Reveal>
         <div className="mt-6"><ScrollStory steps={STORY} /></div>
+      </section>
+
+      {/* ------------------------------------------------------- Explorer */}
+      <section id="explore" className="mx-auto max-w-[1280px] scroll-mt-20 px-3 pt-28 sm:px-6">
+        <div className="px-2 sm:px-2"><Reveal><SectionHeading kicker="Look inside" title={<>Every part of Ledgr, <Mark>before</Mark> you sign up.</>} sub="Pick a part to see it in the app. Shown with simulated sample records." /></Reveal></div>
+        <Reveal delay={100} className="mt-12"><Explorer /></Reveal>
       </section>
 
       {/* ------------------------------------------------- Live calculator */}
       <section id="try" className="mx-auto max-w-[1200px] scroll-mt-20 px-5 py-28 sm:px-8">
-        <Reveal><SectionHeading kicker="Try it — no account needed" title="Watch Ledgr do the maths." sub="Change any number. This is the same calculation engine that runs inside the app, shown in the open." /></Reveal>
+        <Reveal><SectionHeading kicker="Try it — no account needed" title={<>Watch Ledgr do the <Mark>maths</Mark>.</>} sub="Change any number. This is the same calculation engine that runs inside the app, shown in the open." /></Reveal>
         <Reveal delay={120} className="mt-12"><LiveCalculator /></Reveal>
       </section>
 
       {/* --------------------------------------------------------- Bento */}
       <section className="mx-auto max-w-[1200px] px-5 pb-28 sm:px-8">
-        <Reveal><SectionHeading kicker="Inside the app" title="Built for the review, not the rush." /></Reveal>
+        <Reveal><SectionHeading kicker="Inside the app" title={<>Built for the <Mark>review</Mark>, not the rush.</>} /></Reveal>
         <div className="mt-12"><Bento /></div>
+      </section>
+
+      {/* ----------------------------------------------------- Comparison */}
+      <section className="mx-auto max-w-[1200px] px-5 pb-28 sm:px-8">
+        <Reveal><SectionHeading kicker="Honest comparison" title={<>Still journaling in a <Mark>spreadsheet</Mark>?</>} sub="What most traders use today, next to what Ledgr does for you." /></Reveal>
+        <Reveal delay={100} className="mt-12"><Compare /></Reveal>
       </section>
 
       {/* ------------------------------------------------------ Features */}
       <section className="border-y border-ink/10 bg-paper-2">
         <div className="mx-auto max-w-[1200px] px-5 py-24 sm:px-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <Reveal><SectionHeading kicker="Everything included" title="A complete journal. Free." /></Reveal>
+            <Reveal><SectionHeading kicker="Everything included" title={<>A complete journal. <Mark>Free</Mark>.</>} /></Reveal>
             <Reveal delay={100}><Link href="/features" className="inline-flex items-center gap-2 text-[14px] text-ink/70 hover:text-ink">Every feature <ArrowRight size={14} /></Link></Reveal>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -139,6 +161,17 @@ export default function LandingPage() {
         </Reveal>
       </section>
 
+      {/* ------------------------------------------------------- Pricing */}
+      <section id="pricing" className="mx-auto max-w-[1200px] scroll-mt-20 px-5 py-28 sm:px-8">
+        <Reveal><SectionHeading kicker="Pricing" title={<>Free. <Mark>Actually</Mark> free.</>} sub="Every feature, no card, no trial clock." /></Reveal>
+        <Reveal delay={100} className="mt-12"><HomePricing /></Reveal>
+      </section>
+
+      {/* ------------------------------------------------------- Install */}
+      <section id="install" className="mx-auto max-w-[1200px] scroll-mt-20 px-5 sm:px-8">
+        <Reveal><Install /></Reveal>
+      </section>
+
       {/* ----------------------------------------------------------- FAQ */}
       <section className="mx-auto max-w-3xl px-5 py-28 sm:px-8">
         <Reveal><SectionHeading center title="Questions, answered." /></Reveal>
@@ -152,13 +185,12 @@ export default function LandingPage() {
           <h2 className="relative mx-auto max-w-2xl text-[40px] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[64px]">Start keeping an honest record.</h2>
           <p className="relative mx-auto mt-5 max-w-md text-[16px] text-paper/60">Free. Private. Ready in under a minute.</p>
           <Magnetic><CtaLink className="relative mt-10 inline-flex h-[52px] items-center gap-2 rounded-full bg-paper px-8 text-[15px] font-medium text-ink transition-transform hover:scale-[1.03]">Start your journal <ArrowRight size={16} /></CtaLink></Magnetic>
+          <ul className="relative mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[13.5px] text-paper/60">
+            {["No card to start", "Works in your browser", "Free forever"].map((x) => <li key={x} className="flex items-center gap-2"><Check size={15} className="text-paper" />{x}</li>)}
+          </ul>
         </Reveal>
       </section>
 
-      {/* ------------------------------------------------- Big wordmark */}
-      <div aria-hidden className="select-none overflow-hidden px-5 pt-6 text-center">
-        <p className="translate-y-[18%] text-[24vw] font-semibold leading-none tracking-[-0.06em] text-transparent [-webkit-text-stroke:1px_color-mix(in_srgb,var(--ink)_18%,transparent)]">LEDGR</p>
-      </div>
     </>
   );
 }

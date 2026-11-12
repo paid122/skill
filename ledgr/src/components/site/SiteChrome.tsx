@@ -60,18 +60,24 @@ export function SiteHeader() {
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-ink/10 bg-paper">
-      <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+    <footer className="relative overflow-hidden border-t border-ink/10 bg-paper">
+      <div className="mx-auto grid max-w-[1200px] gap-10 px-5 pb-10 pt-16 sm:px-8 md:grid-cols-[1.6fr_1fr_1fr_1fr]">
         <div>
           <Link href="/" className="flex items-center gap-2.5 text-ink"><LogoMark size={24} /><Wordmark className="text-ink" /></Link>
           <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-ink/50">Discipline over impulse. A private journal for trading decisions, built on simulated and historical records.</p>
+          <p className="verse-text mt-6 max-w-xs text-[15px] leading-snug text-ink/70">“Let all things be done decently and in order.”</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/40">1 Corinthians 14:40 · KJV</p>
         </div>
-        <FooterCol title="Product" links={[["Features", "/features"], ["Pricing", "/pricing"], ["Open the app", "/dashboard"]]} />
+        <FooterCol title="Product" links={[["Features", "/features"], ["Pricing", "/pricing"], ["Install the app", "/#install"], ["Open the app", "/dashboard"]]} />
         <FooterCol title="People" links={[["Reviews", "/reviews"], ["Community", "/community"], ["Affiliates", "/affiliates"]]} />
         <FooterCol title="Legal" links={[["Privacy", "/privacy"], ["Terms", "/terms"]]} />
       </div>
-      <div className="mx-auto max-w-[1200px] border-t border-ink/10 px-5 py-6 text-[12px] leading-relaxed text-ink/40 sm:px-8">
-        Ledgr is a journaling and analysis tool. It does not execute trades, connect to brokers, or provide financial advice. All statistics describe records you enter. Scripture quotations are from the King James Version (public domain).
+      <div aria-hidden className="pointer-events-none select-none px-3 text-center">
+        <p className="translate-y-[16%] bg-gradient-to-b from-ink/[0.14] to-transparent bg-clip-text text-[23vw] font-semibold leading-[0.8] tracking-[-0.07em] text-transparent">LEDGR</p>
+      </div>
+      <div className="relative mx-auto flex max-w-[1200px] flex-col gap-3 border-t border-ink/10 px-5 py-6 text-[12px] leading-relaxed text-ink/40 sm:px-8 md:flex-row md:items-center md:justify-between">
+        <p className="max-w-3xl">Ledgr is a journaling and analysis tool. It does not execute trades, connect to brokers, or provide financial advice. All statistics describe records you enter. Scripture quotations are from the King James Version (public domain).</p>
+        <a href="#content" className="shrink-0 text-ink/60 hover:text-ink">Back to top ↑</a>
       </div>
     </footer>
   );
