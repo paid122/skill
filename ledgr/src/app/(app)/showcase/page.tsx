@@ -268,7 +268,7 @@ function ChartSource({ x, onSave }: { x: EnrichedTrade; onSave: (chart: NonNulla
   };
 
   return (
-    <Field label="Price chart" hint={saved ? `Showing ${saved.bars.length} × ${saved.interval} candles from ${PROVIDERS[saved.provider].name}, saved with the trade.` : "Real candles around your entry and exit. Without them the card shows a line joining your fills."}>
+    <Field label="Price chart" hint={saved ? `Showing ${saved.bars.length} × ${saved.interval} prices from ${PROVIDERS[saved.provider].name}, saved with the trade.` : "The real price line around your entry and exit. Without it the card shows a line joining your fills."}>
       <div className="grid gap-2">
         <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-2">
           <Select aria-label="Data source" value={provider} onChange={(e) => { const p = e.target.value as CandleProvider; setProvider(p); if (p === guess.provider) setSymbol(guess.dataSymbol); setError(null); }}>

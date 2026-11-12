@@ -30,9 +30,10 @@ function Media({ blobId, kind, dim, blur }: { blobId: string; kind: "image" | "v
 function Pill({ at, text, below, color, label, labelText }: { at: readonly [number, number, ...unknown[]]; text: string; below: boolean; color: string; label: string; labelText: string }) {
   return (
     <g transform={`translate(${at[0]},${at[1]})`}>
-      <circle r="6" fill={color} stroke={labelText} strokeWidth="2" />
-      <g transform={`translate(0,${below ? 30 : -30})`}>
-        <rect x="-34" y="-15" width="68" height="30" rx="10" fill={label} />
+      <circle r="5" fill={color} stroke={labelText} strokeWidth="2" />
+      <g transform={`translate(0,${below ? 34 : -34})`}>
+        <path d={below ? "M-7,-15 L0,-24 L7,-15 Z" : "M-7,15 L0,24 L7,15 Z"} fill={label} />
+        <rect x="-36" y="-16" width="72" height="32" rx="11" fill={label} style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.35))" }} />
         <text x="0" y="5" textAnchor="middle" fontSize="14" fontWeight="700" fill={labelText} fontFamily="'Inter Variable', Inter, sans-serif">{text}</text>
       </g>
     </g>
@@ -48,8 +49,8 @@ function PriceChart({ trade, chart, color, label, labelText }: { trade: Trade; c
   const W = 420, H = 300, pad = 30;
   const iv = INTERVAL_MS[chart.interval];
   const ex = [...trade.executions].sort((a, b) => a.time.localeCompare(b.time));
-  const lo = Math.min(...bars.map((b) => b.l), ...ex.map((e) => e.price));
-  const hi = Math.max(...bars.map((b) => b.h), ...ex.map((e) => e.price));
+  const lo = Math.min(...bars.map((b) => b.c), ...ex.map((e) => e.price));
+  const hi = Math.max(...bars.map((b) => b.c), ...ex.map((e) => e.price));
   const step = (W - pad * 2) / bars.length;
   const xi = (i: number) => pad + (i + 0.5) * step;
   const y = (p: number) => (hi > lo ? pad + (1 - (p - lo) / (hi - lo)) * (H - pad * 2) : H / 2);
@@ -59,23 +60,12 @@ function PriceChart({ trade, chart, color, label, labelText }: { trade: Trade; c
     if (i < 0) i = t < bars[0].t ? 0 : bars.length - 1;
     return pad + (i + Math.min(1, Math.max(0, (t - bars[i].t) / iv))) * step;
   };
-  const bw = Math.max(1.5, Math.min(9, step * 0.62));
   const entry = ex.find((e) => e.kind === "entry");
   const exit = [...ex].reverse().find((e) => e.kind === "exit");
-  const pts = ex.map((e) => [xt(e.time), y(e.price)] as const);
+  const line = bars.map((b, i) => `${i ? "L" : "M"}${xi(i).toFixed(1)},${y(b.c).toFixed(1)}`).join(" ");
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-label={`${chart.interval} price candles with recorded entry and exit`} className="overflow-visible">
-      {bars.map((b, i) => {
-        const up = b.c >= b.o;
-        const top = y(Math.max(b.o, b.c)), bot = y(Math.min(b.o, b.c));
-        return (
-          <g key={b.t} opacity={up ? 0.95 : 0.55}>
-            <line x1={xi(i)} x2={xi(i)} y1={y(b.h)} y2={y(b.l)} stroke={color} strokeWidth="1.2" />
-            <rect x={xi(i) - bw / 2} y={top} width={bw} height={Math.max(1, bot - top)} rx="1" fill={up ? color : "none"} stroke={color} strokeWidth="1.2" />
-          </g>
-        );
-      })}
-      {pts.length > 1 && <path d={pts.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)},${py.toFixed(1)}`).join(" ")} fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="5 5" opacity=".8" />}
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-label={`${chart.interval} price line with recorded entry and exit`} className="overflow-visible">
+      <path d={line} fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 8px ${color}55)` }} />
       {entry && <Pill at={[xt(entry.time), y(entry.price)]} text="Entry" below={y(entry.price) < H / 2} color={color} label={label} labelText={labelText} />}
       {exit && <Pill at={[xt(exit.time), y(exit.price)]} text="Exit" below={y(exit.price) < H / 2} color={color} label={label} labelText={labelText} />}
     </svg>
@@ -153,7 +143,7 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
             <>
               <PriceChart trade={t} chart={chart} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
               <p className="mt-3 text-center text-[11px]" style={{ color: sub }}>
-                {chart.interval} candles · {chart.dataSymbol} · {PROVIDERS[chart.provider].name}
+                Price line · {chart.interval} · {chart.dataSymbol} · {PROVIDERS[chart.provider].name}
                 {!matches && " · fills differ from this feed"}
               </p>
             </>
