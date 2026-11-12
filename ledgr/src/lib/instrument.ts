@@ -56,6 +56,7 @@ export function symbolImage(symbol: string, market: Market | null): SymbolImage 
   const s = (symbol || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!s) return null;
   const root = market === "Futures" ? s.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || s : s;
+  if (/^(XAU|XAG|XPT|XPD)/.test(root)) return metalImage(root);
   if (market === "Futures" || market === "Indices" || market === "Commodities" || (!market && FUTURE_OWNER[root])) {
     return FUTURE_OWNER[root] ? { kind: "single", src: `/api/logo?s=${FUTURE_OWNER[root]}` } : null;
   }
@@ -70,4 +71,9 @@ export function symbolImage(symbol: string, market: Market | null): SymbolImage 
     return /^[A-Z]{1,5}$/.test(root) ? { kind: "single", src: `/api/logo?s=${root}` } : null;
   }
   return null;
+}
+
+/** Spot metals (XAUUSD, XAGUSD …): a Ledgr-drawn bullion icon in the metal's colour. */
+function metalImage(root: string): SymbolImage {
+  return { kind: "single", src: `/symbols/metals/${root.slice(0, 3).toLowerCase()}.svg` };
 }

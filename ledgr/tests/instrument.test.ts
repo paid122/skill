@@ -29,7 +29,9 @@ describe("symbolImage", () => {
     expect(symbolImage("BTCUSD", "Crypto")).toEqual({ kind: "single", src: "/symbols/crypto/btc.svg" });
     expect(symbolImage("EURUSD", "Forex")).toEqual({ kind: "pair", a: "/symbols/flags/eu.svg", b: "/symbols/flags/us.svg" });
     expect(symbolImage("AAPL", "Stocks")).toEqual({ kind: "single", src: "/api/logo?s=AAPL" });
-    expect(symbolImage("XAUUSD", "Commodities")).toBeNull();
+    expect(symbolImage("XAUUSD", "Commodities")).toEqual({ kind: "single", src: "/symbols/metals/xau.svg" });
+    expect(symbolImage("XAG/USD", "Forex")).toEqual({ kind: "single", src: "/symbols/metals/xag.svg" });
+    expect(symbolImage("XAU", null)).toEqual({ kind: "single", src: "/symbols/metals/xau.svg" });
     expect(symbolImage("", null)).toBeNull();
   });
 });
