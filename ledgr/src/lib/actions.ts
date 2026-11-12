@@ -103,7 +103,7 @@ export function patchTrade(id: string, patch: Partial<Trade>, message?: string) 
 export async function deleteTrade(id: string) {
   const t = getState().trades.find((x) => x.id === id);
   setState((s) => ({ ...s, trades: s.trades.filter((x) => x.id !== id) }));
-  if (t) await Promise.all(t.attachments.map((a) => deleteBlob(a.blobId).catch(() => undefined)));
+  if (t) await Promise.all([...t.attachments.map((a) => a.blobId), ...(t.showcase?.media ? [t.showcase.media.blobId] : [])].map((b) => deleteBlob(b).catch(() => undefined)));
 }
 
 export function duplicateTrade(id: string) {

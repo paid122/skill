@@ -1,10 +1,19 @@
 "use client";
 import { toPng } from "html-to-image";
 
-/** Render a DOM node to a PNG data URL at 2× for crisp sharing. */
+/** Fails instead of hanging if rendering stalls. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Export timed out")), ms))]);
+}
+
+/**
+ * Render a DOM node to a PNG data URL at 2× for crisp sharing.
+ * cacheBust must stay off: it appends a query string to every image URL, which breaks
+ * the in-memory blob: URLs used for uploaded images and videos.
+ */
 export async function nodeToPng(node: HTMLElement): Promise<string> {
   const bg = getComputedStyle(node).backgroundColor;
-  return toPng(node, { pixelRatio: 2, cacheBust: true, backgroundColor: bg && bg !== "rgba(0, 0, 0, 0)" ? bg : undefined });
+  return withTimeout(toPng(node, { pixelRatio: 2, cacheBust: false, filter: (n) => !(n instanceof HTMLVideoElement), backgroundColor: bg && bg !== "rgba(0, 0, 0, 0)" ? bg : undefined }), 30000);
 }
 
 export async function exportPng(node: HTMLElement, filename: string) {

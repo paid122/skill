@@ -14,6 +14,7 @@ import { LoadingScreen, LogoMark, Wordmark } from "./Logo";
 import { ALL_NAV, isActive, MOBILE_PRIMARY, NAV, titleFor } from "./nav";
 import { Onboarding } from "./Onboarding";
 import { QuickLog } from "./QuickLog";
+import { CursorRing } from "./CursorRing";
 import { SessionRail } from "./SessionRail";
 import { TopNav } from "./TopNav";
 import { SyncManager } from "./SyncManager";
@@ -107,6 +108,7 @@ function Shell({ children }: { children: ReactNode }) {
       {overlays.editor && <TradeEditor key={overlays.editor.tradeId ?? "new"} />}
       {!onboarded && <Onboarding />}
       <SyncManager />
+      {appearance.cursor === "ring" && <CursorRing />}
       {prefs.rail && <SessionRail belowTopNav={topNav} />}
     </div>
   );

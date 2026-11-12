@@ -87,7 +87,13 @@ export interface Trade {
   attachments: TradeAttachment[];
   tags: string[];
   // Showcase
-  showcase: { pinned: boolean; description: string; background: string } | null;
+  showcase: {
+    pinned: boolean;
+    description: string;
+    background: string;
+    layout?: "classic" | "poster";
+    media?: { blobId: ID; kind: "image" | "video"; dim: number; blur: number } | null;
+  } | null;
   isDraft: boolean;
   activity: ActivityEntry[];
   createdAt: ISODateTime;
@@ -302,6 +308,7 @@ export interface Appearance {
   backgroundOpacity: number;
   sidebar: "solid" | "translucent";
   nav: "top" | "side"; // main navigation position
+  cursor: "system" | "ring"; // optional trailing ring cursor
   savedThemes: { id: ID; name: string; values: Omit<Appearance, "savedThemes"> }[];
 }
 

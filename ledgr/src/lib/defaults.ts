@@ -21,6 +21,7 @@ export const defaultAppearance: Appearance = {
   backgroundOpacity: 0.12,
   sidebar: "solid",
   nav: "top",
+  cursor: "system",
   savedThemes: [],
 };
 

@@ -213,6 +213,8 @@ function emptyStateStable(): LedgrState {
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 export const ALLOWED_DOC_TYPES = ["application/pdf"];
+export const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm"];
+export const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
 
 export async function putBlob(id: string, file: Blob) {
   await idb("blobs", "readwrite", (s) => s.put(file, id));
@@ -253,9 +255,11 @@ export async function clearAll() {
   await flush();
 }
 
-export function validateUpload(file: File, kinds: ("image" | "pdf")[]): string | null {
-  const okTypes = [...(kinds.includes("image") ? ALLOWED_IMAGE_TYPES : []), ...(kinds.includes("pdf") ? ALLOWED_DOC_TYPES : [])];
-  if (!okTypes.includes(file.type)) return `Unsupported file type. Use ${kinds.includes("pdf") ? "PNG, JPEG, WebP, GIF or PDF" : "PNG, JPEG, WebP or GIF"}.`;
-  if (file.size > MAX_IMAGE_BYTES) return "File is larger than 8 MB.";
+export function validateUpload(file: File, kinds: ("image" | "pdf" | "video")[]): string | null {
+  const okTypes = [...(kinds.includes("image") ? ALLOWED_IMAGE_TYPES : []), ...(kinds.includes("pdf") ? ALLOWED_DOC_TYPES : []), ...(kinds.includes("video") ? ALLOWED_VIDEO_TYPES : [])];
+  const names = [kinds.includes("image") && "PNG, JPEG, WebP, GIF", kinds.includes("pdf") && "PDF", kinds.includes("video") && "MP4 or WebM video"].filter(Boolean).join(", ");
+  if (!okTypes.includes(file.type)) return `Unsupported file type. Use ${names}.`;
+  const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
+  if (file.size > (isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) return isVideo ? "Video is larger than 40 MB." : "File is larger than 8 MB.";
   return null;
 }

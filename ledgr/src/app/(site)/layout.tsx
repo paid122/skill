@@ -1,3 +1,4 @@
+import { CursorRing } from "@/components/CursorRing";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -7,6 +8,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <SiteHeader />
       <main id="content">{children}</main>
       <SiteFooter />
+      <CursorRing />
     </div>
   );
 }

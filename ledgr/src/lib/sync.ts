@@ -47,7 +47,7 @@ export function writeMeta(m: SyncMeta | null) {
 /** Blob ids referenced by the journal (trade attachments, strategy screenshots, note images, board files). */
 export function referencedBlobs(s: LedgrState): string[] {
   const ids = new Set<string>();
-  s.trades.forEach((t) => t.attachments.forEach((a) => ids.add(a.blobId)));
+  s.trades.forEach((t) => { t.attachments.forEach((a) => ids.add(a.blobId)); if (t.showcase?.media) ids.add(t.showcase.media.blobId); });
   s.strategies.forEach((x) => x.screenshots.forEach((a) => ids.add(a.blobId)));
   s.studyNotes.forEach((n) => n.blocks.forEach((b) => b.blobId && ids.add(b.blobId)));
   s.studyBoards.forEach((b) => b.cards.forEach((c) => c.blobId && ids.add(c.blobId)));
