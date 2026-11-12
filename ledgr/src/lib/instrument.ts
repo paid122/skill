@@ -31,3 +31,43 @@ export function marketGlyph(symbol: string, market: Market | null): MarketGlyph 
   if (market === "Futures" || market === "Indices") return { text: root.slice(0, 3) };
   return { text: root.slice(0, market === "Stocks" ? 1 : 2) };
 }
+
+/**
+ * A picture for the symbol, when one exists:
+ *  crypto  → coin icon (cryptocurrency-icons, CC0, bundled in /public/symbols/crypto)
+ *  forex   → both currencies' flags (flag-icons, MIT, bundled in /public/symbols/flags)
+ *  stocks  → the company's logo, via /api/logo
+ *  futures / index CFDs → the logo of the index owner or exchange (Nasdaq, S&P, CME Group)
+ */
+export type SymbolImage = { kind: "single"; src: string } | { kind: "pair"; a: string; b: string };
+
+const COINS = ["btc", "eth", "sol", "xrp", "ltc", "doge", "ada", "bnb", "avax", "link", "dot", "matic", "trx", "bch", "usdt", "usdc", "xlm", "atom", "uni", "etc", "xmr"];
+const FLAG: Record<string, string> = { EUR: "eu", GBP: "gb", USD: "us", JPY: "jp", AUD: "au", NZD: "nz", CAD: "ca", CHF: "ch", CNH: "cn", CNY: "cn", MXN: "mx", ZAR: "za", SEK: "se", NOK: "no", HKD: "hk", SGD: "sg", TRY: "tr" };
+const FUTURE_OWNER: Record<string, string> = {
+  NQ: "NDAQ", MNQ: "NDAQ", NAS100: "NDAQ", US100: "NDAQ", USTEC: "NDAQ", NDX: "NDAQ",
+  ES: "SPGI", MES: "SPGI", SPX500: "SPGI", US500: "SPGI", SPX: "SPGI",
+  YM: "SPGI", MYM: "SPGI", US30: "SPGI", DJ30: "SPGI", WS30: "SPGI",
+  CL: "CME", MCL: "CME", QM: "CME", NG: "CME", QG: "CME", GC: "CME", MGC: "CME", SI: "CME", SIL: "CME", HG: "CME", PL: "CME", PA: "CME",
+  RTY: "CME", M2K: "CME", ZB: "CME", ZN: "CME", ZF: "CME", ZT: "CME", "6E": "CME", "6J": "CME", "6B": "CME", "6A": "CME", ZC: "CME", ZS: "CME", ZW: "CME", BTC: "CME", MBT: "CME", ETH: "CME", MET: "CME",
+  USOIL: "CME", WTI: "CME", NATGAS: "CME",
+};
+
+export function symbolImage(symbol: string, market: Market | null): SymbolImage | null {
+  const s = (symbol || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!s) return null;
+  const root = market === "Futures" ? s.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || s : s;
+  if (market === "Futures" || market === "Indices" || market === "Commodities" || (!market && FUTURE_OWNER[root])) {
+    return FUTURE_OWNER[root] ? { kind: "single", src: `/api/logo?s=${FUTURE_OWNER[root]}` } : null;
+  }
+  if (market === "Crypto" || ((!market || market === "Other") && COINS.some((c) => root.startsWith(c.toUpperCase())))) {
+    const coin = COINS.find((c) => root.startsWith(c.toUpperCase()));
+    return coin ? { kind: "single", src: `/symbols/crypto/${coin}.svg` } : null;
+  }
+  if (root.length === 6 && FLAG[root.slice(0, 3)] && FLAG[root.slice(3)]) {
+    return { kind: "pair", a: `/symbols/flags/${FLAG[root.slice(0, 3)]}.svg`, b: `/symbols/flags/${FLAG[root.slice(3)]}.svg` };
+  }
+  if (market === "Stocks" || market === "Options" || ((!market || market === "Other") && /^[A-Z]{1,5}$/.test(root))) {
+    return /^[A-Z]{1,5}$/.test(root) ? { kind: "single", src: `/api/logo?s=${root}` } : null;
+  }
+  return null;
+}

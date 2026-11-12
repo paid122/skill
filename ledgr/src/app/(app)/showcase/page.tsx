@@ -206,7 +206,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
             </Field>
           )}
           {layout === "poster" && (
-            <Field label="Market icon" hint={sc.icon ? "Your uploaded icon." : "Drawn by Ledgr from the symbol. Upload your own square image to replace it."}>
+            <Field label="Market icon" hint={sc.icon ? "Your uploaded icon." : "The symbol's logo when one is available (company, index owner, coin or flags), otherwise a drawn badge. Upload your own square image to replace it."}>
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" icon={<ImagePlus size={14} />} onClick={() => iconRef.current?.click()}>{sc.icon ? "Replace icon" : "Upload icon"}</Button>
                 {sc.icon && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeIcon}>Use default</Button>}

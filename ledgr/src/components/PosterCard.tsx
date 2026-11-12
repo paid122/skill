@@ -1,7 +1,7 @@
 "use client";
 import { Droplet, Flame } from "lucide-react";
-import { marketGlyph } from "@/lib/instrument";
-import { forwardRef, useMemo } from "react";
+import { marketGlyph, symbolImage } from "@/lib/instrument";
+import { forwardRef, useMemo, useState } from "react";
 import { fillsMatch, INTERVAL_MS, PROVIDERS, type TradeChart } from "@/lib/candles";
 import type { TradeMetrics } from "@/lib/calc";
 import type { Trade } from "@/lib/types";
@@ -41,22 +41,40 @@ function Pill({ at, text, below, color, label, labelText }: { at: readonly [numb
   );
 }
 
-/** Round market badge (top left): the user's own icon if uploaded, else a Ledgr-drawn glyph. */
+/**
+ * Round market badge (top left). Order: the user's uploaded icon → the symbol's logo,
+ * coin icon or flags → a Ledgr-drawn glyph (also used if a logo fails to load).
+ */
 function MarketBadge({ trade, bg, fg }: { trade: Trade; bg: string; fg: string }) {
   const iconId = trade.showcase?.icon ?? null;
   const { url } = useBlobUrl(iconId);
+  const pic = symbolImage(trade.symbol, trade.market);
+  const [failed, setFailed] = useState<string | null>(null);
   const g = marketGlyph(trade.symbol, trade.market);
   const size = g.text ? (g.text.length <= 1 ? 30 : g.text.length === 2 ? 24 : 19) : 0;
+  const picKey = pic ? (pic.kind === "single" ? pic.src : pic.a + pic.b) : null;
+  const showPic = !iconId && pic && failed !== picKey;
+  const onError = () => setFailed(picKey);
+  /* eslint-disable @next/next/no-img-element */
+  if (showPic && pic.kind === "pair") {
+    return (
+      <span className="relative h-14 w-14 shrink-0" aria-label={`${trade.symbol} icon`}>
+        <img src={pic.a} alt="" onError={onError} className="absolute left-0 top-0 h-10 w-10 rounded-full object-cover" style={{ boxShadow: "0 0 0 2px rgba(255,255,255,0.9)" }} />
+        <img src={pic.b} alt="" onError={onError} className="absolute bottom-0 right-0 h-10 w-10 rounded-full object-cover" style={{ boxShadow: "0 0 0 2px rgba(255,255,255,0.9)" }} />
+      </span>
+    );
+  }
+  const isCoin = showPic && pic.kind === "single" && pic.src.startsWith("/symbols/");
   return (
-    <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full" style={{ background: bg, color: fg, boxShadow: "0 6px 24px rgba(0,0,0,0.25)" }} aria-label={`${trade.symbol} icon`}>
-      {iconId && url
-        // eslint-disable-next-line @next/next/no-img-element
-        ? <img src={url} alt="" className="h-full w-full object-cover" />
+    <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full" style={{ background: showPic ? (isCoin ? "transparent" : "#FFFFFF") : bg, color: fg, boxShadow: "0 6px 24px rgba(0,0,0,0.25)" }} aria-label={`${trade.symbol} icon`}>
+      {iconId && url ? <img src={url} alt="" className="h-full w-full object-cover" />
+        : showPic && pic.kind === "single" ? <img src={pic.src} alt="" onError={onError} className={isCoin ? "h-full w-full" : "h-[62%] w-[62%] object-contain"} />
         : g.icon === "oil" ? <Droplet size={26} strokeWidth={2.4} fill={fg} />
         : g.icon === "gas" ? <Flame size={26} strokeWidth={2.4} />
         : <span className="font-extrabold leading-none tracking-[-0.03em]" style={{ fontSize: size }}>{g.text}</span>}
     </span>
   );
+  /* eslint-enable @next/next/no-img-element */
 }
 
 /**

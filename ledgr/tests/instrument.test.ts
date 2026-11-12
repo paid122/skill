@@ -18,3 +18,18 @@ describe("marketGlyph", () => {
     expect(marketGlyph("", null)).toEqual({ text: "·" });
   });
 });
+
+import { symbolImage } from "../src/lib/instrument";
+describe("symbolImage", () => {
+  it("picks a picture per market", () => {
+    expect(symbolImage("MNQ", "Futures")).toEqual({ kind: "single", src: "/api/logo?s=NDAQ" });
+    expect(symbolImage("ESZ6", "Futures")).toEqual({ kind: "single", src: "/api/logo?s=SPGI" });
+    expect(symbolImage("NAS100", "Indices")).toEqual({ kind: "single", src: "/api/logo?s=NDAQ" });
+    expect(symbolImage("CL", "Futures")).toEqual({ kind: "single", src: "/api/logo?s=CME" });
+    expect(symbolImage("BTCUSD", "Crypto")).toEqual({ kind: "single", src: "/symbols/crypto/btc.svg" });
+    expect(symbolImage("EURUSD", "Forex")).toEqual({ kind: "pair", a: "/symbols/flags/eu.svg", b: "/symbols/flags/us.svg" });
+    expect(symbolImage("AAPL", "Stocks")).toEqual({ kind: "single", src: "/api/logo?s=AAPL" });
+    expect(symbolImage("XAUUSD", "Commodities")).toBeNull();
+    expect(symbolImage("", null)).toBeNull();
+  });
+});
