@@ -23,14 +23,14 @@ function Media({ blobId, kind, dim, blur }: { blobId: string; kind: "image" | "v
   const { url } = useBlobUrl(blobId);
   const style = { filter: blur ? `blur(${blur}px)` : undefined, transform: blur ? "scale(1.06)" : undefined };
   return (
-    <>
+    <div data-poster-media className="absolute inset-0">
       {url && (kind === "video"
         // eslint-disable-next-line jsx-a11y/media-has-caption
         ? <video data-poster-video src={url} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" style={style} />
         // eslint-disable-next-line @next/next/no-img-element
         : <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" style={style} />)}
       <div className="absolute inset-0" style={{ background: `linear-gradient(90deg, rgba(0,0,0,${Math.min(0.95, dim + 0.2)}) 0%, rgba(0,0,0,${dim}) 45%, rgba(0,0,0,${Math.max(0, dim - 0.15)}) 100%)` }} />
-    </>
+    </div>
   );
 }
 

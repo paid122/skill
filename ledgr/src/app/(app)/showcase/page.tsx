@@ -1,5 +1,5 @@
 "use client";
-import { CandlestickChart, Download, ImagePlus, Pin, PinOff, Plus, Trash2, Trophy } from "lucide-react";
+import { CandlestickChart, Download, Film, ImagePlus, Pin, PinOff, Plus, Trash2, Trophy, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BlobImage } from "@/components/BlobImage";
@@ -13,6 +13,7 @@ import { PageVerse } from "@/components/VerseCard";
 import { patchTrade } from "@/lib/actions";
 import type { EnrichedTrade } from "@/lib/calc";
 import { exportPng } from "@/lib/exporter";
+import { exportCardVideo, MAX_EXPORT_SECONDS, recordingFormat } from "@/lib/videoExport";
 import { useEnriched } from "@/lib/hooks";
 import { deleteBlob, putBlob, useLedgr, validateUpload } from "@/lib/store";
 import { cx, fmtDate, fmtMoney, fmtR, uid } from "@/lib/util";
@@ -130,6 +131,44 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const removeIcon = async () => { if (sc.icon) await deleteBlob(sc.icon).catch(() => undefined); setShowcase({ icon: null }); };
   const removeMedia = async () => { if (media) await deleteBlob(media.blobId).catch(() => undefined); setShowcase({ media: null }); };
 
+  // Video export: same length as the uploaded clip (capped at MAX_EXPORT_SECONDS).
+  const [clipSeconds, setClipSeconds] = useState<number | null>(null);
+  const [recording, setRecording] = useState<{ at: number; total: number } | null>(null);
+  const [sound, setSound] = useState(true);
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    setClipSeconds(null);
+    if (media?.kind !== "video") return;
+    let tries = 0;
+    const id = setInterval(() => {
+      const v = ref.current?.querySelector<HTMLVideoElement>("video[data-poster-video]");
+      if (v && Number.isFinite(v.duration) && v.duration > 0) { setClipSeconds(v.duration); clearInterval(id); }
+      else if (++tries > 40) clearInterval(id);
+    }, 250);
+    return () => clearInterval(id);
+  }, [media?.kind, media?.blobId]);
+
+  const exportVideo = async () => {
+    const node = ref.current;
+    const v = node?.querySelector<HTMLVideoElement>("video[data-poster-video]");
+    if (!node || !v || !media) return;
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setRecording({ at: 0, total: Math.min(v.duration, MAX_EXPORT_SECONDS) });
+    try {
+      const { blob, ext } = await exportCardVideo({ card: node, videoUrl: v.src, dim: media.dim, blur: media.blur, sound, signal: ctrl.signal, onProgress: (at, total) => setRecording({ at, total }) });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `ledgr-${t.symbol}-${t.number}.${ext}`; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      toast("Video exported");
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError")) toast(e instanceof Error ? e.message : "Could not export the video", "error");
+    }
+    abortRef.current = null;
+    setRecording(null);
+  };
+
   const exportCard = async () => {
     const node = ref.current;
     if (!node) return;
@@ -244,10 +283,21 @@ function Editor({ x }: { x: EnrichedTrade }) {
             {layout === "classic" && <Toggle label="Include lesson" checked={privacy.reflection} onChange={(v) => setPrivacy({ ...privacy, reflection: v })} />}
           </div>
           <div className="flex flex-wrap gap-2 border-t border-line-soft pt-4">
-            <Button variant="accent" icon={<Download size={14} />} onClick={exportCard} disabled={busy}>{busy ? "Exporting…" : "Export PNG"}</Button>
+            <Button variant="accent" icon={<Download size={14} />} onClick={exportCard} disabled={busy || !!recording}>{busy ? "Exporting…" : "Export PNG"}</Button>
+            {layout === "poster" && media?.kind === "video" && (recording
+              ? <Button icon={<X size={14} />} onClick={() => abortRef.current?.abort()}>Cancel · {Math.floor(recording.at)} / {Math.round(recording.total)} s</Button>
+              : <Button icon={<Film size={14} />} onClick={exportVideo} disabled={busy || !clipSeconds || !recordingFormat()}>Export video{clipSeconds ? ` (${Math.round(Math.min(clipSeconds, MAX_EXPORT_SECONDS))} s)` : ""}</Button>)}
             <Button icon={<PinOff size={14} />} onClick={() => patchTrade(t.id, { showcase: { ...sc, pinned: false } }, "Removed from showcase")}>Unpin</Button>
           </div>
-          {media?.kind === "video" && <p className="text-xs text-muted">PNG export uses the video frame showing at that moment.</p>}
+          {layout === "poster" && media?.kind === "video" && (
+            <div className="grid gap-2">
+              <Toggle label="Include video sound" description="Only in the exported video. The card itself plays muted." checked={sound} onChange={setSound} />
+              {recording && <div className="h-1.5 overflow-hidden rounded-full bg-line-soft"><div className="h-full rounded-full bg-accent transition-[width]" style={{ width: `${(recording.at / recording.total) * 100}%` }} /></div>}
+              <p className="text-xs text-muted">
+                {recording ? "Recording in real time — keep this tab open." : `The video export is as long as your clip${clipSeconds && clipSeconds > MAX_EXPORT_SECONDS ? ` (up to ${MAX_EXPORT_SECONDS} s)` : ""}. PNG export uses the frame showing at that moment.`}
+              </p>
+            </div>
+          )}
           {x.m.status !== "closed" && <Badge tone="neutral">This trade is not closed</Badge>}
         </div>
       </Card>
