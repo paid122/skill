@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Faq } from "@/components/site/Faq";
 import { Hero3D } from "@/components/site/Hero3D";
+import { HeroInsights } from "@/components/site/HeroInsights";
 import { CtaLink } from "@/components/site/CtaLink";
 import { Reveal, SectionHeading, TiltCard } from "@/components/site/SiteChrome";
 import { Showcase } from "@/components/site/Showcase";
@@ -40,35 +41,41 @@ export default function LandingPage() {
   return (
     <>
       {/* Hero */}
-      <section className="grain relative isolate flex min-h-[100svh] flex-col overflow-hidden lg:flex-row lg:items-center">
+      <section className="relative isolate flex min-h-[100svh] flex-col overflow-hidden lg:flex-row lg:items-center">
+        <div aria-hidden className="dot-grid dot-fade absolute inset-0 -z-20" />
         <Hero3D className="relative mt-16 h-[300px] w-full sm:h-[380px] lg:absolute lg:inset-0 lg:-z-10 lg:mt-0 lg:h-auto" />
-        <div aria-hidden className="absolute inset-0 -z-10 hidden bg-[radial-gradient(80%_60%_at_20%_40%,rgba(0,0,0,0.85),transparent_70%)] lg:block" />
+        <div aria-hidden className="absolute inset-0 -z-10 hidden bg-[radial-gradient(80%_60%_at_20%_40%,var(--paper),transparent_70%)] lg:block" />
         <div className="mx-auto w-full max-w-[1200px] px-5 pb-20 pt-4 sm:px-8 lg:pt-32">
           <Reveal>
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-[12.5px] text-white/70 backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-white" /> Free to use · Private by default
+            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-ink/[0.04] px-3 py-1 text-[12.5px] text-ink/70 backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-ink" /> Free to use · Private by default
             </p>
           </Reveal>
           <Reveal delay={80}>
             <h1 className="max-w-[12ch] text-[52px] font-semibold leading-[0.95] tracking-[-0.045em] sm:text-[84px] lg:text-[104px]">Discipline over impulse.</h1>
           </Reveal>
           <Reveal delay={160}>
-            <p className="mt-7 max-w-[34rem] text-[17px] leading-relaxed text-white/65 sm:text-[19px]">Track every lesson. Measure every step. Ledgr is a private journal for the decisions, habits and discipline behind your results.</p>
+            <p className="mt-7 max-w-[34rem] text-[17px] leading-relaxed text-ink/65 sm:text-[19px]">Track every lesson. Measure every step. Ledgr is a private journal for the decisions, habits and discipline behind your results.</p>
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-10 flex flex-wrap items-center gap-3">
-              <CtaLink className="group inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 text-[15px] font-medium text-black transition-transform hover:scale-[1.02]">Start your journal <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" /></CtaLink>
-              <Link href="#showcase" className="inline-flex h-12 items-center rounded-full border border-white/20 px-6 text-[15px] text-white/85 transition-colors hover:border-white/50 hover:text-white">See it in action</Link>
+              <CtaLink className="group inline-flex h-12 items-center gap-2 rounded-full bg-ink px-6 text-[15px] font-medium text-paper transition-transform hover:scale-[1.02]">Start your journal <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" /></CtaLink>
+              <Link href="#showcase" className="inline-flex h-12 items-center rounded-full border border-ink/20 px-6 text-[15px] text-ink/85 transition-colors hover:border-ink/50 hover:text-ink">See it in action</Link>
             </div>
-            <p className="mt-6 text-[12.5px] text-white/40">For simulated and historical records. No broker connection, no trade execution, no financial advice.</p>
+            <p className="mt-6 text-[12.5px] text-ink/40">For simulated and historical records. No broker connection, no trade execution, no financial advice.</p>
           </Reveal>
         </div>
       </section>
 
+      {/* Example insights, overlapping the hero */}
+      <section aria-label="Example insights" className="relative z-10 -mt-10 px-5 pb-20 sm:px-8 lg:-mt-24">
+        <HeroInsights />
+      </section>
+
       {/* Marquee */}
-      <div className="overflow-hidden border-y border-white/10 py-5" aria-hidden>
-        <div className="marquee flex w-max gap-10 whitespace-nowrap text-[15px] text-white/40">
-          {[...MARQUEE, ...MARQUEE].map((m, i) => <span key={i} className="flex items-center gap-10">{m}<span className="h-1 w-1 rounded-full bg-white/25" /></span>)}
+      <div className="overflow-hidden border-y border-ink/10 py-5" aria-hidden>
+        <div className="marquee flex w-max gap-10 whitespace-nowrap text-[15px] text-ink/40">
+          {[...MARQUEE, ...MARQUEE].map((m, i) => <span key={i} className="flex items-center gap-10">{m}<span className="h-1 w-1 rounded-full bg-ink/25" /></span>)}
         </div>
       </div>
 
@@ -85,31 +92,31 @@ export default function LandingPage() {
           {FEATURES.map((f, i) => (
             <Reveal key={f.title} delay={i * 70}>
               <TiltCard className="h-full rounded-[20px]">
-                <div className="h-full rounded-[20px] border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.015] p-7">
-                  <span className="grid h-11 w-11 place-items-center rounded-xl border border-white/15 bg-black text-white"><f.icon size={19} strokeWidth={1.6} /></span>
+                <div className="site-shadow h-full rounded-[22px] border border-ink/10 bg-paper p-7">
+                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-ink text-paper shadow-[0_8px_20px_-8px_rgba(0,0,0,0.45)]"><f.icon size={19} strokeWidth={1.6} /></span>
                   <h3 className="mt-6 text-[18px] font-semibold tracking-tight">{f.title}</h3>
-                  <p className="mt-2 text-[14.5px] leading-relaxed text-white/60">{f.body}</p>
+                  <p className="mt-2 text-[14.5px] leading-relaxed text-ink/60">{f.body}</p>
                 </div>
               </TiltCard>
             </Reveal>
           ))}
         </div>
-        <Reveal className="mt-10"><Link href="/features" className="inline-flex items-center gap-2 text-[14px] text-white/80 hover:text-white">Explore every feature <ArrowRight size={14} /></Link></Reveal>
+        <Reveal className="mt-10"><Link href="/features" className="inline-flex items-center gap-2 text-[14px] text-ink/80 hover:text-ink">Explore every feature <ArrowRight size={14} /></Link></Reveal>
       </section>
 
       {/* Curve + steps */}
       <section className="mx-auto grid max-w-[1200px] items-center gap-14 px-5 py-24 sm:px-8 lg:grid-cols-2">
         <Reveal>
-          <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[#070707] p-8">
-            <p className="text-[12px] text-white/45">Cumulative P&L · sample records</p>
+          <div className="site-shadow relative overflow-hidden rounded-[24px] border border-ink/10 bg-paper p-8">
+            <p className="text-[12px] text-ink/45">Cumulative P&L · sample records</p>
             <svg viewBox="0 0 520 220" className="mt-6 w-full" aria-hidden>
-              {[40, 90, 140, 190].map((y) => <line key={y} x1="0" x2="520" y1={y} y2={y} stroke="rgba(255,255,255,.07)" />)}
-              <path className="draw-path" style={{ ["--len" as string]: 900 }} d="M0,170 C40,160 60,120 95,128 S150,150 185,110 S240,60 280,92 S330,140 365,96 S420,40 455,52 S505,30 520,24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
+              {[40, 90, 140, 190].map((y) => <line key={y} x1="0" x2="520" y1={y} y2={y} stroke="currentColor" strokeOpacity=".08" />)}
+              <path className="draw-path" style={{ ["--len" as string]: 900 }} d="M0,170 C40,160 60,120 95,128 S150,150 185,110 S240,60 280,92 S330,140 365,96 S420,40 455,52 S505,30 520,24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
-            <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/10 pt-5 text-[12px] text-white/45">
-              <div>Win rate<p className="mt-1 font-mono text-[16px] text-white">wins ÷ (W+L)</p></div>
-              <div>Average R<p className="mt-1 font-mono text-[16px] text-white">net ÷ risk</p></div>
-              <div>Profit factor<p className="mt-1 font-mono text-[16px] text-white">gains ÷ losses</p></div>
+            <div className="mt-6 grid grid-cols-3 gap-4 border-t border-ink/10 pt-5 text-[12px] text-ink/45">
+              <div>Win rate<p className="mt-1 font-mono text-[16px] text-ink">wins ÷ (W+L)</p></div>
+              <div>Average R<p className="mt-1 font-mono text-[16px] text-ink">net ÷ risk</p></div>
+              <div>Profit factor<p className="mt-1 font-mono text-[16px] text-ink">gains ÷ losses</p></div>
             </div>
           </div>
         </Reveal>
@@ -118,8 +125,8 @@ export default function LandingPage() {
           <ol className="mt-10 flex flex-col gap-6">
             {STEPS.map((s, i) => (
               <Reveal key={s.n} as="li" delay={i * 90} className="flex gap-5">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/20 font-mono text-[14px]">{s.n}</span>
-                <div><h3 className="text-[18px] font-semibold">{s.title}</h3><p className="mt-1 text-[15px] leading-relaxed text-white/60">{s.body}</p></div>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-ink/20 font-mono text-[14px]">{s.n}</span>
+                <div><h3 className="text-[18px] font-semibold">{s.title}</h3><p className="mt-1 text-[15px] leading-relaxed text-ink/60">{s.body}</p></div>
               </Reveal>
             ))}
           </ol>
@@ -127,12 +134,12 @@ export default function LandingPage() {
       </section>
 
       {/* Facts */}
-      <section className="border-y border-white/10">
+      <section className="border-y border-ink/10">
         <div className="mx-auto grid max-w-[1200px] grid-cols-2 px-5 sm:px-8 lg:grid-cols-4">
           {FACTS.map((f, i) => (
-            <Reveal key={f.l} delay={i * 60} className="border-white/10 py-12 text-center [&:not(:last-child)]:lg:border-r">
+            <Reveal key={f.l} delay={i * 60} className="border-ink/10 py-12 text-center [&:not(:last-child)]:lg:border-r">
               <p className="font-mono text-[44px] font-medium tracking-tight">{f.v}</p>
-              <p className="mt-1 text-[13px] text-white/50">{f.l}</p>
+              <p className="mt-1 text-[13px] text-ink/50">{f.l}</p>
             </Reveal>
           ))}
         </div>
@@ -140,18 +147,18 @@ export default function LandingPage() {
 
       {/* Verse */}
       <section className="relative overflow-hidden px-5 py-32 sm:px-8">
-        <div aria-hidden className="absolute left-1/2 top-1/2 -z-10 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.04] blur-3xl" />
+        <div aria-hidden className="absolute left-1/2 top-1/2 -z-10 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/[0.04] blur-3xl" />
         <Reveal className="mx-auto max-w-3xl text-center">
-          <BookOpen size={20} className="mx-auto text-white/50" />
-          <blockquote className="verse-text mt-8 text-[28px] leading-snug text-white sm:text-[40px]">Commit thy works unto the LORD, and thy thoughts shall be established.</blockquote>
-          <p className="mt-6 text-[12px] font-semibold uppercase tracking-[0.2em] text-white/50">Proverbs 16:3 · KJV</p>
-          <p className="mx-auto mt-8 max-w-lg text-[15px] leading-relaxed text-white/55">Every page in Ledgr carries a verse chosen for the work it holds — honesty in the journal, wisdom in analytics, patience in psychology. Quietly, never preachy.</p>
+          <BookOpen size={20} className="mx-auto text-ink/50" />
+          <blockquote className="verse-text mt-8 text-[28px] leading-snug text-ink sm:text-[40px]">Commit thy works unto the LORD, and thy thoughts shall be established.</blockquote>
+          <p className="mt-6 text-[12px] font-semibold uppercase tracking-[0.2em] text-ink/50">Proverbs 16:3 · KJV</p>
+          <p className="mx-auto mt-8 max-w-lg text-[15px] leading-relaxed text-ink/55">Every page in Ledgr carries a verse chosen for the work it holds — honesty in the journal, wisdom in analytics, patience in psychology. Quietly, never preachy.</p>
         </Reveal>
       </section>
 
       {/* Privacy */}
       <section className="mx-auto max-w-[1200px] px-5 py-24 sm:px-8">
-        <div className="grid gap-12 rounded-[28px] border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-8 sm:p-14 lg:grid-cols-2">
+        <div className="site-shadow grid gap-12 rounded-[28px] border border-ink/10 bg-paper p-8 sm:p-14 lg:grid-cols-2">
           <Reveal><SectionHeading kicker="Private by default" title="Your journal is yours." sub="Ledgr works fully in your browser with no account. Create one only if you want cloud backup and sync across devices." /></Reveal>
           <ul className="flex flex-col gap-5">
             {[
@@ -162,8 +169,8 @@ export default function LandingPage() {
               const I = Icon as typeof Lock;
               return (
                 <Reveal key={t as string} as="li" delay={i * 80} className="flex gap-4">
-                  <I size={20} className="mt-0.5 shrink-0 text-white/70" strokeWidth={1.6} />
-                  <div><p className="font-medium">{t as string}</p><p className="mt-1 text-[14.5px] leading-relaxed text-white/55">{b as string}</p></div>
+                  <I size={20} className="mt-0.5 shrink-0 text-ink/70" strokeWidth={1.6} />
+                  <div><p className="font-medium">{t as string}</p><p className="mt-1 text-[14.5px] leading-relaxed text-ink/55">{b as string}</p></div>
                 </Reveal>
               );
             })}
@@ -179,11 +186,11 @@ export default function LandingPage() {
 
       {/* CTA */}
       <section className="px-5 pb-28 sm:px-8">
-        <Reveal className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[32px] bg-white px-8 py-20 text-center text-black sm:px-16">
-          <div aria-hidden className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "repeating-linear-gradient(to bottom, transparent 0 31px, #000 31px 32px)" }} />
+        <Reveal className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[32px] bg-ink px-8 py-20 text-center text-paper sm:px-16">
+          <div aria-hidden className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "repeating-linear-gradient(to bottom, transparent 0 31px, var(--paper) 31px 32px)" }} />
           <h2 className="relative mx-auto max-w-2xl text-[36px] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[54px]">Start keeping an honest record.</h2>
-          <p className="relative mx-auto mt-5 max-w-md text-[16px] text-black/60">Free. Private. Ready in under a minute.</p>
-          <CtaLink className="relative mt-9 inline-flex h-12 items-center gap-2 rounded-full bg-black px-7 text-[15px] font-medium text-white transition-transform hover:scale-[1.02]">Start your journal <ArrowRight size={16} /></CtaLink>
+          <p className="relative mx-auto mt-5 max-w-md text-[16px] text-paper/60">Free. Private. Ready in under a minute.</p>
+          <CtaLink className="relative mt-9 inline-flex h-12 items-center gap-2 rounded-full bg-paper px-7 text-[15px] font-medium text-ink transition-transform hover:scale-[1.02]">Start your journal <ArrowRight size={16} /></CtaLink>
         </Reveal>
       </section>
     </>

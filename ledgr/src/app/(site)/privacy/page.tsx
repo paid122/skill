@@ -4,8 +4,8 @@ export const metadata: Metadata = { title: "Privacy" };
 
 export default function PrivacyPage() {
   return (
-    <article className="mx-auto max-w-2xl px-5 pb-28 pt-32 text-[15px] leading-relaxed text-white/70 sm:px-8 [&_h2]:mt-10 [&_h2]:text-[20px] [&_h2]:font-semibold [&_h2]:text-white">
-      <h1 className="text-[44px] font-semibold tracking-[-0.04em] text-white">Privacy</h1>
+    <article className="mx-auto max-w-2xl px-5 pb-28 pt-32 text-[15px] leading-relaxed text-ink/70 sm:px-8 [&_h2]:mt-10 [&_h2]:text-[20px] [&_h2]:font-semibold [&_h2]:text-ink">
+      <h1 className="text-[44px] font-semibold tracking-[-0.04em] text-ink">Privacy</h1>
       <p className="mt-6">This page explains, in plain language, what Ledgr stores and where.</p>
       <h2>Without an account</h2>
       <p className="mt-3">Your journal, images and settings are stored only in your browser on this device. Nothing is sent to us. Clearing your browser data deletes them, so download a backup from Settings → Data.</p>

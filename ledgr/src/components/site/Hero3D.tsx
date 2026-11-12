@@ -43,8 +43,9 @@ export function Hero3D({ className }: { className?: string }) {
 
       // --- The mark -------------------------------------------------------
       const mark = new THREE.Group();
-      const white = new THREE.MeshPhysicalMaterial({ color: 0xf4f4f4, metalness: 0.15, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.08 });
-      const graphite = new THREE.MeshPhysicalMaterial({ color: 0x8a8a8a, metalness: 0.6, roughness: 0.28, clearcoat: 0.6 });
+      // Glossy chrome: black on the light site, bright on the dark site.
+      const white = new THREE.MeshPhysicalMaterial({ color: 0x0b0b0b, metalness: 0.85, roughness: 0.14, clearcoat: 1, clearcoatRoughness: 0.05 });
+      const graphite = new THREE.MeshPhysicalMaterial({ color: 0x3a3a3a, metalness: 0.9, roughness: 0.22, clearcoat: 0.8 });
       const bevel = { depth: 0.55, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.06, bevelSegments: 6, curveSegments: 8 };
       const lShape = new THREE.Shape();
       // An L: spine 0.62 wide × 3.4 tall, baseline 2.9 long × 0.62 high
@@ -62,9 +63,39 @@ export function Hero3D({ className }: { className?: string }) {
       mark.rotation.set(-0.12, -0.42, 0.02);
       scene.add(mark);
 
+      // --- Ledger ribbons: flat, twisting strips of tape around the edges -----
+      const ribbonGeo = (pts: [number, number, number][], width: number, twists: number) => {
+        const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)), false, "catmullrom", 0.5);
+        const N = 220;
+        const frames = curve.computeFrenetFrames(N, false);
+        const pos: number[] = [], idx: number[] = [];
+        for (let i = 0; i <= N; i++) {
+          const u = i / N;
+          const p = curve.getPointAt(u);
+          const a = u * Math.PI * twists;
+          const dir = frames.normals[i].clone().multiplyScalar(Math.cos(a)).add(frames.binormals[i].clone().multiplyScalar(Math.sin(a)));
+          const taper = Math.sin(Math.PI * Math.min(1, u * 1.15)) * 0.6 + 0.4;
+          const w = (width / 2) * taper;
+          pos.push(p.x + dir.x * w, p.y + dir.y * w, p.z + dir.z * w, p.x - dir.x * w, p.y - dir.y * w, p.z - dir.z * w);
+          if (i < N) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+        g.setIndex(idx);
+        g.computeVertexNormals();
+        return g;
+      };
+      const ribbonMat = white.clone();
+      ribbonMat.side = THREE.DoubleSide;
+      const ribbons = new THREE.Group();
+      const rA = new THREE.Mesh(ribbonGeo([[-9, -5.5, -3], [-6.5, -2.2, -1.5], [-7.8, 0.8, -2.2], [-5.2, 3.4, -1], [-6.6, 6, -2.5]], 1.25, 3.2), ribbonMat);
+      const rB = new THREE.Mesh(ribbonGeo([[9.5, 6, -3.5], [6.8, 3, -1.8], [8.2, 0.2, -2.6], [5.8, -2.8, -1.2], [7.6, -6, -3]], 1.1, -2.6), ribbonMat);
+      ribbons.add(rA, rB);
+      scene.add(ribbons);
+
       // --- Ledger lines field ----------------------------------------------
       const lines = new THREE.Group();
-      const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.09 });
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.08 });
       const lineData: { mesh: import("three").Mesh; base: number; phase: number; speed: number }[] = [];
       for (let i = 0; i < 46; i++) {
         const w = 2 + Math.random() * 7;
@@ -81,11 +112,26 @@ export function Hero3D({ className }: { className?: string }) {
       const pts = new Float32Array(600 * 3);
       for (let i = 0; i < pts.length; i += 3) { pts[i] = (Math.random() - 0.5) * 18; pts[i + 1] = (Math.random() - 0.5) * 12; pts[i + 2] = -Math.random() * 12; }
       dustGeo.setAttribute("position", new THREE.BufferAttribute(pts, 3));
-      const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.018, transparent: true, opacity: 0.5 }));
+      const dustMat = new THREE.PointsMaterial({ color: 0x000000, size: 0.018, transparent: true, opacity: 0.35 });
+      const dust = new THREE.Points(dustGeo, dustMat);
       scene.add(dust);
 
       const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(4, 5, 6); scene.add(key);
       const rim = new THREE.DirectionalLight(0xffffff, 1.4); rim.position.set(-6, -2, -4); scene.add(rim);
+
+      // --- Theme (follows the site's light/dark toggle) ----------------------
+      const applyTheme = () => {
+        const dark = document.documentElement.dataset.siteTheme === "dark";
+        white.color.set(dark ? 0xf2f2f2 : 0x0b0b0b); white.metalness = dark ? 0.2 : 0.85;
+        ribbonMat.color.set(dark ? 0xe8e8e8 : 0x0b0b0b); ribbonMat.metalness = dark ? 0.25 : 0.85;
+        graphite.color.set(dark ? 0x9a9a9a : 0x3a3a3a);
+        lineMat.color.set(dark ? 0xffffff : 0x000000); lineMat.opacity = dark ? 0.09 : 0.08;
+        dustMat.color.set(dark ? 0xffffff : 0x000000); dustMat.opacity = dark ? 0.5 : 0.35;
+        renderer.toneMappingExposure = dark ? 1.05 : 1.15;
+        if (reduce) renderer.render(scene, camera);
+      };
+      applyTheme();
+      window.addEventListener("ledgr:site-theme", applyTheme);
 
       // --- Interaction ------------------------------------------------------
       const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -133,6 +179,11 @@ export function Hero3D({ className }: { className?: string }) {
         for (const l of lineData) l.mesh.position.x = l.base + Math.sin(t * l.speed + l.phase) * 0.6;
         lines.rotation.y = pointer.x * 0.05;
         dust.rotation.y = t * 0.01;
+        rA.rotation.z = Math.sin(t * 0.25) * 0.08 + pointer.x * 0.06;
+        rA.position.y = Math.sin(t * 0.5) * 0.25 - scroll * 0.8;
+        rB.rotation.z = Math.cos(t * 0.22) * 0.08 - pointer.x * 0.06;
+        rB.position.y = Math.cos(t * 0.45) * 0.25 - scroll * 0.6;
+        ribbons.visible = window.innerWidth >= 1024;
         camera.position.x = pointer.x * 0.35;
         camera.position.y = 0.2 - pointer.y * 0.25;
         camera.lookAt(0, 0, 0);
@@ -143,9 +194,10 @@ export function Hero3D({ className }: { className?: string }) {
       cleanup = () => {
         cancelAnimationFrame(raf);
         window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("ledgr:site-theme", applyTheme);
         ro.disconnect(); io.disconnect();
         scene.traverse((o) => { const m = o as import("three").Mesh; m.geometry?.dispose?.(); });
-        white.dispose(); graphite.dispose(); lineMat.dispose(); pmrem.dispose();
+        white.dispose(); graphite.dispose(); ribbonMat.dispose(); lineMat.dispose(); dustMat.dispose(); pmrem.dispose();
         renderer.dispose();
         renderer.domElement.remove();
       };
@@ -154,11 +206,11 @@ export function Hero3D({ className }: { className?: string }) {
   }, []);
 
   return (
-    <div ref={host} className={className}>
+    <div ref={host} className={className} style={{ maskImage: "linear-gradient(to bottom, #000 78%, transparent)", WebkitMaskImage: "linear-gradient(to bottom, #000 78%, transparent)" }}>
       {failed && (
         <svg viewBox="0 0 32 32" className="mx-auto h-full max-h-72 w-auto opacity-90" aria-hidden>
-          <path d="M9 7.5V24.5H23.5" stroke="#fff" strokeWidth="3" fill="none" />
-          <path d="M13.5 13H20.5M13.5 18.5H23" stroke="#fff" strokeOpacity=".5" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M9 7.5V24.5H23.5" stroke="currentColor" strokeWidth="3" fill="none" />
+          <path d="M13.5 13H20.5M13.5 18.5H23" stroke="currentColor" strokeOpacity=".5" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       )}
     </div>

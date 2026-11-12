@@ -4,8 +4,8 @@ export const metadata: Metadata = { title: "Terms" };
 
 export default function TermsPage() {
   return (
-    <article className="mx-auto max-w-2xl px-5 pb-28 pt-32 text-[15px] leading-relaxed text-white/70 sm:px-8 [&_h2]:mt-10 [&_h2]:text-[20px] [&_h2]:font-semibold [&_h2]:text-white">
-      <h1 className="text-[44px] font-semibold tracking-[-0.04em] text-white">Terms</h1>
+    <article className="mx-auto max-w-2xl px-5 pb-28 pt-32 text-[15px] leading-relaxed text-ink/70 sm:px-8 [&_h2]:mt-10 [&_h2]:text-[20px] [&_h2]:font-semibold [&_h2]:text-ink">
+      <h1 className="text-[44px] font-semibold tracking-[-0.04em] text-ink">Terms</h1>
       <h2>What Ledgr is</h2>
       <p className="mt-3">Ledgr is a journaling and analysis tool for simulated and historical trading records. It does not connect to brokerage accounts, execute trades, hold funds, or verify any account status.</p>
       <h2>Not financial advice</h2>

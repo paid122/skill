@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
     <div>
       <h1 className="text-[32px] font-semibold tracking-[-0.03em]">Reset your password</h1>
       {sent ? (
-        <p className="mt-4 text-[15px] leading-relaxed text-white/60">If an account exists for <span className="text-white">{email}</span>, a reset link is on its way.</p>
+        <p className="mt-4 text-[15px] leading-relaxed text-ink/60">If an account exists for <span className="text-ink">{email}</span>, a reset link is on its way.</p>
       ) : (
         <form onSubmit={submit} className="mt-8 flex flex-col gap-4">
           <AuthField label="Email" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
           <AuthButton type="submit" busy={busy}>Send reset link</AuthButton>
         </form>
       )}
-      <Link href="/login" className="mt-8 inline-block text-[14px] text-white/60 hover:text-white">Back to log in</Link>
+      <Link href="/login" className="mt-8 inline-block text-[14px] text-ink/60 hover:text-ink">Back to log in</Link>
     </div>
   );
 }

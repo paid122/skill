@@ -15,15 +15,15 @@ const QA = [
 export function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <div className="divide-y divide-white/10 border-y border-white/10">
+    <div className="divide-y divide-ink/10 border-y border-ink/10">
       {QA.map(([q, a], i) => (
         <div key={q}>
-          <button type="button" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)} className="flex w-full items-center justify-between gap-6 py-5 text-left text-[16px] font-medium text-white">
+          <button type="button" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)} className="flex w-full items-center justify-between gap-6 py-5 text-left text-[16px] font-medium text-ink">
             {q}
-            <Plus size={18} className={cx("shrink-0 text-white/60 transition-transform duration-200", open === i && "rotate-45")} />
+            <Plus size={18} className={cx("shrink-0 text-ink/60 transition-transform duration-200", open === i && "rotate-45")} />
           </button>
           <div className={cx("grid transition-[grid-template-rows] duration-300", open === i ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
-            <p className="overflow-hidden pb-0 text-[15px] leading-relaxed text-white/60">{open === i && <span className="block pb-6">{a}</span>}</p>
+            <p className="overflow-hidden pb-0 text-[15px] leading-relaxed text-ink/60">{open === i && <span className="block pb-6">{a}</span>}</p>
           </div>
         </div>
       ))}

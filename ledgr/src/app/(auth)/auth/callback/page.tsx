@@ -17,6 +17,6 @@ export default function AuthCallbackPage() {
   }, []);
   useEffect(() => { if (session) router.replace("/dashboard"); }, [session, router]);
   if (!supabaseConfigured) return <NotConfigured />;
-  if (error) return <div><h1 className="text-[28px] font-semibold">Sign-in didn't complete</h1><p className="mt-3 text-white/60">{error}</p><Link href="/login" className="mt-6 inline-block text-white underline">Try again</Link></div>;
-  return <p className="text-white/60">{session === null ? "Finishing sign-in… If nothing happens, open the link again on this device." : "Signing you in…"}</p>;
+  if (error) return <div><h1 className="text-[28px] font-semibold">Sign-in didn't complete</h1><p className="mt-3 text-ink/60">{error}</p><Link href="/login" className="mt-6 inline-block text-ink underline">Try again</Link></div>;
+  return <p className="text-ink/60">{session === null ? "Finishing sign-in… If nothing happens, open the link again on this device." : "Signing you in…"}</p>;
 }

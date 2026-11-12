@@ -20,7 +20,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="midnight" suppressHydrationWarning>
+    <html lang="en" data-theme="midnight" data-site-theme="light" suppressHydrationWarning>
+      <head>
+        {/* Apply the saved website theme before first paint (no flash). */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("ledgr.siteTheme");if(t==="dark"||t==="light")document.documentElement.dataset.siteTheme=t}catch(e){}` }} />
+      </head>
       <body>{children}</body>
     </html>
   );

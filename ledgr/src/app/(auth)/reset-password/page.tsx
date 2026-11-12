@@ -11,8 +11,8 @@ export default function ResetPasswordPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (!supabaseConfigured) return <NotConfigured />;
-  if (session === undefined) return <p className="text-white/60">Checking your reset link…</p>;
-  if (!session) return <div><h1 className="text-[28px] font-semibold">This link has expired</h1><p className="mt-3 text-white/60">Request a new password reset link and open it on this device.</p></div>;
+  if (session === undefined) return <p className="text-ink/60">Checking your reset link…</p>;
+  if (!session) return <div><h1 className="text-[28px] font-semibold">This link has expired</h1><p className="mt-3 text-ink/60">Request a new password reset link and open it on this device.</p></div>;
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) return setError("Use a password of at least 8 characters.");

@@ -10,8 +10,8 @@ export function SignupForm({ kind, fields, submitLabel, done }: { kind: "communi
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
-  if (!supabaseConfigured) return <p className="rounded-2xl border border-white/10 p-5 text-[14px] text-white/55">Sign-ups open once this site is connected to its database.</p>;
-  if (sent) return <p className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.04] p-5 text-[15px]"><Check size={18} /> {done}</p>;
+  if (!supabaseConfigured) return <p className="rounded-2xl border border-ink/10 p-5 text-[14px] text-ink/55">Sign-ups open once this site is connected to its database.</p>;
+  if (sent) return <p className="flex items-center gap-3 rounded-2xl border border-ink/15 bg-ink/[0.04] p-5 text-[15px]"><Check size={18} /> {done}</p>;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,15 +33,15 @@ export function SignupForm({ kind, fields, submitLabel, done }: { kind: "communi
       <AuthField label="Email" name="email" type="email" autoComplete="email" required value={values.email ?? ""} onChange={(e) => setValues({ ...values, email: e.target.value })} />
       {fields.map((f) => f.multiline ? (
         <div key={f.name} className="flex flex-col gap-1.5">
-          <label htmlFor={`f-${f.name}`} className="text-[13px] text-white/70">{f.label}</label>
-          <textarea id={`f-${f.name}`} rows={4} maxLength={1000} placeholder={f.placeholder} value={values[f.name] ?? ""} onChange={(e) => setValues({ ...values, [f.name]: e.target.value })} className="rounded-xl border border-white/15 bg-white/[0.03] px-3.5 py-2.5 text-[15px] text-white outline-none placeholder:text-white/30 focus:border-white/60" />
+          <label htmlFor={`f-${f.name}`} className="text-[13px] text-ink/70">{f.label}</label>
+          <textarea id={`f-${f.name}`} rows={4} maxLength={1000} placeholder={f.placeholder} value={values[f.name] ?? ""} onChange={(e) => setValues({ ...values, [f.name]: e.target.value })} className="rounded-xl border border-ink/15 bg-ink/[0.03] px-3.5 py-2.5 text-[15px] text-ink outline-none placeholder:text-ink/30 focus:border-ink/60" />
         </div>
       ) : (
         <AuthField key={f.name} label={f.label} name={`f-${f.name}`} type={f.type ?? "text"} placeholder={f.placeholder} maxLength={300} value={values[f.name] ?? ""} onChange={(e) => setValues({ ...values, [f.name]: e.target.value })} />
       ))}
       <AuthError message={error} />
       <AuthButton type="submit" busy={busy}>{submitLabel}</AuthButton>
-      <p className="text-[12px] text-white/40">We use your email only to reply about this request.</p>
+      <p className="text-[12px] text-ink/40">We use your email only to reply about this request.</p>
     </form>
   );
 }
