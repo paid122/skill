@@ -196,11 +196,11 @@ function Editor({ x }: { x: EnrichedTrade }) {
             <Segmented value={layout} onChange={(v) => setShowcase({ layout: v })} options={[{ value: "poster", label: "Poster" }, { value: "classic", label: "Classic" }]} ariaLabel="Card layout" />
           </Field>
           {layout === "poster" && (
-            <Field label="Your background" hint="Your own image or short video (MP4/WebM, up to 40 MB). Only use media you have the right to share.">
+            <Field label="Your background" hint="Any image (PNG, JPEG, WebP, GIF up to 8 MB) or video (MP4, WebM, MOV up to 40 MB). Only use media you have the right to share.">
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" icon={<ImagePlus size={14} />} onClick={() => fileRef.current?.click()}>{media ? "Replace" : "Upload image or video"}</Button>
                 {media && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeMedia}>Remove</Button>}
-                <input ref={fileRef} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" onChange={(e) => upload(e.target.files?.[0])} />
+                <input ref={fileRef} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => upload(e.target.files?.[0])} />
               </div>
               {uploadError && <p className="mt-2 text-xs text-neg">{uploadError}</p>}
             </Field>

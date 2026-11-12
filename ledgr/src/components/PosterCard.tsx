@@ -2,7 +2,7 @@
 import { Droplet, Flame } from "lucide-react";
 import { marketGlyph, symbolImage } from "@/lib/instrument";
 import { forwardRef, useMemo, useState } from "react";
-import { fillsMatch, INTERVAL_MS, PROVIDERS, type TradeChart } from "@/lib/candles";
+import { fillsMatch, INTERVAL_MS, type TradeChart } from "@/lib/candles";
 import type { TradeMetrics } from "@/lib/calc";
 import type { Trade } from "@/lib/types";
 import { fmtMoney, fmtNum, fmtR, parseISODate } from "@/lib/util";
@@ -196,9 +196,11 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
           ? <PriceChart trade={t} chart={chart} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
           : <ExecutionPath trade={t} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />}
       </div>
-      <p className="absolute bottom-12 right-12 text-right text-[13px] font-medium" style={{ color: sub }}>
-        {chart ? <>{chart.dataSymbol} · {chart.interval} · {PROVIDERS[chart.provider].name}{!matches && " · fills differ from feed"}</> : "Simulated record · line joins fills"}
-      </p>
+      {(!chart || !matches) && (
+        <p className="absolute bottom-12 right-12 text-right text-[13px] font-medium" style={{ color: sub }}>
+          {chart ? "Fills differ from this price feed" : "Simulated record · line joins fills"}
+        </p>
+      )}
     </div>
   );
 });
