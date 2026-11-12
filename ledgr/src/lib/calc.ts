@@ -293,6 +293,20 @@ export interface ScoreComponent {
   detail: string;
 }
 
+/** Discipline score weights — shared by the app and the website's interactive demo. */
+export const DISCIPLINE_WEIGHTS = { completion: 0.25, adherence: 0.25, reflection: 0.2, consistency: 0.15, awareness: 0.15 } as const;
+export const DISCIPLINE_LABELS: Record<keyof typeof DISCIPLINE_WEIGHTS, string> = {
+  completion: "Journal completion", adherence: "Plan adherence (self-reported)", reflection: "Reflection completion",
+  consistency: "Documentation consistency", awareness: "Emotional awareness",
+};
+
+/** Weighted mean of available components (nulls excluded, weights re-normalised). */
+export function combineDiscipline(values: Partial<Record<keyof typeof DISCIPLINE_WEIGHTS, number | null>>): number | null {
+  const usable = (Object.keys(DISCIPLINE_WEIGHTS) as (keyof typeof DISCIPLINE_WEIGHTS)[]).filter((k) => values[k] !== null && values[k] !== undefined);
+  const wsum = usable.reduce((s, k) => s + DISCIPLINE_WEIGHTS[k], 0);
+  return wsum ? usable.reduce((s, k) => s + (values[k] as number) * DISCIPLINE_WEIGHTS[k], 0) / wsum : null;
+}
+
 export interface DisciplineScore {
   score: number | null;
   components: ScoreComponent[];
@@ -327,15 +341,13 @@ export function disciplineScore(trades: Trade[], journals: DailyJournal[]): Disc
   }).length;
 
   const components: ScoreComponent[] = [
-    { key: "completion", label: "Journal completion", weight: 0.25, value: pct(trades.filter((t) => !t.isDraft && missingFields(t).length === 0).length, n), detail: "Trades saved with every required field, not left as drafts." },
-    { key: "adherence", label: "Plan adherence (self-reported)", weight: 0.25, value: adherence, detail: `Average of your “Did I follow my written plan?” answers across ${answered.length} trades.` },
-    { key: "reflection", label: "Reflection completion", weight: 0.2, value: pct(trades.filter(reflectionComplete).length, n), detail: "Trades where all four reflection prompts are answered." },
-    { key: "consistency", label: "Documentation consistency", weight: 0.15, value: pct(documentedDays, tradingDays.length), detail: `${documentedDays} of ${tradingDays.length} trading days have a post-session daily journal entry.` },
-    { key: "awareness", label: "Emotional awareness", weight: 0.15, value: pct(trades.filter((t) => t.emotions.length > 0).length, n), detail: "Trades with at least one recorded emotional state." },
+    { key: "completion", label: "Journal completion", weight: DISCIPLINE_WEIGHTS.completion, value: pct(trades.filter((t) => !t.isDraft && missingFields(t).length === 0).length, n), detail: "Trades saved with every required field, not left as drafts." },
+    { key: "adherence", label: "Plan adherence (self-reported)", weight: DISCIPLINE_WEIGHTS.adherence, value: adherence, detail: `Average of your “Did I follow my written plan?” answers across ${answered.length} trades.` },
+    { key: "reflection", label: "Reflection completion", weight: DISCIPLINE_WEIGHTS.reflection, value: pct(trades.filter(reflectionComplete).length, n), detail: "Trades where all four reflection prompts are answered." },
+    { key: "consistency", label: "Documentation consistency", weight: DISCIPLINE_WEIGHTS.consistency, value: pct(documentedDays, tradingDays.length), detail: `${documentedDays} of ${tradingDays.length} trading days have a post-session daily journal entry.` },
+    { key: "awareness", label: "Emotional awareness", weight: DISCIPLINE_WEIGHTS.awareness, value: pct(trades.filter((t) => t.emotions.length > 0).length, n), detail: "Trades with at least one recorded emotional state." },
   ];
-  const usable = components.filter((c) => c.value !== null);
-  const wsum = usable.reduce((s, c) => s + c.weight, 0);
-  const score = n === 0 || wsum === 0 ? null : usable.reduce((s, c) => s + (c.value as number) * c.weight, 0) / wsum;
+  const score = n === 0 ? null : combineDiscipline(Object.fromEntries(components.map((c) => [c.key, c.value])));
   return { score, components, sample: n };
 }
 

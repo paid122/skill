@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CtaLink } from "@/components/site/CtaLink";
+import { DisciplineDemo, VerseDemo } from "@/components/site/Demos";
 import { Reveal, SectionHeading, TiltCard } from "@/components/site/SiteChrome";
 
 export const metadata: Metadata = { title: "Features", description: "Every part of Ledgr: trade journal, analytics, psychology, strategies, accounts, study room, verse library, Ledgr AI and reports." };
@@ -72,6 +73,18 @@ export default function FeaturesPage() {
           </div>
         </section>
       ))}
+      <section className="mx-auto max-w-[1200px] border-t border-ink/10 px-5 py-24 sm:px-8">
+        <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+          <Reveal><SectionHeading kicker="Try it" title="A score you can see inside." sub="The discipline score combines five habits with fixed weights. Move the sliders to see exactly how it's built." /></Reveal>
+          <Reveal delay={100}><DisciplineDemo /></Reveal>
+        </div>
+      </section>
+      <section className="mx-auto max-w-[1200px] border-t border-ink/10 px-5 py-24 sm:px-8">
+        <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+          <Reveal><SectionHeading kicker="Scripture, chosen with care" title="The right verse for the moment." sub="Each page has its own King James verse. On your dashboard and daily journal, Ledgr notices how your day is going and responds." /></Reveal>
+          <Reveal delay={100}><VerseDemo /></Reveal>
+        </div>
+      </section>
       <section className="border-t border-ink/10 px-5 py-24 text-center sm:px-8">
         <Reveal><h2 className="text-[36px] font-semibold tracking-[-0.03em] sm:text-[48px]">See it with your own records.</h2></Reveal>
         <Reveal delay={100}><CtaLink className="mt-8 inline-flex h-12 items-center rounded-full bg-ink px-7 text-[15px] font-medium text-paper">Start your journal</CtaLink></Reveal>
