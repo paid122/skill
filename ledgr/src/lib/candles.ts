@@ -38,6 +38,11 @@ export function guessSource(t: Pick<Trade, "symbol" | "market">): { provider: Ca
     const pair = clean.endsWith("USDT") ? clean : clean.endsWith("USD") ? `${clean}T` : `${clean}USDT`;
     return { provider: "binance", dataSymbol: pair };
   }
+  // Spot metals trade like forex pairs (XAU/USD).
+  if (/^(XAU|XAG|XPT|XPD)[A-Z]{3}$/.test(clean)) return { provider: "twelvedata", dataSymbol: `${clean.slice(0, 3)}/${clean.slice(3)}` };
+  // Common CFD names → the matching CME future (CFD prices differ slightly; the card flags a mismatch).
+  const CFD: Record<string, string> = { NAS100: "NQ", US100: "NQ", USTEC: "NQ", NDX: "NQ", US30: "YM", DJ30: "YM", WS30: "YM", SPX500: "ES", US500: "ES", SPX: "ES", US2000: "RTY", USOIL: "CL", WTI: "CL", UKOIL: "BZ", NATGAS: "NG", GOLD: "GC", SILVER: "SI" };
+  if (CFD[clean]) return { provider: "databento", dataSymbol: `${CFD[clean]}.v.0` };
   if (t.market === "Futures" || t.market === "Commodities" || t.market === "Indices") {
     // Root symbol (NQZ6 → NQ, MNQ → MNQ) as the most-traded contract: NQ.v.0.
     const root = clean.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || clean;

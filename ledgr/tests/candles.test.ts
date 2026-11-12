@@ -14,6 +14,13 @@ describe("guessSource", () => {
   it("maps stocks and forex to Twelve Data", () => {
     expect(guessSource({ symbol: "AAPL", market: "Stocks" })).toEqual({ provider: "twelvedata", dataSymbol: "AAPL" });
     expect(guessSource({ symbol: "EURUSD", market: "Forex" })).toEqual({ provider: "twelvedata", dataSymbol: "EUR/USD" });
+    expect(guessSource({ symbol: "GBP/JPY", market: "Forex" })).toEqual({ provider: "twelvedata", dataSymbol: "GBP/JPY" });
+    expect(guessSource({ symbol: "XAUUSD", market: "Commodities" })).toEqual({ provider: "twelvedata", dataSymbol: "XAU/USD" });
+  });
+  it("maps common CFD names to the matching future", () => {
+    expect(guessSource({ symbol: "NAS100", market: "Indices" })).toEqual({ provider: "databento", dataSymbol: "NQ.v.0" });
+    expect(guessSource({ symbol: "US30", market: null })).toEqual({ provider: "databento", dataSymbol: "YM.v.0" });
+    expect(guessSource({ symbol: "USOIL", market: "Commodities" })).toEqual({ provider: "databento", dataSymbol: "CL.v.0" });
   });
 });
 
