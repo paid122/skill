@@ -55,9 +55,9 @@ async function check(name, fn) {
   await check("Top navigation reaches routes (including menus) with an active state", async () => {
     await go("/dashboard");
     const nav = page.getByRole("navigation", { name: "Primary" });
-    for (const [menu, label, path] of [[null, "Dashboard", "/dashboard"], ["Journal", "Trade Journal", "/journal"], ["Performance", "Analytics", "/analytics"], ["Learn", "Study Room", "/study"], [null, "Ledgr AI", "/ai"]]) {
+    for (const [menu, label, path] of [[null, "Dashboard", "/dashboard"], [null, "Journal", "/journal"], [null, "Analytics", "/analytics"], [null, "Study", "/study"], ["More", "Verse Library", "/verses"], [null, "AI", "/ai"]]) {
       if (menu) await nav.getByRole("button", { name: new RegExp(menu) }).click();
-      await nav.getByRole(menu ? "menuitem" : "link", { name: label }).click();
+      await nav.getByRole(menu ? "menuitem" : "link", { name: label, exact: true }).click();
       await page.waitForURL((u) => new URL(u).pathname === path);
       assert.ok(await nav.locator("[data-active]").count() === 1, `one active item on ${path}`);
     }
