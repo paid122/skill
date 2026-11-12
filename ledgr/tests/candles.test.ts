@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregate, fillsMatch, guessSource, parseBinance, parseDatabento, parseTwelveData, pickWindow } from "../src/lib/candles";
+import { aggregate, fillsMatch, guessSource, parseBinance, parseDatabento, parseTwelveData, parseYahoo, pickWindow, yahooWindow } from "../src/lib/candles";
 
 describe("guessSource", () => {
   it("maps crypto to Binance USDT pairs", () => {
@@ -7,20 +7,20 @@ describe("guessSource", () => {
     expect(guessSource({ symbol: "ETH/USDT", market: "Crypto" })).toEqual({ provider: "binance", dataSymbol: "ETHUSDT" });
     expect(guessSource({ symbol: "SOL", market: null })).toEqual({ provider: "binance", dataSymbol: "SOLUSDT" });
   });
-  it("maps futures to the most-traded continuous contract", () => {
-    expect(guessSource({ symbol: "NQ", market: "Futures" })).toEqual({ provider: "databento", dataSymbol: "NQ.v.0" });
-    expect(guessSource({ symbol: "MNQZ6", market: "Futures" })).toEqual({ provider: "databento", dataSymbol: "MNQ.v.0" });
+  it("maps futures to the Yahoo front contract", () => {
+    expect(guessSource({ symbol: "NQ", market: "Futures" })).toEqual({ provider: "yahoo", dataSymbol: "NQ=F" });
+    expect(guessSource({ symbol: "MNQZ6", market: "Futures" })).toEqual({ provider: "yahoo", dataSymbol: "MNQ=F" });
   });
-  it("maps stocks and forex to Twelve Data", () => {
-    expect(guessSource({ symbol: "AAPL", market: "Stocks" })).toEqual({ provider: "twelvedata", dataSymbol: "AAPL" });
-    expect(guessSource({ symbol: "EURUSD", market: "Forex" })).toEqual({ provider: "twelvedata", dataSymbol: "EUR/USD" });
-    expect(guessSource({ symbol: "GBP/JPY", market: "Forex" })).toEqual({ provider: "twelvedata", dataSymbol: "GBP/JPY" });
-    expect(guessSource({ symbol: "XAUUSD", market: "Commodities" })).toEqual({ provider: "twelvedata", dataSymbol: "XAU/USD" });
+  it("maps stocks, forex and metals to Yahoo", () => {
+    expect(guessSource({ symbol: "AAPL", market: "Stocks" })).toEqual({ provider: "yahoo", dataSymbol: "AAPL" });
+    expect(guessSource({ symbol: "EURUSD", market: "Forex" })).toEqual({ provider: "yahoo", dataSymbol: "EURUSD=X" });
+    expect(guessSource({ symbol: "GBP/JPY", market: "Forex" })).toEqual({ provider: "yahoo", dataSymbol: "GBPJPY=X" });
+    expect(guessSource({ symbol: "XAUUSD", market: "Commodities" })).toEqual({ provider: "yahoo", dataSymbol: "GC=F" });
   });
   it("maps common CFD names to the matching future", () => {
-    expect(guessSource({ symbol: "NAS100", market: "Indices" })).toEqual({ provider: "databento", dataSymbol: "NQ.v.0" });
-    expect(guessSource({ symbol: "US30", market: null })).toEqual({ provider: "databento", dataSymbol: "YM.v.0" });
-    expect(guessSource({ symbol: "USOIL", market: "Commodities" })).toEqual({ provider: "databento", dataSymbol: "CL.v.0" });
+    expect(guessSource({ symbol: "NAS100", market: "Indices" })).toEqual({ provider: "yahoo", dataSymbol: "NQ=F" });
+    expect(guessSource({ symbol: "US30", market: null })).toEqual({ provider: "yahoo", dataSymbol: "YM=F" });
+    expect(guessSource({ symbol: "USOIL", market: "Commodities" })).toEqual({ provider: "yahoo", dataSymbol: "CL=F" });
   });
 });
 
@@ -79,5 +79,21 @@ describe("aggregate and fillsMatch", () => {
   it("flags fills that sit outside the feed's candles", () => {
     expect(fillsMatch(ones, "1m", [{ time: "2026-11-12T14:31:20Z", price: 101.5 }])).toBe(true);
     expect(fillsMatch(ones, "1m", [{ time: "2026-11-12T14:31:20Z", price: 140 }])).toBe(false);
+  });
+});
+
+describe("yahoo", () => {
+  it("parses the chart response and skips empty minutes", () => {
+    const bars = parseYahoo({ chart: { result: [{ timestamp: [1794493860, 1794493920], indicators: { quote: [{ open: [1, null], high: [2, null], low: [0.5, null], close: [1.5, null] }] } }], error: null } });
+    expect(bars).toEqual([{ t: 1794493860000, o: 1, h: 2, l: 0.5, c: 1.5 }]);
+    expect(() => parseYahoo({ chart: { result: null, error: { description: "No data found, symbol may be delisted" } } })).toThrow("delisted");
+  });
+  it("uses coarser candles for older trades and keeps enough bars", () => {
+    const now = Date.parse("2026-11-12T20:00:00Z");
+    const recent = { interval: "1m" as const, from: Date.parse("2026-11-10T14:00:00Z"), to: Date.parse("2026-11-10T15:00:00Z") };
+    expect(yahooWindow(recent, now)).toEqual(recent);
+    const old = yahooWindow({ interval: "1m", from: Date.parse("2026-09-01T14:00:00Z"), to: Date.parse("2026-09-01T15:00:00Z") }, now);
+    expect(old.interval).toBe("1h");
+    expect((old.to - old.from) / 3600e3).toBeGreaterThanOrEqual(40);
   });
 });

@@ -258,9 +258,9 @@ function ChartSource({ x, onSave }: { x: EnrichedTrade; onSave: (chart: NonNulla
     try {
       const q = new URLSearchParams({ provider, symbol: symbol.trim(), interval: win.interval, from: String(win.from), to: String(win.to) });
       const r = await fetch(`/api/candles?${q}`);
-      const j = (await r.json()) as { bars?: Bar[]; error?: string };
+      const j = (await r.json()) as { bars?: Bar[]; interval?: typeof win.interval; error?: string };
       if (!r.ok || !j.bars) throw new Error(j.error || "Could not load candles.");
-      onSave({ provider, dataSymbol: symbol.trim(), interval: win.interval, bars: j.bars, fetchedAt: new Date().toISOString() });
+      onSave({ provider, dataSymbol: symbol.trim(), interval: j.interval ?? win.interval, bars: j.bars, fetchedAt: new Date().toISOString() });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load candles.");
     }
@@ -276,7 +276,7 @@ function ChartSource({ x, onSave }: { x: EnrichedTrade; onSave: (chart: NonNulla
           </Select>
           <Input aria-label="Data symbol" value={symbol} maxLength={32} onChange={(e) => setSymbol(e.target.value)} placeholder="Symbol" />
         </div>
-        <p className="text-xs text-muted">{PROVIDERS[provider].covers}{provider === "databento" ? " · NQ.v.0 = most-traded contract, or a contract like NQZ6" : ""}</p>
+        <p className="text-xs text-muted">{PROVIDERS[provider].covers}{provider === "databento" ? " · NQ.v.0 = most-traded contract, or a contract like NQZ6" : provider === "yahoo" ? " · e.g. MNQ=F, EURUSD=X, AAPL, ^NDX" : ""}</p>
         {needsKey && <p className="text-xs text-text-2">Needs an API key from {PROVIDERS[provider].site}: add <code className="font-mono">{needsKey}=…</code> to <code className="font-mono">.env.local</code>, then restart Ledgr. The key stays on your computer&apos;s server, never in the browser.</p>}
         {!win && <p className="text-xs text-muted">Add execution times to this trade to load a chart.</p>}
         <div className="flex flex-wrap gap-2">

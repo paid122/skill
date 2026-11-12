@@ -9,7 +9,7 @@
  */
 import type { Trade } from "./types";
 
-export type CandleProvider = "binance" | "twelvedata" | "databento";
+export type CandleProvider = "binance" | "yahoo" | "twelvedata" | "databento";
 export type CandleInterval = "1m" | "5m" | "15m" | "1h" | "1d";
 export interface Bar { t: number; o: number; h: number; l: number; c: number }
 export interface TradeChart {
@@ -21,7 +21,8 @@ export interface TradeChart {
 }
 
 export const PROVIDERS: Record<CandleProvider, { name: string; covers: string; env: string | null; site: string }> = {
-  binance: { name: "Binance", covers: "Crypto (spot pairs)", env: null, site: "binance.com" },
+  binance: { name: "Binance", covers: "Crypto (spot pairs) · free, no key", env: null, site: "binance.com" },
+  yahoo: { name: "Yahoo Finance", covers: "Forex, futures, stocks, indices · free, no key · 1m history for the last 30 days", env: null, site: "finance.yahoo.com" },
   twelvedata: { name: "Twelve Data", covers: "Stocks, ETFs, forex", env: "TWELVEDATA_API_KEY", site: "twelvedata.com" },
   databento: { name: "Databento", covers: "CME futures (NQ, ES, MNQ, CL, GC …)", env: "DATABENTO_API_KEY", site: "databento.com" },
 };
@@ -38,21 +39,46 @@ export function guessSource(t: Pick<Trade, "symbol" | "market">): { provider: Ca
     const pair = clean.endsWith("USDT") ? clean : clean.endsWith("USD") ? `${clean}T` : `${clean}USDT`;
     return { provider: "binance", dataSymbol: pair };
   }
-  // Spot metals trade like forex pairs (XAU/USD).
-  if (/^(XAU|XAG|XPT|XPD)[A-Z]{3}$/.test(clean)) return { provider: "twelvedata", dataSymbol: `${clean.slice(0, 3)}/${clean.slice(3)}` };
-  // Common CFD names → the matching CME future (CFD prices differ slightly; the card flags a mismatch).
-  const CFD: Record<string, string> = { NAS100: "NQ", US100: "NQ", USTEC: "NQ", NDX: "NQ", US30: "YM", DJ30: "YM", WS30: "YM", SPX500: "ES", US500: "ES", SPX: "ES", US2000: "RTY", USOIL: "CL", WTI: "CL", UKOIL: "BZ", NATGAS: "NG", GOLD: "GC", SILVER: "SI" };
-  if (CFD[clean]) return { provider: "databento", dataSymbol: `${CFD[clean]}.v.0` };
+  // Everything else: Yahoo Finance (free, no key). Futures use the front contract (NQ=F),
+  // forex pairs EURUSD=X, stocks their ticker. CFDs map to the matching future, whose
+  // prices differ slightly; the card flags a mismatch instead of hiding it.
+  const CFD: Record<string, string> = { NAS100: "NQ", US100: "NQ", USTEC: "NQ", NDX: "NQ", US30: "YM", DJ30: "YM", WS30: "YM", SPX500: "ES", US500: "ES", SPX: "ES", US2000: "RTY", USOIL: "CL", WTI: "CL", UKOIL: "BZ", NATGAS: "NG", GOLD: "GC", SILVER: "SI", XAUUSD: "GC", XAGUSD: "SI", XPTUSD: "PL", XPDUSD: "PA" };
+  if (CFD[clean]) return { provider: "yahoo", dataSymbol: `${CFD[clean]}=F` };
   if (t.market === "Futures" || t.market === "Commodities" || t.market === "Indices") {
-    // Root symbol (NQZ6 → NQ, MNQ → MNQ) as the most-traded contract: NQ.v.0.
-    const root = clean.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || clean;
-    return { provider: "databento", dataSymbol: `${root}.v.0` };
+    const root = clean.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || clean; // NQZ6 → NQ
+    return { provider: "yahoo", dataSymbol: `${root}=F` };
   }
-  if (t.market === "Forex") {
-    const p = clean.length === 6 ? `${clean.slice(0, 3)}/${clean.slice(3)}` : raw;
-    return { provider: "twelvedata", dataSymbol: p };
+  if (t.market === "Forex" || /^[A-Z]{6}$/.test(clean) && /^(EUR|GBP|USD|JPY|AUD|NZD|CAD|CHF)/.test(clean) && /(EUR|GBP|USD|JPY|AUD|NZD|CAD|CHF)$/.test(clean)) {
+    return { provider: "yahoo", dataSymbol: `${clean.slice(0, 6)}=X` };
   }
-  return { provider: "twelvedata", dataSymbol: clean || raw };
+  return { provider: "yahoo", dataSymbol: clean || raw };
+}
+
+/**
+ * Yahoo only keeps fine candles for recent dates (1m ≈ 30 days, 5m/15m ≈ 60 days, 1h ≈ 2 years).
+ * For older trades use the finest size still available and widen the window to keep ~40 bars.
+ */
+export function yahooWindow(w: { interval: CandleInterval; from: number; to: number }, now = Date.now()): { interval: CandleInterval; from: number; to: number } {
+  const age = now - w.from, day = 86400e3;
+  const order: CandleInterval[] = ["1m", "5m", "15m", "1h", "1d"];
+  const allowed = (iv: CandleInterval) => (iv === "1m" ? age < 29 * day : iv === "5m" || iv === "15m" ? age < 58 * day : iv === "1h" ? age < 720 * day : true);
+  let interval = w.interval;
+  while (!allowed(interval)) interval = order[order.indexOf(interval) + 1];
+  if (interval === w.interval) return w;
+  const ms = INTERVAL_MS[interval], mid = (w.from + w.to) / 2, half = Math.max((w.to - w.from) / 2, 20 * ms);
+  return { interval, from: Math.floor((mid - half) / ms) * ms, to: Math.min(Math.ceil((mid + half) / ms) * ms, Math.floor(now / ms) * ms) };
+}
+
+/** Yahoo v8 chart: { chart: { result: [{ timestamp: [s…], indicators: { quote: [{ open, high, low, close }] } }], error } } */
+export function parseYahoo(json: unknown): Bar[] {
+  const j = json as { chart?: { result?: { timestamp?: number[]; indicators?: { quote?: { open: (number | null)[]; high: (number | null)[]; low: (number | null)[]; close: (number | null)[] }[] } }[] | null; error?: { description?: string } | null } };
+  if (!j?.chart) throw new Error("Unexpected response from Yahoo Finance");
+  if (j.chart.error) throw new Error(j.chart.error.description || "Yahoo Finance returned an error");
+  const r = j.chart.result?.[0];
+  const q = r?.indicators?.quote?.[0];
+  if (!r?.timestamp || !q) return [];
+  const px = (v: number | null) => (v === null ? NaN : Number(v.toPrecision(7))); // drop float noise (353.5899963… → 353.59)
+  return r.timestamp.map((ts, i) => ({ t: ts * 1000, o: px(q.open[i]), h: px(q.high[i]), l: px(q.low[i]), c: px(q.close[i]) })).filter(valid);
 }
 
 /** Candle size and time window: the whole trade plus context on both sides, ~40–150 bars. */
