@@ -2,7 +2,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { supabase, supabaseConfigured, authMessage } from "@/lib/supabase";
+import { supabase, supabaseConfigProblem, supabaseConfigured, authMessage } from "@/lib/supabase";
 import { cx } from "@/lib/util";
 
 export function AuthField({ label, hint, ...rest }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: ReactNode }) {
@@ -63,6 +63,7 @@ export function NotConfigured() {
   return (
     <div role="status" className="mb-8 rounded-2xl border border-ink/15 bg-ink/[0.03] p-4 text-[13.5px] leading-relaxed">
       <p className="font-medium text-ink">Accounts aren't connected yet</p>
+      {supabaseConfigProblem && <p className="mt-1 font-medium text-[#d9474f]">Check .env.local: {supabaseConfigProblem}</p>}
       <p className="mt-1 text-ink/60">Sign-up and log-in start working once this copy of Ledgr is linked to Supabase (add <code className="font-mono text-[12px]">NEXT_PUBLIC_SUPABASE_URL</code> and <code className="font-mono text-[12px]">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to <code className="font-mono text-[12px]">.env.local</code>). Until then your journal saves privately in this browser.</p>
       <Link href="/dashboard" className="mt-3 inline-flex text-[13.5px] font-medium text-ink underline underline-offset-4">Continue without an account</Link>
     </div>

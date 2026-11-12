@@ -2,11 +2,20 @@
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Trim stray spaces/quotes that are easy to paste into .env.local by accident.
+const clean = (v: string | undefined) => (v ?? "").trim().replace(/^["']|["']$/g, "").trim();
+const URL = clean(process.env.NEXT_PUBLIC_SUPABASE_URL).replace(/\/+$/, "");
+const KEY = clean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
-/** True when this deployment has a Supabase project configured. */
-export const supabaseConfigured = Boolean(URL && KEY);
+/** Why the Supabase settings can't be used (null when they look right). */
+export const supabaseConfigProblem: string | null = !URL && !KEY ? null
+  : !URL ? "NEXT_PUBLIC_SUPABASE_URL is missing."
+  : !/^https?:\/\/[^\s/]+(\.[^\s/]+)+$/i.test(URL) ? `NEXT_PUBLIC_SUPABASE_URL must look like https://your-project-id.supabase.co (it's currently "${URL.slice(0, 60)}").`
+  : !KEY ? "NEXT_PUBLIC_SUPABASE_ANON_KEY is missing."
+  : null;
+
+/** True when this deployment has a usable Supabase project configured. */
+export const supabaseConfigured = Boolean(URL && KEY && !supabaseConfigProblem);
 
 let client: SupabaseClient | null = null;
 export function supabase(): SupabaseClient | null {
