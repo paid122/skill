@@ -3,7 +3,7 @@ import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { supabaseConfigured, useSession } from "@/lib/supabase";
+import { useSession } from "@/lib/supabase";
 import { cx } from "@/lib/util";
 import { LogoMark, Wordmark } from "../Logo";
 import { SiteThemeToggle } from "./SiteThemeToggle";
@@ -37,8 +37,8 @@ export function SiteHeader() {
             <Link href="/dashboard" className="rounded-full bg-ink px-4 py-2 text-[13.5px] font-medium text-paper transition-opacity hover:opacity-90">Open Ledgr</Link>
           ) : (
             <>
-              {supabaseConfigured && <Link href="/login" className="rounded-full px-4 py-2 text-[13.5px] text-ink/70 hover:text-ink">Log in</Link>}
-              <Link href={supabaseConfigured ? "/signup" : "/dashboard"} className="rounded-full bg-ink px-4 py-2 text-[13.5px] font-medium text-paper transition-opacity hover:opacity-90">Start free</Link>
+              <Link href="/login" className="rounded-full px-4 py-2 text-[13.5px] text-ink/70 hover:text-ink">Log in</Link>
+              <Link href="/signup" className="rounded-full bg-ink px-4 py-2 text-[13.5px] font-medium text-paper transition-opacity hover:opacity-90">Start free</Link>
             </>
           )}
         </div>
@@ -49,8 +49,8 @@ export function SiteHeader() {
         <div className="border-t border-ink/10 px-5 pb-6 pt-2 md:hidden">
           {LINKS.map((l) => <Link key={l.href} href={l.href} className="block border-b border-ink/5 py-3.5 text-[15px] text-ink/80">{l.label}</Link>)}
           <div className="mt-5 flex gap-2">
-            {!signedIn && supabaseConfigured && <Link href="/login" className="flex-1 rounded-full border border-ink/20 py-2.5 text-center text-sm text-ink">Log in</Link>}
-            <Link href={signedIn ? "/dashboard" : supabaseConfigured ? "/signup" : "/dashboard"} className="flex-1 rounded-full bg-ink py-2.5 text-center text-sm font-medium text-paper">{signedIn ? "Open Ledgr" : "Start free"}</Link>
+            {!signedIn && <Link href="/login" className="flex-1 rounded-full border border-ink/20 py-2.5 text-center text-sm text-ink">Log in</Link>}
+            <Link href={signedIn ? "/dashboard" : "/signup"} className="flex-1 rounded-full bg-ink py-2.5 text-center text-sm font-medium text-paper">{signedIn ? "Open Ledgr" : "Start free"}</Link>
           </div>
         </div>
       )}

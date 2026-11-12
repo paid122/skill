@@ -11,11 +11,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (!supabaseConfigured) return <NotConfigured />;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!supabaseConfigured) return setError("Accounts aren't connected yet — see the note above.");
     setBusy(true);
     const { error: err } = await supabase()!.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
@@ -25,6 +25,7 @@ export default function LoginPage() {
 
   return (
     <div>
+      <NotConfigured />
       <h1 className="text-[32px] font-semibold tracking-[-0.03em]">Welcome back</h1>
       <p className="mt-2 text-[15px] text-ink/55">Log in to sync your journal.</p>
       <div className="mt-8"><GoogleButton label="Log in with Google" /></div>

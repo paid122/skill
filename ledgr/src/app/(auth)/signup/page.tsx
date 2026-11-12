@@ -14,11 +14,11 @@ export default function SignupPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
-  if (!supabaseConfigured) return <NotConfigured />;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!supabaseConfigured) return setError("Accounts aren't connected yet — see the note above.");
     if (password.length < 8) return setError("Use a password of at least 8 characters.");
     if (!agree) return setError("Please accept the terms and privacy policy to continue.");
     setBusy(true);
@@ -41,6 +41,7 @@ export default function SignupPage() {
 
   return (
     <div>
+      <NotConfigured />
       <h1 className="text-[32px] font-semibold tracking-[-0.03em]">Create your account</h1>
       <p className="mt-2 text-[15px] text-ink/55">Free. Back up your journal and use it anywhere.</p>
       <div className="mt-8"><GoogleButton label="Continue with Google" /></div>
