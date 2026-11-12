@@ -33,9 +33,9 @@ export function buildSampleState(base?: LedgrState): LedgrState {
   const now = new Date().toISOString();
 
   const accounts: Account[] = [
-    { id: uid("acc"), name: "Main simulation", type: "Personal simulation", currency: "USD", startingBalance: 25000, status: "active", color: "#C5A66D", goals: "Journal every trade the same day. Keep average loss under 1R.", rules: { profitTarget: null, maxDrawdown: 2500, dailyLossLimit: 750, minTradingDays: null }, createdAt: now },
-    { id: uid("acc"), name: "Evaluation practice", type: "Hypothetical evaluation", currency: "USD", startingBalance: 50000, status: "active", color: "#7FA7C9", goals: "Practise working within fixed rules.", rules: { profitTarget: 3000, maxDrawdown: 2000, dailyLossLimit: 1000, minTradingDays: 10 }, createdAt: now },
-    { id: uid("acc"), name: "Backtest notebook", type: "Backtest", currency: "USD", startingBalance: 10000, status: "active", color: "#9C8FD1", goals: "Replay sessions to study the opening-range setup.", rules: { profitTarget: null, maxDrawdown: null, dailyLossLimit: null, minTradingDays: null }, createdAt: now },
+    { id: uid("acc"), name: "Main simulation", type: "Personal simulation", currency: "USD", startingBalance: 25000, status: "active", color: "#F5F5F5", goals: "Journal every trade the same day. Keep average loss under 1R.", rules: { profitTarget: null, maxDrawdown: 2500, dailyLossLimit: 750, minTradingDays: null }, createdAt: now },
+    { id: uid("acc"), name: "Evaluation practice", type: "Hypothetical evaluation", currency: "USD", startingBalance: 50000, status: "active", color: "#A3A3A3", goals: "Practise working within fixed rules.", rules: { profitTarget: 3000, maxDrawdown: 2000, dailyLossLimit: 1000, minTradingDays: 10 }, createdAt: now },
+    { id: uid("acc"), name: "Backtest notebook", type: "Backtest", currency: "USD", startingBalance: 10000, status: "active", color: "#3987e5", goals: "Replay sessions to study the opening-range setup.", rules: { profitTarget: null, maxDrawdown: null, dailyLossLimit: null, minTradingDays: null }, createdAt: now },
   ];
 
   const strategies: Strategy[] = [

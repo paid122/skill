@@ -148,6 +148,11 @@ export function replaceState(next: LedgrState) {
   return flush();
 }
 
+/** Notified after every local state change (used by cloud sync). */
+export function subscribeState(l: () => void) {
+  return subscribe(l);
+}
+
 function subscribe(l: () => void) {
   listeners.add(l);
   return () => listeners.delete(l);
@@ -211,10 +216,24 @@ export const ALLOWED_DOC_TYPES = ["application/pdf"];
 
 export async function putBlob(id: string, file: Blob) {
   await idb("blobs", "readwrite", (s) => s.put(file, id));
+  blobUploader?.(id, file);
+}
+
+let blobFallback: ((id: string) => Promise<Blob | undefined>) | null = null;
+let blobUploader: ((id: string, blob: Blob) => void) | null = null;
+
+/** Cloud sync registers these to fetch missing attachments and upload new ones. */
+export function setBlobSync(fallback: typeof blobFallback, uploader: typeof blobUploader) {
+  blobFallback = fallback;
+  blobUploader = uploader;
 }
 
 export async function getBlob(id: string): Promise<Blob | undefined> {
-  return idb<Blob | undefined>("blobs", "readonly", (s) => s.get(id));
+  const local = await idb<Blob | undefined>("blobs", "readonly", (s) => s.get(id));
+  if (local || !blobFallback) return local;
+  const remote = await blobFallback(id).catch(() => undefined);
+  if (remote) await idb("blobs", "readwrite", (s) => s.put(remote, id)).catch(() => undefined);
+  return remote;
 }
 
 export async function deleteBlob(id: string) {

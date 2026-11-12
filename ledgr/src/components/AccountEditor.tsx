@@ -4,7 +4,7 @@ import { saveAccount, ValidationError } from "@/lib/actions";
 import { ACCOUNT_TYPES, type Account, type AccountType } from "@/lib/types";
 import { Button, Field, Input, Modal, NumberInput, Select, Textarea } from "./ui";
 
-const COLORS = ["#C5A66D", "#3987e5", "#199e70", "#d95926", "#d55181", "#9C8FD1", "#A4AAB1"];
+const COLORS = ["#F5F5F5", "#A3A3A3", "#525252", "#3987e5", "#199e70", "#d95926", "#d55181"];
 
 export function AccountEditor({ initial, onClose }: { initial: Account; onClose: () => void }) {
   const [a, setA] = useState(initial);

@@ -11,12 +11,12 @@ import type { Appearance, ThemeName } from "@/lib/types";
 import { contrast, cx, fmtMoney, isHex, uid } from "@/lib/util";
 
 const THEMES: { value: ThemeName; name: string; bg: string; card: string; text: string; sub: string }[] = [
-  { value: "midnight", name: "Midnight", bg: "#0B0D10", card: "#151A20", text: "#F1F2F0", sub: "#A4AAB1" },
-  { value: "onyx", name: "Onyx", bg: "#070707", card: "#121213", text: "#F2F2F0", sub: "#A9A9A6" },
-  { value: "platinum", name: "Platinum", bg: "#1B1F24", card: "#262C33", text: "#F4F5F6", sub: "#B9C0C7" },
-  { value: "light", name: "Light", bg: "#F6F5F2", card: "#FFFFFF", text: "#16181B", sub: "#4C535B" },
+  { value: "midnight", name: "Midnight", bg: "#050505", card: "#0F0F0F", text: "#F5F5F5", sub: "#A3A3A3" },
+  { value: "onyx", name: "Onyx", bg: "#000000", card: "#0A0A0A", text: "#FFFFFF", sub: "#A8A8A8" },
+  { value: "platinum", name: "Platinum", bg: "#18181A", card: "#222225", text: "#F6F6F7", sub: "#BDBDC2" },
+  { value: "light", name: "Light", bg: "#FFFFFF", card: "#FFFFFF", text: "#0A0A0A", sub: "#525252" },
 ];
-const ACCENTS = ["#C5A66D", "#D9B877", "#9DB8D9", "#7FB5A5", "#C9A3D9", "#8E6F33", "#2F6FB8"];
+const ACCENTS = ["#FFFFFF", "#D4D4D4", "#A3A3A3", "#0A0A0A", "#404040", "#3987E5", "#3FBF7F"];
 const MIN_CONTRAST = 3; // WCAG non-text / large-text minimum against the card surface
 
 export default function AppearancePage() {
@@ -30,7 +30,7 @@ export default function AppearancePage() {
 
   /** Applies a colour only if it stays readable on the current theme's card surface. */
   const trySet = (patch: Partial<Appearance>, label: string, color: string, theme = a.theme) => {
-    if (!isHex(color)) { setError(`${label}: enter a hex colour such as #C5A66D.`); return false; }
+    if (!isHex(color)) { setError(`${label}: enter a hex colour such as #FFFFFF.`); return false; }
     const surface = THEMES.find((t) => t.value === theme)!.card;
     const ratio = contrast(color, surface);
     if (ratio < MIN_CONTRAST) { setError(`${label} ${color} has ${ratio.toFixed(2)}:1 contrast on this theme. Choose a colour with at least ${MIN_CONTRAST}:1 so it stays readable.`); return false; }
@@ -43,7 +43,7 @@ export default function AppearancePage() {
     const surface = THEMES.find((t) => t.value === theme)!.card;
     const patch: Partial<Appearance> = { theme };
     // Keep the accent readable when switching themes.
-    if (contrast(a.accent, surface) < MIN_CONTRAST) { patch.accent = theme === "light" ? "#8E6F33" : defaultAppearance.accent; setAccentText(patch.accent); }
+    if (contrast(a.accent, surface) < MIN_CONTRAST) { patch.accent = theme === "light" ? "#0A0A0A" : defaultAppearance.accent; setAccentText(patch.accent); }
     if (contrast(a.positiveColor, surface) < MIN_CONTRAST) patch.positiveColor = defaultAppearance.positiveColor;
     if (contrast(a.negativeColor, surface) < MIN_CONTRAST) patch.negativeColor = defaultAppearance.negativeColor;
     updateAppearance(patch);

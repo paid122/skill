@@ -5,11 +5,11 @@ import { LogoMark } from "./Logo";
 
 /** Visual themes for shareable cards and reports. Fixed colours so exports look identical everywhere. */
 export const CARD_THEMES: Record<string, { name: string; bg: string; fg: string; sub: string; line: string; accent: string; pos: string; neg: string; ruled?: boolean; gradient?: string }> = {
-  ledger: { name: "Ledger", bg: "#0B0D10", fg: "#F1F2F0", sub: "#A4AAB1", line: "#262D36", accent: "#C5A66D", pos: "#42B883", neg: "#E36E73", ruled: true },
-  graphite: { name: "Graphite", bg: "#1B1F24", fg: "#F4F5F6", sub: "#B9C0C7", line: "#3A424C", accent: "#C5A66D", pos: "#5CC796", neg: "#EE8186" },
-  ivory: { name: "Ivory", bg: "#F3EFE6", fg: "#1A1712", sub: "#5E574B", line: "#DCD4C3", accent: "#8E6F33", pos: "#2E7D57", neg: "#B4434A", ruled: true },
-  gilt: { name: "Gilt", bg: "#12100C", fg: "#F5EEDF", sub: "#C2B79F", line: "#3A3224", accent: "#D9B877", pos: "#5FC193", neg: "#E57A7F", gradient: "radial-gradient(120% 90% at 100% 0%, rgba(197,166,109,0.28) 0%, rgba(18,16,12,0) 60%)" },
-  slate: { name: "Slate", bg: "#0F1620", fg: "#EEF2F6", sub: "#9DAABA", line: "#243244", accent: "#9DB8D9", pos: "#4FC08D", neg: "#E77C80", gradient: "linear-gradient(160deg, rgba(57,135,229,0.16) 0%, rgba(15,22,32,0) 55%)" },
+  ledger: { name: "Black", bg: "#050505", fg: "#F5F5F5", sub: "#A3A3A3", line: "#262626", accent: "#FFFFFF", pos: "#3FBF7F", neg: "#F0646B", ruled: true },
+  paper: { name: "White", bg: "#FFFFFF", fg: "#0A0A0A", sub: "#525252", line: "#E5E5E5", accent: "#0A0A0A", pos: "#1F8A57", neg: "#C8373F", ruled: true },
+  graphite: { name: "Graphite", bg: "#18181A", fg: "#F6F6F7", sub: "#BDBDC2", line: "#3A3A3F", accent: "#FFFFFF", pos: "#4FC08D", neg: "#F0767C" },
+  noir: { name: "Spotlight", bg: "#000000", fg: "#FFFFFF", sub: "#A8A8A8", line: "#2A2A2A", accent: "#FFFFFF", pos: "#3FBF7F", neg: "#F0646B", gradient: "radial-gradient(110% 80% at 85% 0%, rgba(255,255,255,0.16) 0%, rgba(0,0,0,0) 60%)" },
+  fog: { name: "Fog", bg: "#F2F2F2", fg: "#111111", sub: "#5C5C5C", line: "#DADADA", accent: "#111111", pos: "#1F8A57", neg: "#C8373F", gradient: "linear-gradient(160deg, rgba(0,0,0,0.06) 0%, rgba(242,242,242,0) 55%)" },
 };
 
 export type CardTheme = keyof typeof CARD_THEMES;

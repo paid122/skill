@@ -130,7 +130,7 @@ export function saveAccount(a: Account) {
 export function newAccount(): Account {
   return {
     id: uid("acc"), name: "", type: "Personal simulation", currency: getState().settings.baseCurrency, startingBalance: 10000, status: "active",
-    color: "#C5A66D", goals: "", rules: { profitTarget: null, maxDrawdown: null, dailyLossLimit: null, minTradingDays: null }, createdAt: nowISO(),
+    color: "#F5F5F5", goals: "", rules: { profitTarget: null, maxDrawdown: null, dailyLossLimit: null, minTradingDays: null }, createdAt: nowISO(),
   };
 }
 

@@ -1,6 +1,7 @@
 "use client";
 import { Database, Download, Plus, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { AccountCard } from "@/components/AccountCard";
 import { PageIntro } from "@/components/blocks";
 import { SettingsNav } from "@/components/SettingsNav";
 import { Button, Card, Field, Input, NumberInput, SectionTitle, Select, Toggle, useFeedback } from "@/components/ui";
@@ -29,6 +30,7 @@ export default function SettingsPage() {
       <SettingsNav />
 
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-2">
+        <div className="xl:col-span-2"><AccountCard /></div>
         <Card>
           <SectionTitle title="Profile" />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">

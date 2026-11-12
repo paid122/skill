@@ -5,24 +5,25 @@
 /* ------------------------------------------------------------------ */
 :root,
 [data-theme="midnight"] {
-  --bg: #0b0d10;
-  --bg-2: #101419;
-  --sidebar: #0d1014;
-  --card: #151a20;
-  --card-2: #1a2027;
-  --border: #262d36;
-  --border-soft: #1d232b;
-  --text: #f1f2f0;
-  --text-2: #a4aab1;
-  --muted: #747e89;
-  --accent: #c5a66d;
-  --ivory: #e9e5dc;
-  --pos: #42b883;
-  --neg: #e36e73;
-  --neutral: #d6b36c;
-  --on-accent: #12100b;
-  --shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 12px 32px -18px rgba(0, 0, 0, 0.7);
-  --grid: rgba(255, 255, 255, 0.04);
+  /* Ledgr monochrome: true black surfaces, white type, green/red reserved for P&L */
+  --bg: #050505;
+  --bg-2: #0b0b0b;
+  --sidebar: #080808;
+  --card: #0f0f0f;
+  --card-2: #161616;
+  --border: #262626;
+  --border-soft: #1a1a1a;
+  --text: #f5f5f5;
+  --text-2: #a3a3a3;
+  --muted: #737373;
+  --accent: #ffffff;
+  --ivory: #ededed;
+  --pos: #3fbf7f;
+  --neg: #f0646b;
+  --neutral: #c4c4c4;
+  --on-accent: #0a0a0a;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 16px 40px -24px rgba(0, 0, 0, 0.9);
+  --grid: rgba(255, 255, 255, 0.05);
   /* Categorical chart series — validated for CVD separation on dark surfaces */
   --series-1: #3987e5;
   --series-2: #d95926;
@@ -32,55 +33,57 @@
   color-scheme: dark;
 }
 [data-theme="onyx"] {
-  --bg: #070707;
-  --bg-2: #0c0c0d;
-  --sidebar: #09090a;
-  --card: #121213;
-  --card-2: #18181a;
-  --border: #252527;
-  --border-soft: #1a1a1c;
-  --text: #f2f2f0;
-  --text-2: #a9a9a6;
-  --muted: #7a7a77;
-  --grid: rgba(255, 255, 255, 0.035);
+  --bg: #000000;
+  --bg-2: #070707;
+  --sidebar: #000000;
+  --card: #0a0a0a;
+  --card-2: #121212;
+  --border: #2a2a2a;
+  --border-soft: #1c1c1c;
+  --text: #ffffff;
+  --text-2: #a8a8a8;
+  --muted: #7a7a7a;
+  --grid: rgba(255, 255, 255, 0.04);
   color-scheme: dark;
 }
 [data-theme="platinum"] {
-  --bg: #1b1f24;
-  --bg-2: #20252b;
-  --sidebar: #181c21;
-  --card: #262c33;
-  --card-2: #2d343c;
-  --border: #3a424c;
-  --border-soft: #313840;
-  --text: #f4f5f6;
-  --text-2: #b9c0c7;
-  --muted: #8d96a0;
+  --bg: #18181a;
+  --bg-2: #1d1d20;
+  --sidebar: #151517;
+  --card: #222225;
+  --card-2: #2a2a2e;
+  --border: #3a3a3f;
+  --border-soft: #303034;
+  --text: #f6f6f7;
+  --text-2: #bdbdc2;
+  --muted: #8e8e94;
   --grid: rgba(255, 255, 255, 0.05);
   color-scheme: dark;
 }
 [data-theme="light"] {
-  --bg: #f6f5f2;
-  --bg-2: #efede8;
-  --sidebar: #f1efea;
+  --bg: #ffffff;
+  --bg-2: #f7f7f7;
+  --sidebar: #fafafa;
   --card: #ffffff;
-  --card-2: #f8f7f4;
-  --border: #e0ddd5;
-  --border-soft: #ebe8e1;
-  --text: #16181b;
-  --text-2: #4c535b;
-  --muted: #6b737c;
-  --ivory: #3a352b;
+  --card-2: #f5f5f5;
+  --border: #e5e5e5;
+  --border-soft: #efefef;
+  --text: #0a0a0a;
+  --text-2: #525252;
+  --muted: #6b6b6b;
+  --accent: #0a0a0a;
+  --ivory: #171717;
+  --neutral: #525252;
   --on-accent: #ffffff;
-  --shadow: 0 1px 2px rgba(20, 20, 20, 0.04), 0 10px 30px -20px rgba(20, 20, 20, 0.25);
-  --grid: rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 32px -22px rgba(0, 0, 0, 0.22);
+  --grid: rgba(0, 0, 0, 0.06);
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
   --series-4: #eda100;
   --series-5: #e87ba4;
-  --pos: #2f9467;
-  --neg: #cc4f55;
+  --pos: #1f8a57;
+  --neg: #c8373f;
   color-scheme: light;
 }
 
@@ -311,4 +314,16 @@ select.input {
 /* Print / PDF of report pages */
 @media print {
   .no-print { display: none !important; }
+}
+
+/* Marketing site */
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee { animation: marquee 38s linear infinite; }
+@keyframes draw { from { stroke-dashoffset: var(--len, 600); } to { stroke-dashoffset: 0; } }
+.draw-path { stroke-dasharray: var(--len, 600); animation: draw 2.4s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.float-y { animation: float-y 6s ease-in-out infinite; }
+.grain::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }

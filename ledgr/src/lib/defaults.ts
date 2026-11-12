@@ -11,11 +11,11 @@ export const INSIGHT_KEYS = [
 
 export const defaultAppearance: Appearance = {
   theme: "midnight",
-  accent: "#C5A66D",
+  accent: "#FFFFFF",
   font: "inter",
   numberFormat: "en-US",
-  positiveColor: "#42B883",
-  negativeColor: "#E36E73",
+  positiveColor: "#3FBF7F",
+  negativeColor: "#F0646B",
   density: "comfortable",
   backgroundImage: "",
   backgroundOpacity: 0.12,
@@ -116,6 +116,12 @@ export function migrate(raw: Partial<LedgrState>): LedgrState {
   const s = { ...base, ...raw } as LedgrState;
   s.settings = { ...base.settings, ...(raw.settings ?? {}) };
   s.settings.appearance = { ...defaultAppearance, ...(raw.settings?.appearance ?? {}) };
+  // v2 monochrome rebrand: move the old gold defaults to the new black-and-white ones.
+  const ap = s.settings.appearance;
+  if (ap.accent.toUpperCase() === "#C5A66D") ap.accent = ap.theme === "light" ? "#0A0A0A" : defaultAppearance.accent;
+  if (ap.accent.toUpperCase() === "#8E6F33") ap.accent = "#0A0A0A";
+  if (ap.positiveColor.toUpperCase() === "#42B883") ap.positiveColor = defaultAppearance.positiveColor;
+  if (ap.negativeColor.toUpperCase() === "#E36E73") ap.negativeColor = defaultAppearance.negativeColor;
   s.settings.insights = { ...base.settings.insights, ...(raw.settings?.insights ?? {}), enabled: { ...base.settings.insights.enabled, ...(raw.settings?.insights?.enabled ?? {}) } };
   s.trades = (s.trades ?? []).map((t) => ({ ...blankTrade(t.number, t.accountId), ...t, reflection: { ...blankTrade(0, null).reflection, ...t.reflection } }));
   s.version = STATE_VERSION;

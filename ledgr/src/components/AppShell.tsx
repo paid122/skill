@@ -8,12 +8,13 @@ import { defaultAppearance } from "@/lib/defaults";
 import { useNotifications } from "@/lib/hooks";
 import { openQuickLog, setPalette, useOverlays } from "@/lib/overlays";
 import { hydrate, useHydrated, useLedgr, useStorageError } from "@/lib/store";
-import { cx, setNumberLocale } from "@/lib/util";
+import { contrast, cx, setNumberLocale } from "@/lib/util";
 import { CommandPalette } from "./CommandPalette";
 import { LoadingScreen, LogoMark, Wordmark } from "./Logo";
 import { ALL_NAV, isActive, MOBILE_PRIMARY, NAV, titleFor } from "./nav";
 import { Onboarding } from "./Onboarding";
 import { QuickLog } from "./QuickLog";
+import { SyncManager } from "./SyncManager";
 import { TradeEditor } from "./TradeEditor";
 import { Button, FeedbackProvider, IconButton, Kbd, Tooltip } from "./ui";
 
@@ -24,7 +25,10 @@ function useApplyAppearance() {
     el.dataset.theme = a.theme;
     el.dataset.density = a.density;
     el.dataset.font = a.font;
-    el.style.setProperty("--accent", a.accent);
+    // Fall back to the theme's own accent if a saved accent would be unreadable on this theme.
+    const card = getComputedStyle(el).getPropertyValue("--card").trim() || "#0f0f0f";
+    if (contrast(a.accent, card) >= 3) el.style.setProperty("--accent", a.accent);
+    else el.style.removeProperty("--accent");
     // Keep each theme's tuned semantic colours unless the user picked their own.
     if (a.positiveColor.toLowerCase() === defaultAppearance.positiveColor.toLowerCase()) el.style.removeProperty("--pos");
     else el.style.setProperty("--pos", a.positiveColor);
@@ -95,6 +99,7 @@ function Shell({ children }: { children: ReactNode }) {
       <QuickLog />
       {overlays.editor && <TradeEditor key={overlays.editor.tradeId ?? "new"} />}
       {!onboarded && <Onboarding />}
+      <SyncManager />
     </div>
   );
 }

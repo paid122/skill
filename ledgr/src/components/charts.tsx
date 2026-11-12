@@ -14,7 +14,7 @@ const read = (): ThemeColors => {
   const v = (n: string) => cs.getPropertyValue(n).trim();
   return { neutral: v("--neutral"), pos: v("--pos"), neg: v("--neg"), accent: v("--accent"), text: v("--text"), text2: v("--text-2"), muted: v("--muted"), grid: v("--grid"), card: v("--card"), card2: v("--card-2"), border: v("--border"), series: [1, 2, 3, 4, 5].map((i) => v(`--series-${i}`)) };
 };
-const FALLBACK: ThemeColors = { neutral: "#D6B36C", pos: "#42B883", neg: "#E36E73", accent: "#C5A66D", text: "#F1F2F0", text2: "#A4AAB1", muted: "#747E89", grid: "rgba(255,255,255,.04)", card: "#151A20", card2: "#1A2027", border: "#262D36", series: ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181"] };
+const FALLBACK: ThemeColors = { neutral: "#C4C4C4", pos: "#3FBF7F", neg: "#F0646B", accent: "#FFFFFF", text: "#F5F5F5", text2: "#A3A3A3", muted: "#737373", grid: "rgba(255,255,255,.05)", card: "#0F0F0F", card2: "#161616", border: "#262626", series: ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181"] };
 
 /** Resolved theme colours for SVG attributes; re-reads when appearance changes. */
 export function useThemeColors(): ThemeColors {
