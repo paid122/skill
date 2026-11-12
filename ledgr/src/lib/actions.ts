@@ -209,6 +209,12 @@ export function toggleChecklist(date: string, itemId: string) {
   });
 }
 
+/** Add focused study minutes to a day's total. */
+export function addStudyMinutes(date: string, minutes: number) {
+  if (!(minutes > 0)) return;
+  setState((s) => ({ ...s, studyLog: { ...s.studyLog, [date]: Math.round(((s.studyLog?.[date] ?? 0) + minutes) * 10) / 10 } }));
+}
+
 export function saveGoal(g: Goal) {
   if (!g.title.trim()) throw new ValidationError("Goal title is required.");
   if (!(g.target > 0)) throw new ValidationError("Target must be greater than zero.");

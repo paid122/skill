@@ -15,9 +15,11 @@ export interface UIPrefs {
   range: RangePreset;
   from: ISODate;
   to: ISODate;
+  hideMoney: boolean; // show R only, hide currency amounts
+  rail: boolean; // show the session rail on wide screens
 }
 const UI_KEY = "ledgr.ui";
-const defaultUI: UIPrefs = { accountId: "all", range: "all", from: "", to: "" };
+const defaultUI: UIPrefs = { accountId: "all", range: "all", from: "", to: "", hideMoney: false, rail: true };
 let ui: UIPrefs = defaultUI;
 let uiLoaded = false;
 const uiListeners = new Set<() => void>();

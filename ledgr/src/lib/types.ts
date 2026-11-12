@@ -348,6 +348,7 @@ export interface LedgrState {
   verseHistory: VerseView[];
   goals: Goal[];
   checklistLog: Record<ISODate, string[]>; // completed checklist item ids per day
+  studyLog: Record<ISODate, number>; // minutes of focused study per day
   savedFilters: SavedFilter[];
   conversations: AIConversation[];
   reports: ReportDoc[];

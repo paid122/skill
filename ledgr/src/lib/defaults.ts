@@ -64,6 +64,7 @@ export function emptyState(): LedgrState {
     verseHistory: [],
     goals: [],
     checklistLog: {},
+    studyLog: {},
     savedFilters: [],
     conversations: [],
     reports: [],

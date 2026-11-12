@@ -1,10 +1,10 @@
 "use client";
-import { ArrowDown, ArrowUp, Bookmark, ChevronLeft, ChevronRight, Download, Filter, NotebookPen, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Bookmark, ChevronLeft, ChevronRight, Download, Filter, LayoutGrid, List, NotebookPen, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { PageIntro, ResultBadge } from "@/components/blocks";
-import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, Select, useFeedback } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, Segmented, Select, useFeedback } from "@/components/ui";
 import { PageVerse } from "@/components/VerseCard";
 import { deleteFilter, saveFilter } from "@/lib/actions";
 import { computeStats, type EnrichedTrade } from "@/lib/calc";
@@ -34,6 +34,8 @@ function Journal() {
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "date", dir: -1 });
   const [page, setPage] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [view, setViewState] = useState<"table" | "cards">(() => { try { return (localStorage.getItem("ledgr.journalView") as "table" | "cards") || "table"; } catch { return "table"; } });
+  const setView = (v: "table" | "cards") => { setViewState(v); try { localStorage.setItem("ledgr.journalView", v); } catch { /* ignore */ } };
   const [saving, setSaving] = useState(false);
   const [filterName, setFilterName] = useState("");
   const acctName = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
@@ -137,6 +139,7 @@ function Journal() {
             <Input type="date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} aria-label="To date" className="w-[150px]" />
           </div>
           <div className="flex items-center gap-2 lg:ml-auto">
+            <Segmented size="sm" ariaLabel="Journal view" value={view} onChange={setView} options={[{ value: "table", label: <List size={14} aria-label="Table" /> }, { value: "cards", label: <LayoutGrid size={14} aria-label="Cards" /> }]} />
             <Button size="sm" icon={<Filter size={14} />} onClick={() => setShowFilters((s) => !s)} aria-expanded={showFilters}>Filters{activeCount ? ` · ${activeCount}` : ""}</Button>
             <Button size="sm" icon={<Bookmark size={14} />} onClick={() => { setFilterName(""); setSaving(true); }}>Save view</Button>
             {(activeCount > 0 || f.q) && <Button size="sm" variant="ghost" onClick={() => setF(EMPTY)}>Reset</Button>}
@@ -170,6 +173,39 @@ function Journal() {
           <p className="px-4 py-12 text-center text-[13px] text-muted">No trades match these filters.</p>
         ) : (
           <>
+            {view === "cards" ? (
+              <ul className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                {rows.map((x) => {
+                  const shown = x.m.status === "closed";
+                  const tone = (x.m.net ?? 0) > 0 ? "pos" : (x.m.net ?? 0) < 0 ? "neg" : "text-muted";
+                  return (
+                    <li key={x.trade.id}>
+                      <Link href={`/journal/${x.trade.id}`} className="card-2 group flex h-full flex-col gap-3 p-4 transition-colors hover:border-muted/60">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-[15px] font-semibold">{x.trade.symbol || "Untitled"} <span className="font-normal text-muted">#{x.trade.number}</span></p>
+                            <p className="truncate text-xs text-muted">{fmtDate(x.trade.date)} · {x.trade.session ?? "No session"}</p>
+                          </div>
+                          <ResultBadge x={x} />
+                        </div>
+                        <div className="flex items-end justify-between gap-2">
+                          <div>
+                            <p className={cx("num text-[20px] leading-none", shown ? tone : "text-muted")}>{shown ? fmtMoney(x.m.net, currencyOf(x.trade.accountId), { sign: true }) : "—"}</p>
+                            <p className="num mt-1 text-xs text-muted">{fmtR(x.m.r)}</p>
+                          </div>
+                          <span className={cx("rounded-md px-2 py-0.5 text-[11px] capitalize", x.trade.direction === "long" ? "bg-pos/10 text-pos" : x.trade.direction === "short" ? "bg-neg/10 text-neg" : "bg-card text-muted")}>{x.trade.direction ?? "—"}</span>
+                        </div>
+                        <div className="mt-auto flex flex-wrap gap-1.5 border-t border-line-soft pt-3 text-[11.5px] text-text-2">
+                          <span className="truncate">{x.trade.setup || "No setup"}</span>
+                          {x.trade.grade && <span className="text-muted">· grade {x.trade.grade}</span>}
+                          {x.trade.emotions[0] && <span className="text-muted">· {x.trade.emotions.join(", ")}</span>}
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (<>
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[1080px] text-[13px]">
                 <thead className="text-left text-xs text-muted">
@@ -215,6 +251,7 @@ function Journal() {
                 </li>
               ))}
             </ul>
+            </>)}
             <div className="flex items-center justify-between gap-3 border-t border-line-soft px-4 py-3 text-xs text-muted">
               <span>{page * PAGE + 1}–{Math.min(sorted.length, (page + 1) * PAGE)} of {sorted.length} records{stats.closed !== stats.total && ` · ${stats.closed} closed`}</span>
               <div className="flex items-center gap-1">

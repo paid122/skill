@@ -65,8 +65,18 @@ export function getNumberLocale() {
   return locale;
 }
 
+let hideMoney = false;
+/** When on, every money amount renders masked (R multiples stay visible). */
+export function setHideMoney(v: boolean) {
+  hideMoney = v;
+}
+export function isMoneyHidden() {
+  return hideMoney;
+}
+
 export function fmtMoney(n: number | null | undefined, currency = "USD", opts: { sign?: boolean; compact?: boolean } = {}) {
   if (n === null || n === undefined || !Number.isFinite(n)) return "—";
+  if (hideMoney) return "•••••";
   const s = new Intl.NumberFormat(locale, {
     style: "currency",
     currency,

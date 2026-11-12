@@ -41,6 +41,14 @@ export function buildContext(state: LedgrState, list: EnrichedTrade[]): AIContex
   const mistakes = frequency(list.flatMap((x) => x.trade.mistakes));
   if (mistakes.length) lines.push(`MISTAKES: ${mistakes.map((m) => `${m.key} ×${m.count}`).join(", ")}`);
 
+  const strategies = state.strategies.filter((x) => !x.archived);
+  if (strategies.length) {
+    lines.push("STRATEGIES (the user's own written rules; trades link by strategy or matching setup name):");
+    for (const st of strategies) {
+      lines.push(`- ${st.name} [${[st.market, st.timeframe].filter(Boolean).join(", ") || "-"}] entry: ${clip(st.entryCriteria, 220)} | exit: ${clip(st.exitCriteria, 160)} | invalidation: ${clip(st.invalidation, 140)} | confluences: ${st.confluences.join(", ") || "-"}`);
+    }
+  }
+
   const recent = chronological(list).slice(-120);
   lines.push(`TRADES (most recent ${recent.length}; format: [T#n] date | account | symbol dir | setup | session | status/result | net | R | grade | emotions | mistakes | followed plan | lesson):`);
   for (const x of recent) {
@@ -136,6 +144,7 @@ How to answer:
 - Ground every factual statement in the context. When you refer to a trade, cite it exactly as [T#n]; when you refer to a daily journal entry, cite it as [D:YYYY-MM-DD]. Only cite records that appear in the context.
 - If the context does not contain what is needed, say so plainly and suggest what the user could record. Never invent trades, numbers, dates, emotions or notes.
 - Describe patterns as observations about past records. Never claim that one factor caused an outcome; note when samples are small (under about 20 trades in a group) and that differences may be chance.
+- When STRATEGIES are present, compare trades with the user's own written rules for that setup (entry criteria, exits, invalidation) and point out where their notes suggest a rule was or was not followed. Quote their rules; do not invent new ones.
 - You may summarise execution, highlight strengths the user documented, point out possible improvements drawn from their own notes and rules, explain statistics, and suggest reflection questions.
 - Do not give financial advice. Do not recommend instruments, entries, exits, position sizes or strategies, and do not predict markets or results. If asked, explain that you can only help the user review their own records and process.
 - Be warm, direct and concise. Use short paragraphs and lists. Use the user's currency formatting from the context.`;

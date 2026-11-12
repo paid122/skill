@@ -1,19 +1,20 @@
 "use client";
-import { Bell, ChevronsLeft, ChevronsRight, Menu, Plus, Search, X } from "lucide-react";
+import { Bell, ChevronsLeft, ChevronsRight, Eye, EyeOff, Menu, PanelRightOpen, Plus, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { dismissNotification, updateSettings } from "@/lib/actions";
 import { defaultAppearance } from "@/lib/defaults";
-import { useNotifications } from "@/lib/hooks";
+import { setUI, useNotifications, useUI } from "@/lib/hooks";
 import { openQuickLog, setPalette, useOverlays } from "@/lib/overlays";
 import { hydrate, useHydrated, useLedgr, useStorageError } from "@/lib/store";
-import { contrast, cx, setNumberLocale } from "@/lib/util";
+import { contrast, cx, setHideMoney, setNumberLocale } from "@/lib/util";
 import { CommandPalette } from "./CommandPalette";
 import { LoadingScreen, LogoMark, Wordmark } from "./Logo";
 import { ALL_NAV, isActive, MOBILE_PRIMARY, NAV, titleFor } from "./nav";
 import { Onboarding } from "./Onboarding";
 import { QuickLog } from "./QuickLog";
+import { SessionRail } from "./SessionRail";
 import { SyncManager } from "./SyncManager";
 import { TradeEditor } from "./TradeEditor";
 import { Button, FeedbackProvider, IconButton, Kbd, Tooltip } from "./ui";
@@ -54,6 +55,9 @@ function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const appearance = useApplyAppearance();
   const collapsed = useLedgr((s) => s.settings.sidebarCollapsed);
+  const prefs = useUI();
+  // Apply "hide amounts" before children render, so every amount is masked consistently.
+  setHideMoney(prefs.hideMoney);
   const onboarded = useLedgr((s) => s.settings.onboarded);
   const sample = useLedgr((s) => s.sampleData);
   const storageError = useStorageError();
@@ -80,7 +84,7 @@ function Shell({ children }: { children: ReactNode }) {
       )}
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[300] focus:rounded-lg focus:bg-card focus:px-3 focus:py-2">Skip to content</a>
       <Sidebar collapsed={collapsed} translucent={appearance.sidebar === "translucent"} />
-      <div className={cx("relative z-10 flex min-h-screen flex-col transition-[padding] duration-200", collapsed ? "lg:pl-[72px]" : "lg:pl-[248px]")}>
+      <div className={cx("relative z-10 flex min-h-screen flex-col transition-[padding] duration-200", collapsed ? "lg:pl-[72px]" : "lg:pl-[248px]", prefs.rail && "xl:pr-[300px]")}>
         <Topbar title={titleFor(pathname)} />
         {sample && (
           <div className="mx-4 mt-3 rounded-xl border border-accent/25 bg-accent/5 px-4 py-2 text-[12.5px] text-text-2 sm:mx-6 lg:mx-10">
@@ -89,7 +93,7 @@ function Shell({ children }: { children: ReactNode }) {
           </div>
         )}
         {storageError && <div className="mx-4 mt-3 rounded-xl border border-neg/30 bg-neg/10 px-4 py-2 text-[12.5px] text-neg sm:mx-6 lg:mx-10">{storageError}</div>}
-        <main id="main" className="mx-auto w-full max-w-[1480px] flex-1 px-4 pb-28 pt-6 sm:px-6 lg:px-10 lg:pb-14 animate-fade" key={pathname}>
+        <main id="main" className="mx-auto w-full max-w-[1480px] flex-1 px-4 pb-28 pt-6 sm:px-6 lg:px-10 lg:pb-14 animate-fade" key={`${pathname}-${prefs.hideMoney}`}>
           {children}
         </main>
       </div>
@@ -100,6 +104,7 @@ function Shell({ children }: { children: ReactNode }) {
       {overlays.editor && <TradeEditor key={overlays.editor.tradeId ?? "new"} />}
       {!onboarded && <Onboarding />}
       <SyncManager />
+      {prefs.rail && <SessionRail />}
     </div>
   );
 }
@@ -194,6 +199,7 @@ function Sidebar({ collapsed, translucent }: { collapsed: boolean; translucent: 
 }
 
 function Topbar({ title }: { title: string }) {
+  const prefs = useUI();
   return (
     <header className="sticky top-0 z-20 border-b border-line-soft bg-bg/85 backdrop-blur-xl">
       <div className="mx-auto flex h-14 w-full max-w-[1480px] items-center gap-3 px-4 sm:px-6 lg:h-16 lg:px-10">
@@ -210,7 +216,11 @@ function Topbar({ title }: { title: string }) {
             <Kbd>Ctrl K</Kbd>
           </button>
           <IconButton label="Search" onClick={() => setPalette(true)} className="md:hidden"><Search size={17} /></IconButton>
+          <IconButton label={prefs.hideMoney ? "Show amounts" : "Hide amounts (R stays visible)"} aria-pressed={prefs.hideMoney} onClick={() => setUI({ hideMoney: !prefs.hideMoney })}>
+            {prefs.hideMoney ? <EyeOff size={17} /> : <Eye size={17} />}
+          </IconButton>
           <Notifications />
+          {!prefs.rail && <IconButton label="Show today's session panel" className="hidden xl:grid" onClick={() => setUI({ rail: true })}><PanelRightOpen size={17} /></IconButton>}
           <Button variant="accent" size="sm" icon={<Plus size={15} />} onClick={openQuickLog} className="h-9" aria-keyshortcuts="n">
             <span className="hidden sm:inline">Quick Log</span>
           </Button>
