@@ -13,7 +13,7 @@ import { IconButton, Progress } from "./ui";
  * Session rail: today's plan, checklist, session so far, practice limits and recent trades.
  * Everything comes from saved records; nothing here places or blocks trades.
  */
-export function SessionRail() {
+export function SessionRail({ belowTopNav = false }: { belowTopNav?: boolean }) {
   const t = today();
   const trades = useLedgr((s) => s.trades);
   const accounts = useLedgr((s) => s.accounts);
@@ -36,7 +36,7 @@ export function SessionRail() {
   });
 
   return (
-    <aside aria-label="Session" className="fixed inset-y-0 right-0 z-20 hidden w-[300px] flex-col border-l border-line-soft bg-sidebar xl:flex">
+    <aside aria-label="Session" className={cx("fixed bottom-0 right-0 z-20 hidden w-[300px] flex-col border-l border-line-soft bg-sidebar xl:flex", belowTopNav ? "top-16" : "top-0")}>
       <div className="flex h-16 items-center justify-between px-5">
         <span className="text-[13px] font-semibold">Today</span>
         <IconButton label="Hide session panel" onClick={() => setUI({ rail: false })}><PanelRightClose size={16} /></IconButton>

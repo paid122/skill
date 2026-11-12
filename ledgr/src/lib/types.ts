@@ -301,6 +301,7 @@ export interface Appearance {
   backgroundImage: string; // data URL or ""
   backgroundOpacity: number;
   sidebar: "solid" | "translucent";
+  nav: "top" | "side"; // main navigation position
   savedThemes: { id: ID; name: string; values: Omit<Appearance, "savedThemes"> }[];
 }
 

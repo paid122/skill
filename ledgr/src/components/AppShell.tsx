@@ -15,6 +15,7 @@ import { ALL_NAV, isActive, MOBILE_PRIMARY, NAV, titleFor } from "./nav";
 import { Onboarding } from "./Onboarding";
 import { QuickLog } from "./QuickLog";
 import { SessionRail } from "./SessionRail";
+import { TopNav } from "./TopNav";
 import { SyncManager } from "./SyncManager";
 import { TradeEditor } from "./TradeEditor";
 import { Button, FeedbackProvider, IconButton, Kbd, Tooltip } from "./ui";
@@ -56,6 +57,7 @@ function Shell({ children }: { children: ReactNode }) {
   const appearance = useApplyAppearance();
   const collapsed = useLedgr((s) => s.settings.sidebarCollapsed);
   const prefs = useUI();
+  const topNav = appearance.nav !== "side";
   // Apply "hide amounts" before children render, so every amount is masked consistently.
   setHideMoney(prefs.hideMoney);
   const onboarded = useLedgr((s) => s.settings.onboarded);
@@ -83,9 +85,10 @@ function Shell({ children }: { children: ReactNode }) {
         <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center" style={{ backgroundImage: `url(${appearance.backgroundImage})`, opacity: appearance.backgroundOpacity }} />
       )}
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[300] focus:rounded-lg focus:bg-card focus:px-3 focus:py-2">Skip to content</a>
-      <Sidebar collapsed={collapsed} translucent={appearance.sidebar === "translucent"} />
-      <div className={cx("relative z-10 flex min-h-screen flex-col transition-[padding] duration-200", collapsed ? "lg:pl-[72px]" : "lg:pl-[248px]", prefs.rail && "xl:pr-[300px]")}>
-        <Topbar title={titleFor(pathname)} />
+      {!topNav && <Sidebar collapsed={collapsed} translucent={appearance.sidebar === "translucent"} />}
+      {topNav && <div className="relative z-30 hidden lg:block"><TopNav /></div>}
+      <div className={cx("relative z-10 flex min-h-screen flex-col transition-[padding] duration-200", !topNav && (collapsed ? "lg:pl-[72px]" : "lg:pl-[248px]"), prefs.rail && "xl:pr-[300px]")}>
+        <div className={topNav ? "lg:hidden" : ""}><Topbar title={titleFor(pathname)} /></div>
         {sample && (
           <div className="mx-4 mt-3 rounded-xl border border-accent/25 bg-accent/5 px-4 py-2 text-[12.5px] text-text-2 sm:mx-6 lg:mx-10">
             You are viewing <span className="text-text">simulated sample records</span>. Remove them any time in{" "}
@@ -104,7 +107,7 @@ function Shell({ children }: { children: ReactNode }) {
       {overlays.editor && <TradeEditor key={overlays.editor.tradeId ?? "new"} />}
       {!onboarded && <Onboarding />}
       <SyncManager />
-      {prefs.rail && <SessionRail />}
+      {prefs.rail && <SessionRail belowTopNav={topNav} />}
     </div>
   );
 }
@@ -219,7 +222,7 @@ function Topbar({ title }: { title: string }) {
           <IconButton label={prefs.hideMoney ? "Show amounts" : "Hide amounts (R stays visible)"} aria-pressed={prefs.hideMoney} onClick={() => setUI({ hideMoney: !prefs.hideMoney })}>
             {prefs.hideMoney ? <EyeOff size={17} /> : <Eye size={17} />}
           </IconButton>
-          <Notifications />
+          <NotificationsButton />
           {!prefs.rail && <IconButton label="Show today's session panel" className="hidden xl:grid" onClick={() => setUI({ rail: true })}><PanelRightOpen size={17} /></IconButton>}
           <Button variant="accent" size="sm" icon={<Plus size={15} />} onClick={openQuickLog} className="h-9" aria-keyshortcuts="n">
             <span className="hidden sm:inline">Quick Log</span>
@@ -230,7 +233,7 @@ function Topbar({ title }: { title: string }) {
   );
 }
 
-function Notifications() {
+export function NotificationsButton() {
   const items = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

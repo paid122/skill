@@ -20,6 +20,7 @@ export const defaultAppearance: Appearance = {
   backgroundImage: "",
   backgroundOpacity: 0.12,
   sidebar: "solid",
+  nav: "top",
   savedThemes: [],
 };
 

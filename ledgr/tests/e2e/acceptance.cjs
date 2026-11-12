@@ -52,14 +52,17 @@ async function check(name, fn) {
     assert.deepEqual(errors, []);
   });
 
-  await check("Sidebar navigation reaches every route with an active state", async () => {
+  await check("Top navigation reaches routes (including menus) with an active state", async () => {
     await go("/dashboard");
-    for (const [label, path] of [["Trade Journal", "/journal"], ["Analytics", "/analytics"], ["Study Room", "/study"], ["Settings", "/settings"]]) {
-      await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: label }).click();
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    for (const [menu, label, path] of [[null, "Dashboard", "/dashboard"], ["Journal", "Trade Journal", "/journal"], ["Performance", "Analytics", "/analytics"], ["Learn", "Study Room", "/study"], [null, "Ledgr AI", "/ai"]]) {
+      if (menu) await nav.getByRole("button", { name: new RegExp(menu) }).click();
+      await nav.getByRole(menu ? "menuitem" : "link", { name: label }).click();
       await page.waitForURL((u) => new URL(u).pathname === path);
-      const current = page.getByRole("navigation", { name: "Primary" }).locator('[aria-current="page"]');
-      assert.equal((await current.textContent()).trim(), label);
+      assert.ok(await nav.locator("[data-active]").count() === 1, `one active item on ${path}`);
     }
+    await page.getByRole("link", { name: "Settings and profile" }).click();
+    await page.waitForURL((u) => new URL(u).pathname === "/settings");
   });
 
   await check("Analytics shows 'Not enough journal data yet.' with no records", async () => {
