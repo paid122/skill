@@ -1,18 +1,19 @@
 "use client";
-import { Bell, ChevronsLeft, ChevronsRight, Eye, EyeOff, Menu, PanelRightOpen, Plus, Search, X } from "lucide-react";
+import { Bell, ChevronsLeft, ChevronsRight, Eye, EyeOff, Menu, PanelRightOpen, Plus, Search, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { dismissNotification, updateSettings } from "@/lib/actions";
 import { defaultAppearance } from "@/lib/defaults";
 import { setUI, useNotifications, useUI } from "@/lib/hooks";
-import { openQuickLog, setPalette, useOverlays } from "@/lib/overlays";
+import { openImport, openQuickLog, setPalette, useOverlays } from "@/lib/overlays";
 import { hydrate, useHydrated, useLedgr, useStorageError } from "@/lib/store";
 import { contrast, cx, setHideMoney, setNumberLocale } from "@/lib/util";
 import { CommandPalette } from "./CommandPalette";
 import { LoadingScreen, LogoMark, Wordmark } from "./Logo";
 import { ALL_NAV, isActive, MOBILE_PRIMARY, NAV, titleFor } from "./nav";
 import { Onboarding } from "./Onboarding";
+import { ImportCsv } from "./ImportCsv";
 import { QuickLog } from "./QuickLog";
 import { CursorRing } from "./CursorRing";
 import { SessionRail } from "./SessionRail";
@@ -105,6 +106,7 @@ function Shell({ children }: { children: ReactNode }) {
       {mobileMore && <MobileMore onClose={() => setMobileMore(false)} />}
       {overlays.palette && <CommandPalette />}
       <QuickLog />
+      <ImportCsv />
       {overlays.editor && <TradeEditor key={overlays.editor.tradeId ?? "new"} />}
       {!onboarded && <Onboarding />}
       <SyncManager />
@@ -226,6 +228,7 @@ function Topbar({ title }: { title: string }) {
           </IconButton>
           <NotificationsButton />
           {!prefs.rail && <IconButton label="Show today's session panel" className="hidden xl:grid" onClick={() => setUI({ rail: true })}><PanelRightOpen size={17} /></IconButton>}
+          <IconButton label="Import CSV trades" onClick={openImport}><Upload size={17} /></IconButton>
           <Button variant="accent" size="sm" icon={<Plus size={15} />} onClick={openQuickLog} className="h-9" aria-keyshortcuts="n">
             <span className="hidden sm:inline">Quick Log</span>
           </Button>

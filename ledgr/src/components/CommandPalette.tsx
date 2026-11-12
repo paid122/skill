@@ -1,8 +1,8 @@
 "use client";
-import { BookOpen, FileText, NotebookPen, Plus, Search, SquareLibrary } from "lucide-react";
+import { BookOpen, FileText, NotebookPen, Plus, Search, SquareLibrary, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { openQuickLog, setPalette } from "@/lib/overlays";
+import { openImport, openQuickLog, setPalette } from "@/lib/overlays";
 import { useLedgr } from "@/lib/store";
 import { cx, fmtDate } from "@/lib/util";
 import { VERSES } from "@/lib/verses";
@@ -27,6 +27,7 @@ export function CommandPalette() {
     const t = q.trim().toLowerCase();
     const out: Result[] = [];
     out.push({ id: "quick", group: "Actions", label: "Quick Log a trade", sub: "N", icon: <Plus size={15} />, run: () => { close(); openQuickLog(); } });
+    out.push({ id: "import", group: "Actions", label: "Import trades from CSV", icon: <Upload size={15} />, run: () => { close(); openImport(); } });
     ALL_NAV.filter((n) => !t || n.label.toLowerCase().includes(t)).forEach((n) => {
       const Icon = n.icon;
       out.push({ id: n.href, group: "Pages", label: n.label, icon: <Icon size={15} />, run: () => go(n.href) });

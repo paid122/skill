@@ -1,10 +1,10 @@
 "use client";
-import { ChevronDown, Eye, EyeOff, PanelRightOpen, Plus, Search } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, PanelRightOpen, Plus, Search, Upload } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { setUI, useUI } from "@/lib/hooks";
-import { openQuickLog, setPalette } from "@/lib/overlays";
+import { openImport, openQuickLog, setPalette } from "@/lib/overlays";
 import { useLedgr } from "@/lib/store";
 import { cx } from "@/lib/util";
 import { LogoMark } from "./Logo";
@@ -64,6 +64,7 @@ export function TopNav() {
           </IconButton>
           <NotificationsButton />
           {!prefs.rail && <IconButton label="Show today's session panel" className="hidden xl:grid" onClick={() => setUI({ rail: true })}><PanelRightOpen size={17} /></IconButton>}
+          <Button size="sm" icon={<Upload size={15} />} onClick={openImport} className="ml-1 h-9 rounded-full" aria-label="Import CSV trades"><span className="hidden 2xl:inline">Import CSV</span></Button>
           <Button variant="accent" size="sm" icon={<Plus size={15} />} onClick={openQuickLog} className="ml-1 h-9 rounded-full" aria-keyshortcuts="n" aria-label="Quick Log"><span className="hidden xl:inline">Quick Log</span></Button>
           <Link href="/settings" aria-label="Settings and profile" className="ml-1 flex items-center gap-2.5 rounded-full py-1 pl-2 pr-1 transition-colors hover:bg-card-2">
             <span className="hidden max-w-[120px] truncate text-[13.5px] font-medium text-text 2xl:inline">{name || "Your profile"}</span>

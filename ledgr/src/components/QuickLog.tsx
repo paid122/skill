@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { newTradeDraft, saveTrade, ValidationError } from "@/lib/actions";
 import { missingFields, tradeMetrics } from "@/lib/calc";
-import { closeQuickLog, openEditor, useOverlays } from "@/lib/overlays";
+import { closeQuickLog, openEditor, openImport, useOverlays } from "@/lib/overlays";
 import { useLedgr } from "@/lib/store";
 import { EMOTIONS, MARKETS, type Emotion, type Trade } from "@/lib/types";
 import { fmtMoney, fmtR, nowISO, uid } from "@/lib/util";
@@ -65,7 +65,8 @@ export function QuickLog() {
       description="Capture the essentials now. Complete the full record later."
       footer={
         <>
-          <Button variant="ghost" onClick={() => save(true, true)} className="mr-auto">Save & open full editor</Button>
+          <Button variant="ghost" onClick={() => save(true, true)}>Save & open full editor</Button>
+          <Button variant="ghost" onClick={openImport} className="mr-auto">Import CSV trades</Button>
           <Button onClick={() => save(true)}>Save draft</Button>
           <Button variant="accent" onClick={() => save(false)}>Save trade</Button>
         </>

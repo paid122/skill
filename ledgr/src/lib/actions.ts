@@ -91,6 +91,18 @@ export function saveTrade(t: Trade) {
   });
 }
 
+/** Add many trades at once (CSV import). Numbers are assigned in order; every trade is validated first. */
+export function importTrades(list: Trade[]): number {
+  list.forEach(validateTrade);
+  setState((s) => {
+    let n = nextTradeNumber(s);
+    const at = nowISO();
+    const added = list.map((t) => ({ ...t, number: n++, symbol: t.symbol.trim().toUpperCase(), createdAt: at, updatedAt: at }));
+    return { ...s, trades: [...s.trades, ...added] };
+  });
+  return list.length;
+}
+
 export function patchTrade(id: string, patch: Partial<Trade>, message?: string) {
   setState((s) => ({
     ...s,

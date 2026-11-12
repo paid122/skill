@@ -100,6 +100,8 @@ export interface Trade {
     icon?: ID | null;
   } | null;
   isDraft: boolean;
+  /** Fingerprint of the CSV row(s) this trade was imported from; used to skip re-imports. */
+  importKey?: string;
   activity: ActivityEntry[];
   createdAt: ISODateTime;
   updatedAt: ISODateTime;

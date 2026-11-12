@@ -1,5 +1,5 @@
 "use client";
-import { ArrowDown, ArrowUp, Bookmark, ChevronLeft, ChevronRight, Download, Filter, LayoutGrid, List, NotebookPen, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Bookmark, ChevronLeft, ChevronRight, Download, Filter, LayoutGrid, List, NotebookPen, Plus, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -9,7 +9,7 @@ import { PageVerse } from "@/components/VerseCard";
 import { deleteFilter, saveFilter } from "@/lib/actions";
 import { computeStats, type EnrichedTrade } from "@/lib/calc";
 import { useEnriched } from "@/lib/hooks";
-import { openEditor, openQuickLog } from "@/lib/overlays";
+import { openEditor, openImport, openQuickLog } from "@/lib/overlays";
 import { useLedgr } from "@/lib/store";
 import { EMOTIONS, MARKETS, SESSIONS, type TradeFilter } from "@/lib/types";
 import { cx, download, fmtDate, fmtMoney, fmtNum, fmtPct, fmtR, gradeLabel, inRange, toCSV, today, uid } from "@/lib/util";
@@ -104,6 +104,7 @@ function Journal() {
         sub="Every record, searchable and honest. Drafts and open positions are kept separate from your statistics."
         actions={<>
           <Button icon={<Download size={14} />} onClick={exportCSV} disabled={!sorted.length}>Export CSV</Button>
+          <Button icon={<Upload size={14} />} onClick={openImport}>Import CSV</Button>
           <Button variant="accent" icon={<Plus size={15} />} onClick={() => openEditor(null)}>New trade</Button>
         </>}
       />

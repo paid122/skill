@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AuthButton, AuthError, AuthField, Divider, GoogleButton, NotConfigured, OAuthNote, TradovateButton } from "@/components/site/AuthBits";
+import { AuthButton, AuthError, AuthField, Divider, GoogleButton, NotConfigured } from "@/components/site/AuthBits";
 import { authMessage, supabase, supabaseConfigured } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -27,8 +27,7 @@ export default function LoginPage() {
     <div>
       <h1 className="text-[32px] font-semibold tracking-[-0.03em]">Welcome back</h1>
       <p className="mt-2 text-[15px] text-ink/55">Log in to sync your journal.</p>
-      <div className="mt-8 grid gap-2.5"><GoogleButton label="Log in with Google" /><TradovateButton label="Log in with Tradovate" /></div>
-      <OAuthNote />
+      <div className="mt-8"><GoogleButton label="Log in with Google" /></div>
       <Divider />
       <form onSubmit={submit} className="flex flex-col gap-4">
         <AuthField label="Email" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
