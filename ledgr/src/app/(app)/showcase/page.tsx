@@ -1,5 +1,5 @@
 "use client";
-import { Download, Film, ImagePlus, Pin, PinOff, Plus, Trash2, Trophy, X } from "lucide-react";
+import { Download, Film, Volume2, VolumeX, ImagePlus, Pin, PinOff, Plus, Trash2, Trophy, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BlobImage } from "@/components/BlobImage";
@@ -164,6 +164,14 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const [clipSeconds, setClipSeconds] = useState<number | null>(null);
   const [recording, setRecording] = useState<{ at: number; total: number } | null>(null);
   const [sound, setSound] = useState(true);
+  // Preview sound: browsers only allow sound after a click, so it starts muted until the user turns it on.
+  const [hear, setHear] = useState(false);
+  useEffect(() => {
+    const v = ref.current?.querySelector<HTMLVideoElement>("video[data-poster-video]");
+    if (!v) return;
+    v.muted = !hear;
+    if (hear) { v.volume = 1; v.play().catch(() => setHear(false)); }
+  }, [hear, media?.blobId, clipSeconds]);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
     setClipSeconds(null);
@@ -228,9 +236,17 @@ function Editor({ x }: { x: EnrichedTrade }) {
     <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="overflow-x-auto pb-2">
         {layout === "poster" ? (
-          <FitWidth width={960} height={504}>
-            <PosterCard ref={ref} trade={t} m={x.m} opts={{ amounts: privacy.amounts, account: privacy.account && account ? account.name : null, handle: handle.trim().slice(0, 30), currency: account?.currency ?? "USD" }} />
-          </FitWidth>
+          <div className="relative">
+            <FitWidth width={960} height={504}>
+              <PosterCard ref={ref} trade={t} m={x.m} opts={{ amounts: privacy.amounts, account: privacy.account && account ? account.name : null, handle: handle.trim().slice(0, 30), currency: account?.currency ?? "USD" }} />
+            </FitWidth>
+            {media?.kind === "video" && (
+              <button type="button" onClick={() => setHear(!hear)} aria-pressed={hear} aria-label={hear ? "Mute video" : "Play video sound"}
+                className="absolute right-3 top-3 z-10 flex h-10 items-center gap-2 rounded-full bg-black/60 px-3.5 text-[13px] font-medium text-white backdrop-blur-md transition-colors hover:bg-black/75">
+                {hear ? <Volume2 size={16} /> : <VolumeX size={16} />}{hear ? "Sound on" : "Sound off"}
+              </button>
+            )}
+          </div>
         ) : (
           <ShareSurface ref={ref} theme={bg} footer={`${fmtDate(t.date)} · Simulated record`}>
             <div className="flex items-start justify-between gap-4">

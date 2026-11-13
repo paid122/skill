@@ -1,8 +1,8 @@
 "use client";
 import { Droplet, Flame } from "lucide-react";
 import { marketGlyph, symbolImage } from "@/lib/instrument";
-import { forwardRef, useMemo, useState } from "react";
-import { fillsMatch, INTERVAL_MS, locateByPrice, timesUnknown, type TradeChart } from "@/lib/candles";
+import { forwardRef, useState } from "react";
+import { INTERVAL_MS, locateByPrice, timesUnknown, type TradeChart } from "@/lib/candles";
 import type { TradeMetrics } from "@/lib/calc";
 import type { Trade } from "@/lib/types";
 import { fmtMoney, fmtNum, fmtR, parseISODate } from "@/lib/util";
@@ -161,9 +161,6 @@ function ExecutionPath({ trade, color, label, labelText }: { trade: Trade; color
 export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMetrics; opts: PosterOptions }>(function PosterCard({ trade: t, m, opts }, ref) {
   const media = t.showcase?.media ?? null;
   const chart = t.showcase?.chart?.bars.length ? t.showcase.chart : null;
-  const noTimes = timesUnknown(t.executions.map((e) => e.time));
-  const estimated = t.executions.some((e) => e.estimated);
-  const matches = useMemo(() => !chart || noTimes || fillsMatch(chart.bars, chart.interval, t.executions), [chart, noTimes, t.executions]);
   const theme = themeColors(t.showcase?.background ?? "ledger");
   const onMedia = !!media;
   const fg = onMedia ? "#FFFFFF" : theme.fg;
@@ -221,11 +218,6 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
           ? <PriceChart trade={t} chart={chart} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
           : <ExecutionPath trade={t} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />}
       </div>
-      {(!chart || !matches || noTimes || estimated) && (
-        <p className="absolute bottom-12 right-12 text-right text-[13px] font-medium" style={{ color: sub }}>
-          {chart && noTimes ? "Entry & exit placed by price — add times for exact spots" : chart && estimated ? "Times estimated from price data" : chart ? "Fills differ from this price feed" : "Line joins your recorded fills"}
-        </p>
-      )}
     </div>
   );
 });
