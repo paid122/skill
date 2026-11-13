@@ -160,8 +160,8 @@ export default function AIPage() {
             ) : (
               <div className="mx-auto flex max-w-3xl flex-col gap-6">
                 {active?.messages.map((m) => <Message key={m.id} m={m} byNumber={byNumber} />)}
-                {pending !== null && (pending ? <Message m={{ id: "p", role: "assistant", content: pending, citations: [], at: "" }} byNumber={byNumber} /> : <Thinking />)}
-                {busy && pending === null && <Thinking />}
+                {pending !== null && (pending ? <Message m={{ id: "p", role: "assistant", content: pending, citations: [], at: "", ...(mxReady ? { by: "matrixx" as const } : {}) }} byNumber={byNumber} /> : <Thinking mx={!!mxReady} />)}
+                {busy && pending === null && <Thinking mx={!!mxReady} />}
               </div>
             )}
           </div>
@@ -184,11 +184,11 @@ export default function AIPage() {
   );
 }
 
-function Thinking() {
+function Thinking({ mx }: { mx: boolean }) {
   return (
     <div className="flex items-center gap-3 text-[13px] text-muted">
-      <LogoMark size={22} animated />
-      Reviewing your records…
+      {mx ? <span className="animate-pulse"><MatrixXLogo size={22} /></span> : <LogoMark size={22} animated />}
+      {mx ? "MatrixX is thinking…" : "Reviewing your records…"}
     </div>
   );
 }
