@@ -40,7 +40,7 @@ function errorText(status: number, body: string) {
     const m = j?.error?.message ?? j?.detail ?? j?.message;
     if (m) return `MatrixX: ${String(m).slice(0, 200)}`;
   } catch { /* not JSON */ }
-  return status === 401 || status === 403 ? "MatrixX rejected the key. Reconnect MatrixX with a fresh key." : status === 429 ? "MatrixX is rate limited right now. Try again shortly." : `MatrixX returned an error (${status}).`;
+  return status === 401 || status === 403 ? "MatrixX rejected the key. Make a new one on getmatrixx.com/developers and connect again." : status === 429 ? "MatrixX is rate limited right now. Try again shortly." : `MatrixX returned an error (${status}).`;
 }
 
 export async function GET() {

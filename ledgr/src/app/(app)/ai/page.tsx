@@ -120,11 +120,11 @@ export default function AIPage() {
               <button type="button" onClick={() => { setMxKey(""); toast("MatrixX disconnected"); }} className="ml-auto text-text-2 hover:text-text">Disconnect</button>
             </div>
           ) : (
-            <form className="flex flex-wrap items-center gap-2 border-b border-line-soft bg-card-2/40 px-4 py-3 text-xs" onSubmit={(e) => { e.preventDefault(); const k = keyDraft.trim(); if (k.length < 8) { toast("That key looks too short."); return; } setMxKey(k); setKeyDraft(""); toast("MatrixX connected"); }}>
+            <form className="flex flex-wrap items-center gap-2 border-b border-line-soft bg-card-2/40 px-4 py-3 text-xs" onSubmit={(e) => { e.preventDefault(); const k = keyDraft.trim(); if (!/^mxk_\S{8,}$/.test(k)) { toast("A MatrixX API key starts with mxk_ — make one on getmatrixx.com/developers."); return; } setMxKey(k); setKeyDraft(""); toast("MatrixX connected"); }}>
               <span className="font-medium text-text">Connect MatrixX</span>
-              <Input type="password" autoComplete="off" aria-label="MatrixX key" placeholder="Paste your MatrixX Cloud key" value={keyDraft} onChange={(e) => setKeyDraft(e.target.value)} className="h-8 min-w-[200px] flex-1 text-xs" />
+              <Input type="password" autoComplete="off" aria-label="MatrixX key" placeholder="Paste your MatrixX API key (mxk_…)" value={keyDraft} onChange={(e) => setKeyDraft(e.target.value)} className="h-8 min-w-[200px] flex-1 text-xs" />
               <Button type="submit" size="sm">Connect</Button>
-              <a href="https://getmatrixx.com" target="_blank" rel="noreferrer" className="text-text-2 underline-offset-2 hover:underline">Get a key in MatrixX</a>
+              <a href="https://getmatrixx.com/developers" target="_blank" rel="noreferrer" className="text-text-2 underline-offset-2 hover:underline">Get a free key on getmatrixx.com/developers</a>
               <span className="basis-full text-[11px] text-muted">The key stays in this browser and is only passed through to MatrixX with your questions.</span>
             </form>
           ))}
