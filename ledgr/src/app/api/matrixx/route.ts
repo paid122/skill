@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
 import { SYSTEM_PROMPT } from "@/lib/ai";
 import { clientIp, limited, validateAI, type AIBody } from "@/lib/aiServer";
+import { chooseModel } from "@/lib/matrixxConnect";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,16 +22,22 @@ const keyFor = (req: Request) => {
   return /^[\x21-\x7e]{8,512}$/.test(k) ? k : "";
 };
 const BASE = () => (process.env.MATRIXX_API_URL || "https://getmatrixx.com/v1").replace(/\/$/, "");
-let cachedModel: string | null = null;
+// The model per key (people are on different MatrixX plans), for 10 minutes. Keyed by a hash, never the key itself.
+const modelFor = new Map<string, { id: string; at: number }>();
 
 async function pickModel(key: string): Promise<string> {
   if (process.env.MATRIXX_MODEL) return process.env.MATRIXX_MODEL;
-  if (cachedModel) return cachedModel;
+  const tag = createHash("sha256").update(key).digest("hex").slice(0, 24);
+  const hit = modelFor.get(tag);
+  if (hit && Date.now() - hit.at < 600_000) return hit.id;
   try {
     const r = await fetch(`${BASE()}/models`, { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10_000) });
-    const j = await r.json();
-    const id = j?.data?.[0]?.id;
-    if (typeof id === "string") return (cachedModel = id);
+    const id = chooseModel(await r.json());
+    if (id) {
+      if (modelFor.size > 500) modelFor.clear();
+      modelFor.set(tag, { id, at: Date.now() });
+      return id;
+    }
   } catch { /* fall through */ }
   return "auto";
 }
