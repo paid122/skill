@@ -4,7 +4,7 @@ import { cx } from "@/lib/util";
 import { TiltCard } from "./SiteChrome";
 
 export const SHOTS = [
-  { key: "dashboard", label: "Dashboard", caption: "Six honest numbers, a zoomable equity curve, your calendar and today's checklist — in one calm view." },
+  { key: "dashboard", label: "Dashboard", caption: "Your key numbers at a glance, a P&L curve, a calendar of every trading day and your LEDGR score — in one calm view." },
   { key: "journal", label: "Journal", caption: "Every trade with its executions, setup, emotions and lessons. Drafts never pollute your statistics." },
   { key: "analytics", label: "Analytics", caption: "Fourteen charts and fourteen pattern checks, each built only from what you recorded." },
   { key: "psychology", label: "Psychology", caption: "A discipline score you can read line by line — process, never profit." },

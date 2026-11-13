@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 const STORY: StoryStep[] = [
   { key: "log", kicker: "Log", title: "Capture the trade before the feeling fades.", body: "Quick Log saves the essentials in seconds. Add executions, partial exits, fees and screenshots when the session ends.", shot: "journal" },
-  { key: "review", kicker: "Review", title: "See the whole picture, calmly.", body: "Six honest numbers, an equity curve you can zoom, your calendar and today's checklist — on one quiet screen.", shot: "dashboard" },
+  { key: "review", kicker: "Review", title: "See the whole picture, calmly.", body: "Your key numbers at a glance, a P&L curve, a calendar of every trading day and your LEDGR score — on one quiet screen.", shot: "dashboard" },
   { key: "understand", kicker: "Understand", title: "Patterns, only when they're real.", body: "Fourteen charts and fourteen pattern checks. When the sample is too small, Ledgr says so instead of inventing a story.", shot: "analytics" },
   { key: "reflect", kicker: "Reflect", title: "Measure the process, not just the result.", body: "Emotions, documented mistakes and a discipline score you can read line by line — never calculated from profit.", shot: "psychology" },
   { key: "share", kicker: "Share", title: "Show your work, on your terms.", body: "Recap cards and PDFs that hide amounts and account names unless you choose to include them.", shot: "reports" },

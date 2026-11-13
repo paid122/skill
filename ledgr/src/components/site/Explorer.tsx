@@ -6,7 +6,7 @@ import { cx } from "@/lib/util";
 import { Landscape } from "./Cinematic";
 
 const PARTS: { key: string; label: string; icon: LucideIcon; side: "l" | "r"; title: string; line: string; points: string[] }[] = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, side: "l", title: "Dashboard", line: "Where the day starts.", points: ["Six numbers with how each is calculated", "Equity curve you can zoom", "Calendar, checklist and today's verse"] },
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, side: "l", title: "Dashboard", line: "Where the day starts.", points: ["Net P&L, win rate, avg win/loss, profit factor and streaks", "P&L curve and a calendar of your days", "Your LEDGR score, checklist and today's verse"] },
   { key: "journal", label: "Journal", icon: NotebookPen, side: "l", title: "Journal", line: "Every trade, honestly recorded.", points: ["Multiple entries, partial exits and fees", "Drafts kept out of your statistics", "Search, filters and saved views"] },
   { key: "analytics", label: "Analytics", icon: ChartNoAxesCombined, side: "l", title: "Analytics", line: "Patterns, only when they're real.", points: ["Fourteen charts, fourteen pattern checks", "Sample sizes always shown", "What-if analysis on your own records"] },
   { key: "psychology", label: "Psychology", icon: Brain, side: "r", title: "Psychology", line: "Measure the process, not the result.", points: ["Emotion and mistake tracking", "Discipline score you can read line by line", "Never calculated from profit"] },
