@@ -37,9 +37,9 @@ function Media({ blobId, kind, dim, blur }: { blobId: string; kind: "image" | "v
 function Pill({ at, text, below, color, label, labelText }: { at: readonly [number, number, ...unknown[]]; text: string; below: boolean; color: string; label: string; labelText: string }) {
   return (
     <g transform={`translate(${at[0]},${at[1]})`}>
-      <circle r="4" fill={color} />
-      <g transform={`translate(0,${below ? 30 : -30})`}>
-        <path d={below ? "M-8,-17 L0,-26 L8,-17 Z" : "M-8,17 L0,26 L8,17 Z"} fill={label} />
+      <circle r="6" fill={label} stroke={labelText} strokeWidth="2.5" />
+      <g transform={`translate(0,${below ? 38 : -38})`}>
+        <path d={below ? "M-7,-17 L0,-31 L7,-17 Z" : "M-7,17 L0,31 L7,17 Z"} fill={label} />
         <rect x="-42" y="-18" width="84" height="36" rx="12" fill={label} style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.35))" }} />
         <text x="0" y="6" textAnchor="middle" fontSize="17" fontWeight="800" fill={labelText} fontFamily="'Inter Variable', Inter, sans-serif">{text}</text>
       </g>
@@ -92,25 +92,39 @@ function PriceChart({ trade, chart, color, label, labelText }: { trade: Trade; c
   const W = 460, H = 330, pad = 12;
   const iv = INTERVAL_MS[chart.interval];
   const ex = [...trade.executions].sort((a, b) => a.time.localeCompare(b.time));
-  const lo = Math.min(...bars.map((b) => b.c), ...ex.map((e) => e.price));
-  const hi = Math.max(...bars.map((b) => b.c), ...ex.map((e) => e.price));
+  // Scale to the line itself so it fills the space; the tags sit on the line.
+  const closes = bars.map((b) => b.c);
+  const lo = Math.min(...closes), hi = Math.max(...closes);
   const step = (W - pad * 2) / bars.length;
   const xi = (i: number) => pad + (i + 0.5) * step;
-  const y = (p: number) => (hi > lo ? pad + (1 - (p - lo) / (hi - lo)) * (H - pad * 2) : H / 2);
+  const y = (p: number) => (hi > lo ? pad + 22 + (1 - (p - lo) / (hi - lo)) * (H - pad * 2 - 44) : H / 2);
   const xt = (iso: string) => {
     const t = new Date(iso).getTime();
     let i = bars.findIndex((b) => t >= b.t && t < b.t + iv);
     if (i < 0) i = t < bars[0].t ? 0 : bars.length - 1;
     return pad + (i + Math.min(1, Math.max(0, (t - bars[i].t) / iv))) * step;
   };
+  /** The point on the drawn line at a given x (between the two nearest closes). */
+  const onLine = (x: number): [number, number] => {
+    const u = Math.min(bars.length - 1, Math.max(0, (x - pad) / step - 0.5));
+    const i = Math.floor(u), f = u - i;
+    const c = i + 1 < bars.length ? closes[i] * (1 - f) + closes[i + 1] * f : closes[i];
+    return [Math.min(xi(bars.length - 1), Math.max(xi(0), x)), y(c)];
+  };
   const entry = ex.find((e) => e.kind === "entry");
   const exit = [...ex].reverse().find((e) => e.kind === "exit");
+  const ep = entry ? onLine(xt(entry.time)) : null;
+  const xp = exit ? onLine(xt(exit.time)) : null;
+  // Tag above the point unless it's near the top; if the two tags would collide, put them on opposite sides.
+  let eBelow = ep ? ep[1] < 80 : false;
+  let xBelow = xp ? xp[1] < 80 : false;
+  if (ep && xp && eBelow === xBelow && Math.abs(ep[0] - xp[0]) < 96) { if (ep[1] <= xp[1]) { eBelow = false; xBelow = true; } else { eBelow = true; xBelow = false; } }
   const line = bars.map((b, i) => `${i ? "L" : "M"}${xi(i).toFixed(1)},${y(b.c).toFixed(1)}`).join(" ");
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-label={`${chart.interval} price line with recorded entry and exit`} className="overflow-visible">
       <path d={line} fill="none" stroke={color} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.35))" }} />
-      {entry && <Pill at={[xt(entry.time), y(entry.price)]} text="Entry" below={y(entry.price) < H / 2} color={color} label={label} labelText={labelText} />}
-      {exit && <Pill at={[xt(exit.time), y(exit.price)]} text="Exit" below={y(exit.price) < H / 2} color={color} label={label} labelText={labelText} />}
+      {ep && <Pill at={ep} text="Entry" below={eBelow} color={color} label={label} labelText={labelText} />}
+      {xp && <Pill at={xp} text="Exit" below={xBelow} color={color} label={label} labelText={labelText} />}
     </svg>
   );
 }
