@@ -157,7 +157,8 @@ function ExecutionTab({ t, set, m }: TabProps & { m: ReturnType<typeof tradeMetr
     const remaining = m.entryQty - m.exitQty;
     set({ executions: [...t.executions, { id: uid("ex"), kind, price: last?.price ?? 0, quantity: kind === "exit" && remaining > 0 ? remaining : last?.quantity ?? 1, time: last ? new Date(new Date(last.time).getTime() + 5 * 60000).toISOString() : new Date(`${t.date}T09:30:00`).toISOString(), fees: 0 }] });
   };
-  const upd = (id: string, p: Partial<Execution>) => set({ executions: t.executions.map((e) => (e.id === id ? { ...e, ...p } : e)) });
+  // Editing a time by hand replaces an estimated one.
+  const upd = (id: string, p: Partial<Execution>) => set({ executions: t.executions.map((e) => (e.id === id ? { ...e, ...p, ...(p.time ? { estimated: undefined } : {}) } : e)) });
 
   return (
     <div className="grid gap-6">

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { newTradeDraft, saveTrade, ValidationError } from "@/lib/actions";
 import { missingFields, tradeMetrics } from "@/lib/calc";
+import { fillTimes } from "@/lib/autoTimes";
 import { closeQuickLog, openEditor, openImport, useOverlays } from "@/lib/overlays";
 import { useLedgr } from "@/lib/store";
 import { EMOTIONS, MARKETS, type Emotion, type Trade } from "@/lib/types";
@@ -51,6 +52,7 @@ export function QuickLog() {
     }
     try {
       saveTrade({ ...next, isDraft: draft, activity: [{ at: nowISO(), message: "Created with Quick Log" }] });
+      void fillTimes(next.id); // no times given → work them out from that day's prices, in the background
       closeQuickLog();
       if (thenEdit) openEditor(next.id);
     } catch (e) {

@@ -33,6 +33,8 @@ export interface Execution {
   time: ISODateTime;
   fees: number;
   note?: string;
+  /** True when the time was worked out from price data (the trade was logged without times). */
+  estimated?: boolean;
 }
 
 export interface TradeAttachment {

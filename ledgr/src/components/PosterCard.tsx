@@ -162,6 +162,7 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
   const media = t.showcase?.media ?? null;
   const chart = t.showcase?.chart?.bars.length ? t.showcase.chart : null;
   const noTimes = timesUnknown(t.executions.map((e) => e.time));
+  const estimated = t.executions.some((e) => e.estimated);
   const matches = useMemo(() => !chart || noTimes || fillsMatch(chart.bars, chart.interval, t.executions), [chart, noTimes, t.executions]);
   const theme = themeColors(t.showcase?.background ?? "ledger");
   const onMedia = !!media;
@@ -220,9 +221,9 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
           ? <PriceChart trade={t} chart={chart} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
           : <ExecutionPath trade={t} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />}
       </div>
-      {(!chart || !matches || noTimes) && (
+      {(!chart || !matches || noTimes || estimated) && (
         <p className="absolute bottom-12 right-12 text-right text-[13px] font-medium" style={{ color: sub }}>
-          {chart && noTimes ? "Entry & exit placed by price — add times for exact spots" : chart ? "Fills differ from this price feed" : "Line joins your recorded fills"}
+          {chart && noTimes ? "Entry & exit placed by price — add times for exact spots" : chart && estimated ? "Times estimated from price data" : chart ? "Fills differ from this price feed" : "Line joins your recorded fills"}
         </p>
       )}
     </div>

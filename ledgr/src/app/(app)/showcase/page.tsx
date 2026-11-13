@@ -11,6 +11,7 @@ import { Badge, Button, Card, EmptyState, Field, Input, Modal, SectionTitle, Seg
 import { dayWindow, guessSource, pickWindow, timesUnknown, type Bar, type TradeChart } from "@/lib/candles";
 import { PageVerse } from "@/components/VerseCard";
 import { patchTrade } from "@/lib/actions";
+import { fillTimes } from "@/lib/autoTimes";
 import type { EnrichedTrade } from "@/lib/calc";
 import { exportPng } from "@/lib/exporter";
 import { exportCardVideo, MAX_EXPORT_SECONDS, recordingFormat } from "@/lib/videoExport";
@@ -105,17 +106,28 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const setShowcase = (p: Partial<NonNullable<typeof t.showcase>>) => patchTrade(t.id, { showcase: { ...sc, ...p } });
 
   // Real price chart, loaded automatically once per trade and saved with it (no button).
+  // Trades logged without times get their times worked out from price data first.
   const [chartState, setChartState] = useState<"idle" | "loading" | "none">("idle");
   const tried = useRef<Set<string>>(new Set());
+  const timesKey = t.executions.map((e) => e.time).join("|");
   useEffect(() => {
     setChartState("idle");
+    if (layout !== "poster" || !t.symbol) return;
     const times = t.executions.map((e) => e.time);
+    const unknown = timesUnknown(times);
+    if (unknown && !tried.current.has(`fill:${t.id}`)) {
+      tried.current.add(`fill:${t.id}`);
+      setChartState("loading");
+      void fillTimes(t.id).then((ok) => { if (!ok) setChartState("idle"); }); // success re-runs this effect with the new times
+      return;
+    }
     // Re-fetch once if a trade without times still has a short (non full-day) chart saved.
-    const needsChart = !sc.chart?.bars.length || (timesUnknown(times) && sc.chart.interval !== "15m");
-    if (layout !== "poster" || !needsChart || tried.current.has(t.id)) return;
-    const win = timesUnknown(times) ? dayWindow(times[0]) : pickWindow(times);
-    if (!win || !t.symbol) return;
-    tried.current.add(t.id);
+    const needsChart = !sc.chart?.bars.length || (unknown && sc.chart.interval !== "15m") || (!unknown && sc.chart.interval === "15m" && t.executions.some((e) => e.estimated));
+    const key = `chart:${t.id}:${timesKey}`;
+    if (!needsChart || tried.current.has(key)) return;
+    const win = unknown ? dayWindow(times[0]) : pickWindow(times);
+    if (!win) return;
+    tried.current.add(key);
     const { provider, dataSymbol } = guessSource(t);
     const q = new URLSearchParams({ provider, symbol: dataSymbol, interval: win.interval, from: String(win.from), to: String(win.to) });
     let live = true;
@@ -133,7 +145,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
       .catch(() => { if (live) setChartState("none"); });
     return () => { live = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t.id, layout, sc.chart?.bars.length]);
+  }, [t.id, layout, sc.chart?.bars.length, timesKey]);
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
