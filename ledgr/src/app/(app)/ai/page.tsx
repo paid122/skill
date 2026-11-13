@@ -171,7 +171,7 @@ export default function AIPage() {
               <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} rows={1} maxLength={4000} placeholder="Ask about a trade (#12), this week, setups, emotions or mistakes…" className="max-h-40 min-h-[36px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted" aria-label="Message" />
               <Button type="submit" variant="accent" size="sm" disabled={busy || !input.trim()} aria-label="Send" className="h-9 w-9 px-0"><ArrowUp size={16} /></Button>
             </div>
-            <p className="mt-2 px-1 text-[11px] text-muted">MatrixX AI analyses past records only. It can be wrong; check figures against your journal. Not financial advice.</p>
+            <p className="mt-2 px-1 text-[11px] text-muted"><a href="/plus" className="text-text-2 underline-offset-2 hover:underline">LEDGR+</a> includes MatrixX Starter. MatrixX AI analyses past records only. It can be wrong; check figures against your journal. Not financial advice.</p>
           </form>
         </Card>
       </div>
