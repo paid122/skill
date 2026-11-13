@@ -155,3 +155,28 @@ export function fillsMatch(bars: Bar[], interval: CandleInterval, fills: { time:
     return f.price >= bar.l - tol && f.price <= bar.h + tol;
   });
 }
+
+/** True when every execution has the same timestamp (e.g. logged without times). */
+export function timesUnknown(executionTimes: string[]): boolean {
+  return executionTimes.length > 1 && executionTimes.every((t) => t === executionTimes[0]);
+}
+
+/** The whole local trading day around a date-only trade, in 15-minute candles. */
+export function dayWindow(isoTime: string, now = Date.now()): { interval: CandleInterval; from: number; to: number } {
+  const d = new Date(isoTime);
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return { interval: "15m", from: start, to: Math.min(start + 86400e3, Math.floor(now / 900e3) * 900e3) };
+}
+
+/**
+ * For trades without times: the first candle that traded through the entry price, then the first
+ * candle after it that traded through the exit price. Returns bar indexes, or null if not found.
+ */
+export function locateByPrice(bars: Bar[], entry: number, exit: number): { entry: number; exit: number } | null {
+  const hits = (b: Bar, p: number) => p >= b.l && p <= b.h;
+  const e = bars.findIndex((b) => hits(b, entry));
+  if (e < 0) return null;
+  let x = -1;
+  for (let i = e; i < bars.length; i++) if (hits(bars[i], exit)) { x = i; break; }
+  return x < 0 ? null : { entry: e, exit: x };
+}

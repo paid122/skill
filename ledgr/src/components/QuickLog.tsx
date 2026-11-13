@@ -14,13 +14,13 @@ export function QuickLog() {
   const setups = useLedgr((s) => s.settings.setups);
   const [t, setT] = useState<Trade | null>(null);
   const [mode, setMode] = useState<"net" | "prices">("net");
-  const [px, setPx] = useState<{ entry: number | null; exit: number | null; qty: number | null }>({ entry: null, exit: null, qty: 1 });
+  const [px, setPx] = useState<{ entry: number | null; exit: number | null; qty: number | null; entryTime: string; exitTime: string }>({ entry: null, exit: null, qty: 1, entryTime: "", exitTime: "" });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (quickLog) {
       setT(newTradeDraft());
-      setPx({ entry: null, exit: null, qty: 1 });
+      setPx({ entry: null, exit: null, qty: 1, entryTime: "", exitTime: "" });
       setError(null);
     }
   }, [quickLog]);
@@ -30,10 +30,11 @@ export function QuickLog() {
 
   const build = (): Trade => {
     if (mode === "prices" && (px.entry !== null || px.exit !== null)) {
-      const time = new Date(`${t.date}T12:00:00`).toISOString();
+      // Times are optional; without them both fills are saved at 12:00 (the card then places them by price).
+      const at = (hhmm: string) => new Date(`${t.date}T${/^\d{2}:\d{2}$/.test(hhmm) ? hhmm : "12:00"}:00`).toISOString();
       const executions = [
-        ...(px.entry !== null ? [{ id: uid("ex"), kind: "entry" as const, price: px.entry, quantity: px.qty ?? 1, time, fees: 0 }] : []),
-        ...(px.exit !== null ? [{ id: uid("ex"), kind: "exit" as const, price: px.exit, quantity: px.qty ?? 1, time, fees: 0 }] : []),
+        ...(px.entry !== null ? [{ id: uid("ex"), kind: "entry" as const, price: px.entry, quantity: px.qty ?? 1, time: at(px.entryTime), fees: 0 }] : []),
+        ...(px.exit !== null ? [{ id: uid("ex"), kind: "exit" as const, price: px.exit, quantity: px.qty ?? 1, time: at(px.exitTime || px.entryTime), fees: 0 }] : []),
       ];
       return { ...t, executions, manualNet: null };
     }
@@ -109,6 +110,8 @@ export function QuickLog() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Field label="Entry"><NumberInput value={px.entry} onChange={(n) => setPx({ ...px, entry: n })} /></Field>
               <Field label="Exit"><NumberInput value={px.exit} onChange={(n) => setPx({ ...px, exit: n })} /></Field>
+              <Field label="Entry time" hint="Optional"><Input type="time" value={px.entryTime} onChange={(e) => setPx({ ...px, entryTime: e.target.value })} /></Field>
+              <Field label="Exit time" hint="Optional"><Input type="time" value={px.exitTime} onChange={(e) => setPx({ ...px, exitTime: e.target.value })} /></Field>
               <Field label="Quantity"><NumberInput value={px.qty} onChange={(n) => setPx({ ...px, qty: n })} /></Field>
               <Field label="Stop"><NumberInput value={t.stopPrice} onChange={(n) => set({ stopPrice: n })} /></Field>
               <Field label="Point value" hint="Per 1.0 move per unit" className="col-span-2"><NumberInput value={t.pointValue} allowEmpty={false} onChange={(n) => set({ pointValue: n ?? 1 })} /></Field>

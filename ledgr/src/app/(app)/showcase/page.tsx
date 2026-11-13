@@ -8,7 +8,7 @@ import { FitWidth } from "@/components/FitWidth";
 import { PosterCard } from "@/components/PosterCard";
 import { CARD_THEMES, ShareSurface, themeColors } from "@/components/ShareCard";
 import { Badge, Button, Card, EmptyState, Field, Input, Modal, SectionTitle, Segmented, Textarea, Toggle, useFeedback } from "@/components/ui";
-import { guessSource, pickWindow, type Bar, type TradeChart } from "@/lib/candles";
+import { dayWindow, guessSource, pickWindow, timesUnknown, type Bar, type TradeChart } from "@/lib/candles";
 import { PageVerse } from "@/components/VerseCard";
 import { patchTrade } from "@/lib/actions";
 import type { EnrichedTrade } from "@/lib/calc";
@@ -109,8 +109,11 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const tried = useRef<Set<string>>(new Set());
   useEffect(() => {
     setChartState("idle");
-    if (layout !== "poster" || sc.chart?.bars.length || tried.current.has(t.id)) return;
-    const win = pickWindow(t.executions.map((e) => e.time));
+    const times = t.executions.map((e) => e.time);
+    // Re-fetch once if a trade without times still has a short (non full-day) chart saved.
+    const needsChart = !sc.chart?.bars.length || (timesUnknown(times) && sc.chart.interval !== "15m");
+    if (layout !== "poster" || !needsChart || tried.current.has(t.id)) return;
+    const win = timesUnknown(times) ? dayWindow(times[0]) : pickWindow(times);
     if (!win || !t.symbol) return;
     tried.current.add(t.id);
     const { provider, dataSymbol } = guessSource(t);

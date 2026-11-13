@@ -2,7 +2,7 @@
 import { Droplet, Flame } from "lucide-react";
 import { marketGlyph, symbolImage } from "@/lib/instrument";
 import { forwardRef, useMemo, useState } from "react";
-import { fillsMatch, INTERVAL_MS, type TradeChart } from "@/lib/candles";
+import { fillsMatch, INTERVAL_MS, locateByPrice, timesUnknown, type TradeChart } from "@/lib/candles";
 import type { TradeMetrics } from "@/lib/calc";
 import type { Trade } from "@/lib/types";
 import { fmtMoney, fmtNum, fmtR, parseISODate } from "@/lib/util";
@@ -113,8 +113,10 @@ function PriceChart({ trade, chart, color, label, labelText }: { trade: Trade; c
   };
   const entry = ex.find((e) => e.kind === "entry");
   const exit = [...ex].reverse().find((e) => e.kind === "exit");
-  const ep = entry ? onLine(xt(entry.time)) : null;
-  const xp = exit ? onLine(xt(exit.time)) : null;
+  // Without real times, place the tags where the price first traded through the entry, then the exit.
+  const byPrice = timesUnknown(ex.map((e) => e.time)) && entry && exit ? locateByPrice(bars, entry.price, exit.price) : null;
+  const ep = entry ? onLine(byPrice ? xi(byPrice.entry) : xt(entry.time)) : null;
+  const xp = exit ? onLine(byPrice ? xi(byPrice.exit) : xt(exit.time)) : null;
   // Tag above the point unless it's near the top; if the two tags would collide, put them on opposite sides.
   let eBelow = ep ? ep[1] < 80 : false;
   let xBelow = xp ? xp[1] < 80 : false;
@@ -159,7 +161,8 @@ function ExecutionPath({ trade, color, label, labelText }: { trade: Trade; color
 export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMetrics; opts: PosterOptions }>(function PosterCard({ trade: t, m, opts }, ref) {
   const media = t.showcase?.media ?? null;
   const chart = t.showcase?.chart?.bars.length ? t.showcase.chart : null;
-  const matches = useMemo(() => !chart || fillsMatch(chart.bars, chart.interval, t.executions), [chart, t.executions]);
+  const noTimes = timesUnknown(t.executions.map((e) => e.time));
+  const matches = useMemo(() => !chart || noTimes || fillsMatch(chart.bars, chart.interval, t.executions), [chart, noTimes, t.executions]);
   const theme = themeColors(t.showcase?.background ?? "ledger");
   const onMedia = !!media;
   const fg = onMedia ? "#FFFFFF" : theme.fg;
@@ -217,9 +220,9 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
           ? <PriceChart trade={t} chart={chart} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
           : <ExecutionPath trade={t} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />}
       </div>
-      {(!chart || !matches) && (
+      {(!chart || !matches || noTimes) && (
         <p className="absolute bottom-12 right-12 text-right text-[13px] font-medium" style={{ color: sub }}>
-          {chart ? "Fills differ from this price feed" : "Line joins your recorded fills"}
+          {chart && noTimes ? "Entry & exit placed by price — add times for exact spots" : chart ? "Fills differ from this price feed" : "Line joins your recorded fills"}
         </p>
       )}
     </div>

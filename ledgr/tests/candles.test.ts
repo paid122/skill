@@ -97,3 +97,21 @@ describe("yahoo", () => {
     expect((old.to - old.from) / 3600e3).toBeGreaterThanOrEqual(40);
   });
 });
+
+import { dayWindow, locateByPrice, timesUnknown } from "../src/lib/candles";
+describe("trades logged without times", () => {
+  it("detects identical execution times", () => {
+    expect(timesUnknown(["2026-10-28T11:00:00.000Z", "2026-10-28T11:00:00.000Z"])).toBe(true);
+    expect(timesUnknown(["2026-10-28T11:00:00.000Z", "2026-10-28T11:20:00.000Z"])).toBe(false);
+  });
+  it("uses the whole day in 15-minute candles", () => {
+    const w = dayWindow("2026-10-28T11:00:00.000Z", Date.parse("2026-11-13T00:00:00Z"));
+    expect(w.interval).toBe("15m");
+    expect((w.to - w.from) / 3600e3).toBe(24);
+  });
+  it("places entry, then exit, where the price traded through them", () => {
+    const bars = [100, 102, 104, 103, 99, 97].map((c, i) => ({ t: i * 900e3, o: c, h: c + 0.5, l: c - 0.5, c }));
+    expect(locateByPrice(bars, 104.2, 97.1)).toEqual({ entry: 2, exit: 5 });
+    expect(locateByPrice(bars, 150, 97)).toBeNull();
+  });
+});
