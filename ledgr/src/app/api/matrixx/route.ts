@@ -7,20 +7,26 @@ export const dynamic = "force-dynamic";
 /**
  * MatrixX as the assistant on the AI page. MatrixX Cloud exposes an OpenAI-style API
  * (POST {MATRIXX_API_URL}/chat/completions, Bearer key). The key stays on this server.
- *   MATRIXX_API_KEY   – required
+ *   MATRIXX_API_KEY   – optional server key; otherwise each user connects their own key (x-matrixx-key)
  *   MATRIXX_API_URL   – default https://getmatrixx.com/v1
  *   MATRIXX_MODEL     – optional; otherwise the first model MatrixX lists
  * Answers stream back as plain text, the same format as /api/ai.
  */
 const KEY = () => process.env.MATRIXX_API_KEY ?? "";
+/** The server key, or the user's own key from the "Connect MatrixX" box (sent per request, never stored or logged). */
+const keyFor = (req: Request) => {
+  if (KEY()) return KEY();
+  const k = (req.headers.get("x-matrixx-key") ?? "").trim();
+  return /^[\x21-\x7e]{8,512}$/.test(k) ? k : "";
+};
 const BASE = () => (process.env.MATRIXX_API_URL || "https://getmatrixx.com/v1").replace(/\/$/, "");
 let cachedModel: string | null = null;
 
-async function pickModel(): Promise<string> {
+async function pickModel(key: string): Promise<string> {
   if (process.env.MATRIXX_MODEL) return process.env.MATRIXX_MODEL;
   if (cachedModel) return cachedModel;
   try {
-    const r = await fetch(`${BASE()}/models`, { headers: { Authorization: `Bearer ${KEY()}` }, signal: AbortSignal.timeout(10_000) });
+    const r = await fetch(`${BASE()}/models`, { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10_000) });
     const j = await r.json();
     const id = j?.data?.[0]?.id;
     if (typeof id === "string") return (cachedModel = id);
@@ -34,7 +40,7 @@ function errorText(status: number, body: string) {
     const m = j?.error?.message ?? j?.detail ?? j?.message;
     if (m) return `MatrixX: ${String(m).slice(0, 200)}`;
   } catch { /* not JSON */ }
-  return status === 401 || status === 403 ? "MatrixX rejected the key. Check MATRIXX_API_KEY." : status === 429 ? "MatrixX is rate limited right now. Try again shortly." : `MatrixX returned an error (${status}).`;
+  return status === 401 || status === 403 ? "MatrixX rejected the key. Reconnect MatrixX with a fresh key." : status === 429 ? "MatrixX is rate limited right now. Try again shortly." : `MatrixX returned an error (${status}).`;
 }
 
 export async function GET() {
@@ -42,7 +48,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  if (!KEY()) return Response.json({ error: "not_configured" }, { status: 503 });
+  const key = keyFor(req);
+  if (!key) return Response.json({ error: "not_configured" }, { status: 503 });
   if (limited(clientIp(req))) return Response.json({ error: "Too many requests. Wait a minute and try again." }, { status: 429 });
   let parsed: AIBody | string;
   try { parsed = validateAI(await req.json()); } catch { parsed = "Invalid JSON."; }
@@ -56,9 +63,9 @@ export async function POST(req: Request) {
       try {
         const res = await fetch(`${BASE()}/chat/completions`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${KEY()}`, Accept: "text/event-stream" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}`, Accept: "text/event-stream" },
           body: JSON.stringify({
-            model: await pickModel(),
+            model: await pickModel(key),
             stream: true,
             messages: [{ role: "system", content: `${SYSTEM_PROMPT}\n\nJOURNAL CONTEXT\n${body.context}` }, ...body.messages],
           }),

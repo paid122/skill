@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PageIntro, ScopeControls } from "@/components/blocks";
 import { LogoMark } from "@/components/Logo";
-import { Badge, Button, Card, IconButton, Modal, Segmented, useFeedback } from "@/components/ui";
+import { Badge, Button, Card, IconButton, Input, Modal, Segmented, useFeedback } from "@/components/ui";
 import { PageVerse } from "@/components/VerseCard";
 import { appendMessage, deleteConversation, newConversation } from "@/lib/actions";
 import { buildContext, extractCitations, offlineAnswer, SUGGESTED } from "@/lib/ai";
@@ -17,7 +17,7 @@ export default function AIPage() {
   const conversations = useLedgr((s) => s.conversations);
   const trades = useLedgr((s) => s.trades);
   const { current } = useScoped();
-  const { confirm } = useFeedback();
+  const { confirm, toast } = useFeedback();
   const [activeId, setActiveId] = useState<string | null>(conversations[conversations.length - 1]?.id ?? null);
   const active = conversations.find((c) => c.id === activeId) ?? null;
   const [input, setInput] = useState("");
@@ -29,6 +29,11 @@ export default function AIPage() {
   useEffect(() => { try { if (localStorage.getItem("ledgr.aiEngine") === "matrixx") setEngineState("matrixx"); } catch { /* ignore */ } }, []);
   const setEngine = (e: "ledgr" | "matrixx") => { setEngineState(e); try { localStorage.setItem("ledgr.aiEngine", e); } catch { /* ignore */ } };
   const [mxConfigured, setMxConfigured] = useState<boolean | null>(null);
+  // The user's own MatrixX key, kept in this browser only and sent with each MatrixX question.
+  const [mxKey, setMxKeyState] = useState("");
+  const [keyDraft, setKeyDraft] = useState("");
+  useEffect(() => { try { setMxKeyState(localStorage.getItem("ledgr.matrixxKey") ?? ""); } catch { /* ignore */ } }, []);
+  const setMxKey = (k: string) => { setMxKeyState(k); try { if (k) localStorage.setItem("ledgr.matrixxKey", k); else localStorage.removeItem("ledgr.matrixxKey"); } catch { /* ignore */ } };
   const [showContext, setShowContext] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const ctx = useMemo(() => buildContext(getState(), current), [current]);
@@ -37,22 +42,14 @@ export default function AIPage() {
   useEffect(() => { fetch("/api/ai").then((r) => r.json()).then((d) => setConfigured(!!d.configured)).catch(() => setConfigured(false)); }, []);
   useEffect(() => { fetch("/api/matrixx").then((r) => r.json()).then((d) => setMxConfigured(!!d.configured)).catch(() => setMxConfigured(false)); }, []);
   const mx = engine === "matrixx";
-  const live = mx ? mxConfigured : configured;
+  const mxReady = mxConfigured === null ? null : mxConfigured || !!mxKey;
+  const live = mx ? mxReady : configured;
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }); }, [active?.messages.length, pending]);
 
   const send = async (text: string) => {
     const q = text.trim();
     if (!q || busy) return;
-    // MatrixX without an API key: open the MatrixX web app with just the question (no journal data).
-    if (mx && !mxConfigured) {
-      window.open(`https://getmatrixx.com/m?ask=${encodeURIComponent(q.slice(0, 1500))}&src=ledgr`, "_blank", "noopener");
-      const c = active ?? newConversation();
-      setActiveId(c.id);
-      appendMessage(c.id, { id: uid("m"), role: "user", content: q.slice(0, 4000), citations: [], at: nowISO() });
-      appendMessage(c.id, { id: uid("m"), role: "assistant", content: "Opened this question in **MatrixX** in a new tab. Only the question was sent — none of your journal.\n\nTo get MatrixX answers right here, with your journal summary, the site owner adds a MatrixX API key (MATRIXX_API_KEY).", citations: [], at: nowISO() });
-      setInput("");
-      return;
-    }
+    if (mx && !mxReady) { toast("Connect MatrixX first — paste your MatrixX key above the chat."); return; }
     const endpoint = mx ? "/api/matrixx" : "/api/ai";
     const conv = active ?? newConversation();
     setActiveId(conv.id);
@@ -65,7 +62,7 @@ export default function AIPage() {
     if (live) {
       try {
         const history = [...(conv.messages ?? []), userMsg].slice(-20).map((m) => ({ role: m.role, content: m.content }));
-        const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: history, context: ctx.text }) });
+        const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", ...(mx && mxKey ? { "x-matrixx-key": mxKey } : {}) }, body: JSON.stringify({ messages: history, context: ctx.text }) });
         if (res.ok && res.body) {
           mode = "model";
           const reader = res.body.getReader();
@@ -92,7 +89,7 @@ export default function AIPage() {
     } else {
       answer = offlineAnswer(q, getState(), current);
     }
-    appendMessage(conv.id, { id: uid("m"), role: "assistant", content: answer, citations: extractCitations(answer, ctx), mode, at: nowISO() });
+    appendMessage(conv.id, { id: uid("m"), role: "assistant", content: answer, citations: extractCitations(answer, ctx), mode, ...(mx && mode === "model" ? { by: "matrixx" as const } : {}), at: nowISO() });
     setPending(null);
     setBusy(false);
   };
@@ -121,10 +118,24 @@ export default function AIPage() {
         <Card pad={false} className="flex min-h-[620px] flex-col">
           <div className="flex flex-wrap items-center gap-2 border-b border-line-soft px-4 py-3 text-xs">
             <Segmented size="sm" ariaLabel="Assistant" value={engine} onChange={setEngine} options={[{ value: "ledgr", label: "Ledgr AI" }, { value: "matrixx", label: "MatrixX" }]} />
-            {live === null ? <Badge>Checking…</Badge> : mx ? (mxConfigured ? <Badge tone="accent"><Sparkles size={11} /> MatrixX</Badge> : <Badge tone="muted">Opens MatrixX</Badge>) : configured ? <Badge tone="accent"><Sparkles size={11} /> Model analysis</Badge> : <Badge tone="muted">Offline analysis</Badge>}
-            <span className="text-muted">{mx ? (mxConfigured ? `MatrixX answers here, using ${current.length} records in the selected scope as summary rows.` : "Your question opens in the MatrixX web app. Only the question is sent.") : configured === false ? "No AI key is configured on this server; answers are calculated locally from your records." : `Shares ${current.length} records in the selected scope, as summary rows.`}</span>
+            {live === null ? <Badge>Checking…</Badge> : mx ? (mxReady ? <Badge tone="accent"><Sparkles size={11} /> MatrixX connected</Badge> : <Badge tone="muted">Not connected</Badge>) : configured ? <Badge tone="accent"><Sparkles size={11} /> Model analysis</Badge> : <Badge tone="muted">Offline analysis</Badge>}
+            <span className="text-muted">{mx ? (mxReady ? `MatrixX answers here, using ${current.length} records in the selected scope as summary rows.` : "Connect your MatrixX key to get MatrixX answers in this chat.") : configured === false ? "No AI key is configured on this server; answers are calculated locally from your records." : `Shares ${current.length} records in the selected scope, as summary rows.`}</span>
             <button type="button" onClick={() => setShowContext(true)} className="ml-auto inline-flex items-center gap-1 text-text-2 hover:text-text"><Eye size={13} /> What is shared</button>
           </div>
+          {mx && mxConfigured === false && (mxKey ? (
+            <div className="flex items-center gap-2 border-b border-line-soft px-4 py-2 text-xs text-muted">
+              <span>Connected with your MatrixX key (saved in this browser only).</span>
+              <button type="button" onClick={() => { setMxKey(""); toast("MatrixX disconnected"); }} className="ml-auto text-text-2 hover:text-text">Disconnect</button>
+            </div>
+          ) : (
+            <form className="flex flex-wrap items-center gap-2 border-b border-line-soft bg-card-2/40 px-4 py-3 text-xs" onSubmit={(e) => { e.preventDefault(); const k = keyDraft.trim(); if (k.length < 8) { toast("That key looks too short."); return; } setMxKey(k); setKeyDraft(""); toast("MatrixX connected"); }}>
+              <span className="font-medium text-text">Connect MatrixX</span>
+              <Input type="password" autoComplete="off" aria-label="MatrixX key" placeholder="Paste your MatrixX Cloud key" value={keyDraft} onChange={(e) => setKeyDraft(e.target.value)} className="h-8 min-w-[200px] flex-1 text-xs" />
+              <Button type="submit" size="sm">Connect</Button>
+              <a href="https://getmatrixx.com" target="_blank" rel="noreferrer" className="text-text-2 underline-offset-2 hover:underline">Get a key in MatrixX</a>
+              <span className="basis-full text-[11px] text-muted">The key stays in this browser and is only passed through to MatrixX with your questions.</span>
+            </form>
+          ))}
 
           <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-6 scroll-thin sm:px-8" style={{ maxHeight: "62vh" }} aria-live="polite">
             {!active?.messages.length && !pending ? (
@@ -178,12 +189,12 @@ function Message({ m, byNumber }: { m: AIMessage; byNumber: Map<number, string> 
   if (m.role === "user") return <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-card-2 px-4 py-2.5 text-[14px] text-text">{m.content}</div>;
   return (
     <div className="flex gap-3">
-      <span className="mt-0.5 shrink-0 text-text"><LogoMark size={22} /></span>
+      <span className="mt-0.5 shrink-0 text-text">{m.by === "matrixx" ? <span aria-label="MatrixX" className="grid h-[22px] w-[22px] place-items-center rounded-md bg-text text-[11px] font-bold text-bg">M</span> : <LogoMark size={22} />}</span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-col gap-3 text-[14px] leading-relaxed text-text">{renderMarkdown(m.content, byNumber)}</div>
         {(m.mode || m.citations.length > 0) && (
           <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
-            {m.mode && <span>{m.mode === "model" ? "Model analysis" : "Offline analysis"}{m.at && ` · ${fmtDate(m.at)}`}</span>}
+            {m.mode && <span>{m.by === "matrixx" ? "MatrixX" : m.mode === "model" ? "Model analysis" : "Offline analysis"}{m.at && ` · ${fmtDate(m.at)}`}</span>}
             {m.citations.length > 0 && <span>· Cites {m.citations.length} record{m.citations.length > 1 ? "s" : ""}</span>}
           </div>
         )}
