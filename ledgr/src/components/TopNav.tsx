@@ -38,7 +38,7 @@ const SHOW = { 1: "flex", 2: "hidden xl:flex", 3: "hidden 2xl:flex" } as const;
 const IN_MORE = { 1: "hidden", 2: "flex xl:hidden", 3: "flex 2xl:hidden" } as const;
 const MORE: { item: NavItem; className: string }[] = [
   ...[...LEFT, ...RIGHT].filter((e) => e.tier > 1).map((e) => ({ item: e.item, className: IN_MORE[e.tier] })),
-  ...[find("/weekly-review"), find("/performance-score"), find("/account-history"), find("/verses")].map((item) => ({ item, className: "flex" })),
+  ...[find("/weekly-review"), find("/performance-score"), find("/account-history"), find("/verses"), find("/plus")].map((item) => ({ item, className: "flex" })),
 ];
 
 export function TopNav() {
