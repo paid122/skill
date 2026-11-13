@@ -151,7 +151,14 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
   const fg = onMedia ? "#FFFFFF" : theme.fg;
   const sub = onMedia ? "rgba(255,255,255,0.62)" : theme.sub;
   const good = (m.r ?? m.net ?? 0) >= 0;
-  const big = opts.amounts ? fmtMoney(m.net, opts.currency, { sign: true }) : fmtR(m.r);
+  // Points moved per unit, in the trade's favour (+) or against it (−). Used when there's no R
+  // (no stop recorded) and the dollar amount is hidden, so the card never shows a bare dash.
+  const points = m.avgEntry !== null && m.avgExit !== null ? (m.avgExit - m.avgEntry) * (t.direction === "short" ? -1 : 1) : null;
+  const fmtPts = (p: number) => `${p >= 0 ? "+" : "−"}${fmtNum(Math.abs(p), Math.abs(p) < 1 ? 4 : 2)} pts`;
+  const big = opts.amounts ? fmtMoney(m.net, opts.currency, { sign: true })
+    : m.r !== null ? fmtR(m.r)
+    : points !== null ? fmtPts(points)
+    : "—";
   const date = parseISODate(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
   const noun = t.market === "Futures" ? "contract" : t.market === "Stocks" ? "share" : t.market === "Forex" || t.market === "Commodities" || t.market === "Indices" ? "lot" : "unit";
   const size = m.entryQty ? `${fmtNum(m.entryQty, m.entryQty % 1 ? 2 : 0)} ${noun}${m.entryQty === 1 ? "" : "s"}` : "—";
@@ -170,7 +177,7 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
           </div>
           <div>
             <p className="font-extrabold leading-none tracking-[-0.04em]" style={{ fontSize: bigSize, color: onMedia ? fg : good ? theme.pos : theme.neg, textShadow: onMedia ? "0 8px 40px rgba(0,0,0,0.45)" : undefined }}>{big}</p>
-            {opts.amounts && m.r !== null && <p className="mt-2 font-mono text-[18px]" style={{ color: sub }}>{fmtR(m.r)}</p>}
+            {opts.amounts && (m.r !== null || points !== null) && <p className="mt-2 font-mono text-[18px]" style={{ color: sub }}>{m.r !== null ? fmtR(m.r) : fmtPts(points!)}</p>}
           </div>
           <dl className="grid w-fit grid-cols-[110px_auto] gap-y-3 text-[22px]">
             <dt style={{ color: sub }}>Entry</dt><dd className="font-semibold">{fmtPrice(m.avgEntry)}</dd>
@@ -198,7 +205,7 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
       </div>
       {(!chart || !matches) && (
         <p className="absolute bottom-12 right-12 text-right text-[13px] font-medium" style={{ color: sub }}>
-          {chart ? "Fills differ from this price feed" : "Simulated record · line joins fills"}
+          {chart ? "Fills differ from this price feed" : "Line joins your recorded fills"}
         </p>
       )}
     </div>
