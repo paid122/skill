@@ -34,6 +34,18 @@ Ledgr works without accounts. To enable sign up, log in, Google sign-in, cloud s
 5. Optional: enable **Google** under Authentication → Providers.
 6. Reviews appear on the site only after you set their `status` to `approved` in the `reviews` table. Community and affiliate sign-ups are in `site_signups`.
 
+## Put it online (Vercel)
+
+1. vercel.com → Add New → Project → import this repository.
+2. Root Directory: `ledgr`. Framework: Next.js (detected automatically).
+3. Environment Variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (the publishable key).
+4. Settings → Environments → Production → Branch Tracking: the branch you want live.
+5. Supabase → Authentication → URL Configuration: set the Site URL to your live address and add
+   `https://<your-address>/auth/callback` to Redirect URLs (keep `http://localhost:3000/auth/callback`).
+6. Own domain: Vercel → Settings → Domains → add it, then repeat step 5 with the domain.
+
+Every push to the tracked branch redeploys the site automatically.
+
 ## Public website
 
 `/` (landing with a 3D hero), `/features`, `/pricing`, `/reviews`, `/community`, `/affiliates`, `/privacy`, `/terms`, `/login`, `/signup`, `/forgot-password`. The app itself starts at `/dashboard`.
