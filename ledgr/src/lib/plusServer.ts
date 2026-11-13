@@ -1,7 +1,8 @@
 /** Server only: LEDGR+ talks to MatrixX's app routes with the app secret plus the customer's own MatrixX key. */
 import { MATRIXX_API } from "./matrixxConnect";
 
-export const appSecret = () => process.env.MATRIXX_APP_SECRET ?? "";
+/** The same clean-up as MatrixX: spaces, line breaks or quote marks pasted around the value are not part of it. */
+export const appSecret = () => (process.env.MATRIXX_APP_SECRET ?? "").trim().replace(/^["']+|["']+$/g, "").trim();
 
 /** The customer's MatrixX key from the request (their browser keeps it after Sign in with MatrixX). */
 export const customerKey = (req: Request) => {
