@@ -1,5 +1,5 @@
 "use client";
-import { ArrowUp, Eye, MessageSquare, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
+import { ArrowUp, Eye, MessageSquare, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PageIntro, ScopeControls } from "@/components/blocks";
@@ -118,7 +118,7 @@ export default function AIPage() {
 
         <Card pad={false} className="flex min-h-[620px] flex-col">
           <div className="flex flex-wrap items-center gap-2 border-b border-line-soft px-4 py-3 text-xs">
-            {live === null ? <Badge>Checking…</Badge> : mxReady ? <Badge tone="accent"><Sparkles size={11} /> MatrixX connected</Badge> : <Badge tone="muted">Not connected · offline analysis</Badge>}
+            {live === null ? <Badge>Checking…</Badge> : mxReady ? <Badge tone="accent"><MatrixXLogo size={13} /> MatrixX connected</Badge> : <Badge tone="muted">Not connected · offline analysis</Badge>}
             <span className="text-muted">{mxReady ? `MatrixX answers here, using ${current.length} records in the selected scope as summary rows.` : "Sign in with MatrixX to get MatrixX answers in this chat."}</span>
             <button type="button" onClick={() => setShowContext(true)} className="ml-auto inline-flex items-center gap-1 text-text-2 hover:text-text"><Eye size={13} /> What is shared</button>
           </div>
@@ -130,7 +130,7 @@ export default function AIPage() {
           ) : (
             <div className="flex flex-col gap-2 border-b border-line-soft bg-card-2/40 px-4 py-3 text-xs">
               <div className="flex flex-wrap items-center gap-3">
-                <a href="/api/matrixx/connect" className="inline-flex h-9 items-center gap-2 rounded-[10px] bg-text px-4 text-[13px] font-semibold text-bg hover:opacity-90"><span className="grid h-5 w-5 place-items-center rounded bg-bg text-[10px] font-bold text-text">M</span> Sign in with MatrixX</a>
+                <a href="/api/matrixx/connect" className="inline-flex h-9 items-center gap-2 rounded-[10px] bg-text px-4 text-[13px] font-semibold text-bg hover:opacity-90"><MatrixXLogo size={20} /> Sign in with MatrixX</a>
                 <span className="text-muted">Free MatrixX account works. Your questions use your own MatrixX plan.</span>
               </div>
               <details className="group">
@@ -148,7 +148,7 @@ export default function AIPage() {
           <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-6 scroll-thin sm:px-8" style={{ maxHeight: "62vh" }} aria-live="polite">
             {!active?.messages.length && !pending ? (
               <div className="mx-auto flex max-w-xl flex-col items-center gap-5 py-10 text-center">
-                <span className="text-text"><LogoMark size={36} /></span>
+                <span className="text-text">{mxReady ? <MatrixXLogo size={40} /> : <LogoMark size={36} />}</span>
                 <div>
                   <p className="text-[15px] font-medium">Ask about your records</p>
                   <p className="mt-1 text-[13px] text-muted">Trade reviews, weekly summaries, setup and emotion patterns. Answers cite the trades they draw on.</p>
@@ -197,7 +197,7 @@ function Message({ m, byNumber }: { m: AIMessage; byNumber: Map<number, string> 
   if (m.role === "user") return <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-card-2 px-4 py-2.5 text-[14px] text-text">{m.content}</div>;
   return (
     <div className="flex gap-3">
-      <span className="mt-0.5 shrink-0 text-text">{m.by === "matrixx" ? <span aria-label="MatrixX" className="grid h-[22px] w-[22px] place-items-center rounded-md bg-text text-[11px] font-bold text-bg">M</span> : <LogoMark size={22} />}</span>
+      <span className="mt-0.5 shrink-0 text-text">{m.by === "matrixx" ? <MatrixXLogo size={22} /> : <LogoMark size={22} />}</span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-col gap-3 text-[14px] leading-relaxed text-text">{renderMarkdown(m.content, byNumber)}</div>
         {(m.mode || m.citations.length > 0) && (
@@ -248,4 +248,10 @@ function renderMarkdown(text: string, byNumber: Map<number, string>): ReactNode[
   }
   flushPara(); flushList();
   return out;
+}
+
+/** The MatrixX app icon (from MatrixX's own assets). */
+function MatrixXLogo({ size }: { size: number }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/matrixx-logo.png" alt="MatrixX" width={size} height={size} className="inline-block shrink-0" style={{ width: size, height: size, borderRadius: Math.round(size * 0.24) }} />;
 }
