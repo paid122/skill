@@ -1,5 +1,5 @@
 "use client";
-import { CandlestickChart, Download, Film, ImagePlus, Pin, PinOff, Plus, Trash2, Trophy, X } from "lucide-react";
+import { Download, Film, ImagePlus, Pin, PinOff, Plus, Trash2, Trophy, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BlobImage } from "@/components/BlobImage";
@@ -7,15 +7,15 @@ import { PageIntro } from "@/components/blocks";
 import { FitWidth } from "@/components/FitWidth";
 import { PosterCard } from "@/components/PosterCard";
 import { CARD_THEMES, ShareSurface, themeColors } from "@/components/ShareCard";
-import { Badge, Button, Card, EmptyState, Field, Input, Modal, SectionTitle, Segmented, Select, Textarea, Toggle, useFeedback } from "@/components/ui";
-import { guessSource, pickWindow, PROVIDERS, type Bar, type CandleProvider } from "@/lib/candles";
+import { Badge, Button, Card, EmptyState, Field, Input, Modal, SectionTitle, Segmented, Textarea, Toggle, useFeedback } from "@/components/ui";
+import { guessSource, pickWindow, type Bar, type TradeChart } from "@/lib/candles";
 import { PageVerse } from "@/components/VerseCard";
 import { patchTrade } from "@/lib/actions";
 import type { EnrichedTrade } from "@/lib/calc";
 import { exportPng } from "@/lib/exporter";
 import { exportCardVideo, MAX_EXPORT_SECONDS, recordingFormat } from "@/lib/videoExport";
 import { useEnriched } from "@/lib/hooks";
-import { deleteBlob, putBlob, useLedgr, validateUpload } from "@/lib/store";
+import { deleteBlob, getState, putBlob, useLedgr, validateUpload } from "@/lib/store";
 import { cx, fmtDate, fmtMoney, fmtR, uid } from "@/lib/util";
 
 interface Privacy { amounts: boolean; account: boolean; image: boolean; reflection: boolean }
@@ -89,7 +89,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const account = useLedgr((s) => s.accounts.find((a) => a.id === t.accountId) ?? null);
   const displayName = useLedgr((s) => s.settings.displayName);
   const [desc, setDesc] = useState(t.showcase?.description ?? "");
-  const [privacy, setPrivacy] = useState<Privacy>({ amounts: false, account: false, image: true, reflection: true });
+  const [privacy, setPrivacy] = useState<Privacy>({ amounts: true, account: false, image: true, reflection: true });
   const [handle, setHandle] = useState(displayName);
   const [busy, setBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -104,6 +104,34 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const image = t.attachments.find((a) => a.role === "after") ?? t.attachments[0];
   const setShowcase = (p: Partial<NonNullable<typeof t.showcase>>) => patchTrade(t.id, { showcase: { ...sc, ...p } });
 
+  // Real price chart, loaded automatically once per trade and saved with it (no button).
+  const [chartState, setChartState] = useState<"idle" | "loading" | "none">("idle");
+  const tried = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    setChartState("idle");
+    if (layout !== "poster" || sc.chart?.bars.length || tried.current.has(t.id)) return;
+    const win = pickWindow(t.executions.map((e) => e.time));
+    if (!win || !t.symbol) return;
+    tried.current.add(t.id);
+    const { provider, dataSymbol } = guessSource(t);
+    const q = new URLSearchParams({ provider, symbol: dataSymbol, interval: win.interval, from: String(win.from), to: String(win.to) });
+    let live = true;
+    setChartState("loading");
+    fetch(`/api/candles?${q}`)
+      .then((r) => r.json())
+      .then((j: { bars?: Bar[]; interval?: TradeChart["interval"] }) => {
+        if (!live) return;
+        if (!j.bars?.length) return setChartState("none");
+        const cur = getState().trades.find((x) => x.id === t.id)?.showcase;
+        if (!cur) return;
+        patchTrade(t.id, { showcase: { ...cur, chart: { provider, dataSymbol, interval: j.interval ?? win.interval, bars: j.bars, fetchedAt: new Date().toISOString() } } });
+        setChartState("idle");
+      })
+      .catch(() => { if (live) setChartState("none"); });
+    return () => { live = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t.id, layout, sc.chart?.bars.length]);
+
   const upload = async (file: File | undefined) => {
     if (!file) return;
     const problem = validateUpload(file, ["image", "video"]);
@@ -115,20 +143,6 @@ function Editor({ x }: { x: EnrichedTrade }) {
     setShowcase({ layout: "poster", media: { blobId, kind: file.type.startsWith("video/") ? "video" : "image", dim: media?.dim ?? 0.45, blur: media?.blur ?? 0 } });
     if (fileRef.current) fileRef.current.value = "";
   };
-  const iconRef = useRef<HTMLInputElement>(null);
-  const uploadIcon = async (file: File | undefined) => {
-    if (!file) return;
-    const problem = validateUpload(file, ["image"]);
-    if (problem) { setUploadError(problem); return; }
-    if (file.size > 2 * 1024 * 1024) { setUploadError("Icon must be under 2 MB."); return; }
-    setUploadError(null);
-    const blobId = uid("blob");
-    await putBlob(blobId, file);
-    if (sc.icon) await deleteBlob(sc.icon).catch(() => undefined);
-    setShowcase({ icon: blobId });
-    if (iconRef.current) iconRef.current.value = "";
-  };
-  const removeIcon = async () => { if (sc.icon) await deleteBlob(sc.icon).catch(() => undefined); setShowcase({ icon: null }); };
   const removeMedia = async () => { if (media) await deleteBlob(media.blobId).catch(() => undefined); setShowcase({ media: null }); };
 
   // Video export: same length as the uploaded clip (capped at MAX_EXPORT_SECONDS).
@@ -244,16 +258,8 @@ function Editor({ x }: { x: EnrichedTrade }) {
               {uploadError && <p className="mt-2 text-xs text-neg">{uploadError}</p>}
             </Field>
           )}
-          {layout === "poster" && (
-            <Field label="Market icon" hint={sc.icon ? "Your uploaded icon." : "The symbol's logo when one is available (company, index owner, coin or flags), otherwise a drawn badge. Upload your own square image to replace it."}>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" icon={<ImagePlus size={14} />} onClick={() => iconRef.current?.click()}>{sc.icon ? "Replace icon" : "Upload icon"}</Button>
-                {sc.icon && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeIcon}>Use default</Button>}
-                <input ref={iconRef} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => uploadIcon(e.target.files?.[0])} aria-label="Upload market icon" />
-              </div>
-            </Field>
-          )}
-          {layout === "poster" && <ChartSource key={t.id} x={x} onSave={(chart) => setShowcase({ chart })} />}
+          {layout === "poster" && chartState === "loading" && <p className="text-xs text-muted">Loading the price chart…</p>}
+          {layout === "poster" && chartState === "none" && <p className="text-xs text-muted">Price history isn't available for this trade, so the card shows the line between your entry and exit.</p>}
           {layout === "poster" && media && (
             <div className="grid grid-cols-2 gap-4">
               <label className="text-xs text-text-2">Darkness<input type="range" min={0.1} max={0.85} step={0.05} value={media.dim} onChange={(e) => setShowcase({ media: { ...media, dim: Number(e.target.value) } })} className="mt-2 w-full accent-[var(--accent)]" /></label>
@@ -302,62 +308,5 @@ function Editor({ x }: { x: EnrichedTrade }) {
         </div>
       </Card>
     </div>
-  );
-}
-
-type ProviderStatus = Record<CandleProvider, { configured: boolean }>;
-
-/** Load real candles for the trade from a market-data provider and save them on the card. */
-function ChartSource({ x, onSave }: { x: EnrichedTrade; onSave: (chart: NonNullable<NonNullable<EnrichedTrade["trade"]["showcase"]>["chart"]> | null) => void }) {
-  const t = x.trade;
-  const saved = t.showcase?.chart ?? null;
-  const guess = useMemo(() => guessSource(t), [t]);
-  const [provider, setProvider] = useState<CandleProvider>(saved?.provider ?? guess.provider);
-  const [symbol, setSymbol] = useState(saved?.dataSymbol ?? guess.dataSymbol);
-  const [status, setStatus] = useState<ProviderStatus | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let live = true;
-    fetch("/api/candles").then((r) => r.json()).then((j) => live && setStatus(j.providers)).catch(() => undefined);
-    return () => { live = false; };
-  }, []);
-  const win = pickWindow(t.executions.map((e) => e.time));
-  const needsKey = status && !status[provider].configured ? PROVIDERS[provider].env : null;
-
-  const load = async () => {
-    if (!win) return;
-    setLoading(true); setError(null);
-    try {
-      const q = new URLSearchParams({ provider, symbol: symbol.trim(), interval: win.interval, from: String(win.from), to: String(win.to) });
-      const r = await fetch(`/api/candles?${q}`);
-      const j = (await r.json()) as { bars?: Bar[]; interval?: typeof win.interval; error?: string };
-      if (!r.ok || !j.bars) throw new Error(j.error || "Could not load candles.");
-      onSave({ provider, dataSymbol: symbol.trim(), interval: j.interval ?? win.interval, bars: j.bars, fetchedAt: new Date().toISOString() });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load candles.");
-    }
-    setLoading(false);
-  };
-
-  return (
-    <Field label="Price chart" hint={saved ? `Showing ${saved.bars.length} × ${saved.interval} prices from ${PROVIDERS[saved.provider].name}, saved with the trade.` : "The real price line around your entry and exit. Without it the card shows a line joining your fills."}>
-      <div className="grid gap-2">
-        <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-2">
-          <Select aria-label="Data source" value={provider} onChange={(e) => { const p = e.target.value as CandleProvider; setProvider(p); if (p === guess.provider) setSymbol(guess.dataSymbol); setError(null); }}>
-            {(Object.keys(PROVIDERS) as CandleProvider[]).map((p) => <option key={p} value={p}>{PROVIDERS[p].name}{status && !status[p].configured ? " · key needed" : ""}</option>)}
-          </Select>
-          <Input aria-label="Data symbol" value={symbol} maxLength={32} onChange={(e) => setSymbol(e.target.value)} placeholder="Symbol" />
-        </div>
-        <p className="text-xs text-muted">{PROVIDERS[provider].covers}{provider === "databento" ? " · NQ.v.0 = most-traded contract, or a contract like NQZ6" : provider === "yahoo" ? " · e.g. MNQ=F, EURUSD=X, AAPL, ^NDX" : ""}</p>
-        {needsKey && <p className="text-xs text-text-2">Needs an API key from {PROVIDERS[provider].site}: add <code className="font-mono">{needsKey}=…</code> to <code className="font-mono">.env.local</code>, then restart Ledgr. The key stays on your computer&apos;s server, never in the browser.</p>}
-        {!win && <p className="text-xs text-muted">Add execution times to this trade to load a chart.</p>}
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" icon={<CandlestickChart size={14} />} onClick={load} disabled={loading || !win || !symbol.trim() || !!needsKey}>{loading ? "Loading…" : saved ? "Reload chart" : "Load price chart"}</Button>
-          {saved && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={() => onSave(null)}>Remove chart</Button>}
-        </div>
-        {error && <p className="text-xs text-neg" role="alert">{error}</p>}
-      </div>
-    </Field>
   );
 }
