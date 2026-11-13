@@ -34,6 +34,7 @@ export default function SignupPage() {
       <div>
         <h1 className="text-[28px] font-semibold tracking-tight">Check your inbox</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-ink/60">We sent a confirmation link to <span className="text-ink">{email}</span>. Open it on this device to finish creating your account.</p>
+        <p className="mt-3 rounded-xl border border-ink/15 bg-ink/[0.03] px-3.5 py-2.5 text-[13.5px] text-ink/70">Not there after a minute? Check your <span className="font-medium text-ink">Spam</span> or <span className="font-medium text-ink">Promotions</span> folder, and mark it “Not spam” so future emails arrive normally.</p>
         <Link href="/login" className="mt-8 inline-block text-[14px] text-ink underline-offset-4 hover:underline">Back to log in</Link>
       </div>
     );
