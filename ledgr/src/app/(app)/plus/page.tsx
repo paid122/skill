@@ -105,9 +105,13 @@ function Plus() {
               <p className="text-[14px] font-medium text-text">2. Pay ${PLUS.priceUsd} by card</p>
               <p className="text-[13px] text-muted">Secure card payment with Ziina. {PLUS.matrixxPlan} starts as soon as it&apos;s paid.</p>
             </div>
-            <Button variant="primary" onClick={buy} disabled={!key || busy || available !== true}>
-              {available === false ? "Coming soon" : busy ? "Opening…" : active ? `Add ${PLUS.days} days · $${PLUS.priceUsd}` : `Get ${PLUS.name} · $${PLUS.priceUsd}`}
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button variant="primary" onClick={buy} disabled={!key || busy || available !== true}>
+                {available === false ? "Coming soon" : available === null ? "Checking…" : busy ? "Opening…" : active ? `Add ${PLUS.days} days · $${PLUS.priceUsd}` : `Get ${PLUS.name} · $${PLUS.priceUsd}`}
+              </Button>
+              {!key && available !== false && <span className="text-[11.5px] text-muted">Connect MatrixX in step 1 first.</span>}
+              {available === false && <span className="text-[11.5px] text-muted">LEDGR+ isn&apos;t switched on for this site yet.</span>}
+            </div>
           </li>
         </ol>
         {note && <p className={`mt-5 text-[13px] ${note.tone === "pos" ? "text-pos" : note.tone === "neg" ? "text-neg" : "text-muted"}`}>{note.text}</p>}
