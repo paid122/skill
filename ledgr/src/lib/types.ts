@@ -102,6 +102,8 @@ export interface Trade {
     icon?: ID | null;
   } | null;
   isDraft: boolean;
+  /** MatrixX's coach review of this trade, when the user asked for one. */
+  aiReview?: AIReview | null;
   /** Fingerprint of the CSV row(s) this trade was imported from; used to skip re-imports. */
   importKey?: string;
   activity: ActivityEntry[];
@@ -175,8 +177,13 @@ export interface WeeklyJournal {
   recurringMistakes: string;
   lessons: string;
   nextObjectives: string[];
+  /** MatrixX's weekly review, when the user asked for one. */
+  aiReview?: AIReview | null;
   updatedAt: ISODateTime;
 }
+
+/** A saved MatrixX review (of a trade or a week). */
+export interface AIReview { text: string; at: ISODateTime }
 
 export type NoteBlockType = "heading" | "paragraph" | "bullet" | "numbered" | "check" | "quote" | "divider" | "image" | "link";
 export interface NoteBlock {

@@ -4,13 +4,15 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { BlobImage } from "@/components/BlobImage";
+import { MatrixxReview } from "@/components/matrixx";
 import { ResultBadge, Stat } from "@/components/blocks";
 import { Badge, Button, ButtonLink, Card, EmptyState, IconButton, Modal, SectionTitle, useFeedback } from "@/components/ui";
 import { deleteTrade, duplicateTrade, patchTrade } from "@/lib/actions";
+import { TRADE_REVIEW_PROMPT, buildTradeContext } from "@/lib/ai";
 import { chronological } from "@/lib/calc";
 import { useEnriched } from "@/lib/hooks";
 import { openEditor } from "@/lib/overlays";
-import { useLedgr } from "@/lib/store";
+import { getState, useLedgr } from "@/lib/store";
 import { cx, fmtDate, fmtMoney, fmtNum, fmtR, fmtTime } from "@/lib/util";
 
 export default function TradeDetailPage() {
@@ -24,6 +26,7 @@ export default function TradeDetailPage() {
   const account = useLedgr((s) => s.accounts.find((a) => a.id === x?.trade.accountId) ?? null);
   const strategy = useLedgr((s) => s.strategies.find((a) => a.id === x?.trade.strategyId) ?? null);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const byNumber = useMemo(() => new Map(all.map((y) => [y.trade.number, y.trade.id])), [all]);
 
   if (!x) {
     return <EmptyState title="Trade not found" body="It may have been deleted." action={<ButtonLink href="/journal">Back to journal</ButtonLink>} />;
@@ -159,6 +162,16 @@ export default function TradeDetailPage() {
         </div>
 
         <div className="flex flex-col gap-6">
+          <MatrixxReview
+            title="MatrixX trade review"
+            sub="Your coach's take on this trade"
+            prompt={TRADE_REVIEW_PROMPT(t.number)}
+            context={() => buildTradeContext(getState(), x, all).text}
+            saved={t.aiReview}
+            onSave={(r) => patchTrade(t.id, { aiReview: r }, "MatrixX reviewed this trade")}
+            byNumber={byNumber}
+            disabledReason={t.isDraft ? "Finish this draft first, then MatrixX can review it." : undefined}
+          />
           <Card>
             <SectionTitle title="Setup" />
             <p className="text-[15px] text-text">{t.setup || <span className="text-muted">No setup recorded</span>}</p>

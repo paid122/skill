@@ -148,3 +148,43 @@ How to answer:
 - You may summarise execution, highlight strengths the user documented, point out possible improvements drawn from their own notes and rules, explain statistics, and suggest reflection questions.
 - Do not give financial advice. Do not recommend instruments, entries, exits, position sizes or strategies, and do not predict markets or results. If asked, explain that you can only help the user review their own records and process.
 - Be warm, direct and concise. Use short paragraphs and lists. Use the user's currency formatting from the context.`;
+
+/** Everything about one trade, for MatrixX's trade review: its fills, plan, notes, feelings and reflection,
+ * with the strategy's written rules and the usual journal summary for comparison. */
+export function buildTradeContext(state: LedgrState, x: EnrichedTrade, all: EnrichedTrade[]): AIContext {
+  const base = buildContext(state, all);
+  const t = x.trade;
+  const cur = state.accounts.find((a) => a.id === t.accountId)?.currency ?? state.settings.baseCurrency;
+  const st = state.strategies.find((s) => s.id === t.strategyId) ?? state.strategies.find((s) => s.name.toLowerCase() === t.setup.trim().toLowerCase());
+  const num = (n: number | null | undefined) => (n === null || n === undefined ? "-" : String(n));
+  const lines = [
+    `TRADE UNDER REVIEW [T#${t.number}]`,
+    `${t.symbol} ${t.direction ?? "-"} | ${t.market ?? "-"} | ${t.date} (${dayOfWeek(t.date)}) | session ${t.session ?? "-"} | account ${state.accounts.find((a) => a.id === t.accountId)?.name ?? "-"}`,
+    `Status ${x.m.status}${x.m.result ? "/" + x.m.result : ""} | net ${x.m.net === null ? "-" : fmtMoney(x.m.net, cur)} | R ${fmtR(x.m.r)} | risk ${x.m.risk === null ? "-" : fmtMoney(x.m.risk, cur)} | fees ${fmtMoney(x.m.totalFees, cur)} | duration ${x.m.durationMinutes === null ? "-" : `${Math.round(x.m.durationMinutes)} min`}`,
+    `Plan: stop ${num(t.stopPrice)} | target ${num(t.targetPrice)} | planned risk ${t.plannedRisk === null ? "-" : fmtMoney(t.plannedRisk, cur)} | avg entry ${num(x.m.avgEntry)} | avg exit ${num(x.m.avgExit)}`,
+    "Executions: " + (t.executions.length ? t.executions.map((e) => `${e.kind} ${e.quantity} @ ${e.price} ${e.time.slice(11, 16)}${e.estimated ? " (time estimated)" : ""}${e.note ? ` "${clip(e.note, 80)}"` : ""}`).join("; ") : "none recorded"),
+    `Setup: ${t.setup || "-"} | grade ${t.grade ?? "-"} | confluences: ${t.confluences.join(", ") || "-"} | tags: ${t.tags.join(", ") || "-"}`,
+    `Entry notes: ${clip(t.entryNotes, 600)}`,
+    `Exit notes: ${clip(t.exitNotes, 600)}`,
+    `Emotions: ${t.emotions.join(", ") || "-"} | note: ${clip(t.emotionNote, 300)} | mistakes: ${t.mistakes.join(", ") || "-"}`,
+    `Reflection — went well: ${clip(t.reflection.wentWell, 300)} | improve: ${clip(t.reflection.improve, 300)} | followed plan: ${t.reflection.followedPlan ?? "-"} | learned: ${clip(t.reflection.learned, 300)}`,
+    `Screenshots attached: ${t.attachments.length}`,
+  ];
+  if (st) lines.push(`STRATEGY FOR THIS TRADE — ${st.name}: entry: ${clip(st.entryCriteria, 500)} | exit: ${clip(st.exitCriteria, 400)} | invalidation: ${clip(st.invalidation, 300)} | confluences: ${st.confluences.join(", ") || "-"}`);
+  return { ...base, text: `${lines.join("\n")}\n\n${base.text}` };
+}
+
+export const TRADE_REVIEW_PROMPT = (n: number) => `Review trade [T#${n}] for me as my trading coach. Use only what I recorded. Structure:
+**What went well** — 2-3 points from my execution, plan and notes.
+**What to improve** — 2-3 points, comparing the trade with my written strategy rules and plan (stop, target, risk) where they exist.
+**Mindset** — what my emotions, mistakes and notes say.
+**One lesson** — a single sentence to remember.
+If something important is missing (no stop, no notes, no reflection), say what I should record next time. Keep it short.`;
+
+export const WEEK_REVIEW_PROMPT = (from: string, to: string) => `Write my weekly trading review for ${from} to ${to} as my trading coach. The JOURNAL CONTEXT holds only this week's trades and journal entries. Structure:
+**The week in numbers** — one or two sentences.
+**What worked** — 2-3 points, citing trades.
+**What kept going wrong** — repeated mistakes, rule breaks or emotions, citing trades.
+**Patterns** — setups, sessions or days that stood out (say when the sample is small).
+**Focus for next week** — 2-3 concrete process goals drawn from my own notes and rules.
+Keep it short and specific. If the week has no closed trades, say so and suggest what to record.`;

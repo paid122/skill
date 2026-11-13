@@ -3,6 +3,9 @@ export const MATRIXX_API = () => (process.env.MATRIXX_API_URL || "https://getmat
 /** The MatrixX website (its /connect page): MATRIXX_SITE_URL, else the API address without /v1. */
 export const MATRIXX_SITE = () => (process.env.MATRIXX_SITE_URL || MATRIXX_API().replace(/\/v1$/, "")).replace(/\/$/, "");
 export const STATE_COOKIE = "ledgr_mx_state";
+export const BACK_COOKIE = "ledgr_mx_back";
+/** Where to return after connecting: a page of this site only (default: the AI page). */
+export const safeBack = (p: string | null | undefined) => (p && /^\/[A-Za-z0-9/_\-.%]*$/.test(p) && !p.startsWith("//") ? p : "/ai");
 /** The same address in both steps: this site's own callback. */
 export const callbackUrl = (req: Request) => `${new URL(req.url).origin}/api/matrixx/callback`;
 

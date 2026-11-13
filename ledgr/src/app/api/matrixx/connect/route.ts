@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { MATRIXX_SITE, STATE_COOKIE, callbackUrl } from "@/lib/matrixxConnect";
+import { BACK_COOKIE, MATRIXX_SITE, STATE_COOKIE, callbackUrl, safeBack } from "@/lib/matrixxConnect";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +8,9 @@ export async function GET(req: Request) {
   const state = randomBytes(18).toString("base64url");
   const url = `${MATRIXX_SITE()}/connect?${new URLSearchParams({ redirect_uri: callbackUrl(req), state })}`;
   const secure = new URL(req.url).protocol === "https:" ? "; Secure" : "";
-  return new Response(null, {
-    status: 302,
-    headers: { Location: url, "Set-Cookie": `${STATE_COOKIE}=${state}; Path=/api/matrixx; Max-Age=600; HttpOnly; SameSite=Lax${secure}`, "Cache-Control": "no-store" },
-  });
+  const back = safeBack(new URL(req.url).searchParams.get("back"));
+  const headers = new Headers({ Location: url, "Cache-Control": "no-store" });
+  headers.append("Set-Cookie", `${STATE_COOKIE}=${state}; Path=/api/matrixx; Max-Age=600; HttpOnly; SameSite=Lax${secure}`);
+  headers.append("Set-Cookie", `${BACK_COOKIE}=${encodeURIComponent(back)}; Path=/api/matrixx; Max-Age=600; HttpOnly; SameSite=Lax${secure}`);
+  return new Response(null, { status: 302, headers });
 }

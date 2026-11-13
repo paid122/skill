@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { PageIntro, Stat } from "@/components/blocks";
 import { PnlBars } from "@/components/charts";
+import { MatrixxReview } from "@/components/matrixx";
 import { Button, Card, Field, IconButton, Input, SectionTitle, Textarea } from "@/components/ui";
 import { PageVerse } from "@/components/VerseCard";
 import { blankWeekly, saveWeekly } from "@/lib/actions";
+import { WEEK_REVIEW_PROMPT, buildContext } from "@/lib/ai";
 import { computeStats, dailyPnl, disciplineScore, frequency } from "@/lib/calc";
 import { useEnriched } from "@/lib/hooks";
-import { useLedgr } from "@/lib/store";
+import { getState, useLedgr } from "@/lib/store";
 import type { WeeklyJournal } from "@/lib/types";
 import { addDays, dayOfWeek, fmtDate, fmtMoney, fmtNum, fmtPct, fmtR, today, weekStart } from "@/lib/util";
 
@@ -51,6 +53,12 @@ function Weekly() {
   }, [w]);
   const upd = (p: Partial<WeeklyJournal>) => { dirty.current = true; setW((x) => ({ ...x, ...p })); };
   const go = (d: string) => router.replace(`/weekly-review?week=${d}`);
+  const byNumber = useMemo(() => new Map(all.map((y) => [y.trade.number, y.trade.id])), [all]);
+  // MatrixX sees only this week: its trades and its daily journal entries
+  const weekContext = () => {
+    const st = getState();
+    return buildContext({ ...st, dailyJournals: st.dailyJournals.filter((d) => d.date >= ws && d.date <= we) }, week).text;
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -73,6 +81,17 @@ function Weekly() {
         <Stat label="Discipline" value={disc.score === null ? "—" : fmtNum(disc.score, 0)} />
         <Stat label="Journal days" value={`${journalDays} / ${new Set(week.map((x) => x.trade.date)).size || 0}`} hint="Post-session entries / trading days" />
       </Card>
+
+      <MatrixxReview
+        title="MatrixX weekly review"
+        sub="What worked, what kept going wrong, and your focus for next week"
+        prompt={WEEK_REVIEW_PROMPT(fmtDate(ws), fmtDate(we))}
+        context={weekContext}
+        saved={w.aiReview}
+        onSave={(r) => upd({ aiReview: r })}
+        byNumber={byNumber}
+        disabledReason={week.length ? undefined : "No trades this week yet. Log some, then MatrixX can review the week."}
+      />
 
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Card>

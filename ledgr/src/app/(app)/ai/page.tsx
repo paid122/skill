@@ -1,7 +1,7 @@
 "use client";
 import { ArrowUp, Eye, MessageSquare, Plus, ShieldCheck, Trash2 } from "lucide-react";
-import Link from "next/link";
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { MatrixXLogo, renderMarkdown } from "@/components/matrixx";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageIntro, ScopeControls } from "@/components/blocks";
 import { LogoMark } from "@/components/Logo";
 import { Badge, Button, Card, IconButton, Input, Modal, useFeedback } from "@/components/ui";
@@ -209,49 +209,4 @@ function Message({ m, byNumber }: { m: AIMessage; byNumber: Map<number, string> 
       </div>
     </div>
   );
-}
-
-/** Minimal, safe markdown: headings, paragraphs, lists, **bold**, _italic_, and validated record citations. */
-function renderMarkdown(text: string, byNumber: Map<number, string>): ReactNode[] {
-  const inline = (s: string, key: string): ReactNode[] => {
-    const parts = s.split(/(\*\*[^*]+\*\*|\b_[^_]+_\b|\[T#\d+\]|\[D:\d{4}-\d{2}-\d{2}\])/g);
-    return parts.map((p, i) => {
-      const k = `${key}-${i}`;
-      if (/^\*\*[^*]+\*\*$/.test(p)) return <strong key={k} className="font-semibold">{inline(p.slice(2, -2), k)}</strong>;
-      if (/^_[^_]+_$/.test(p)) return <em key={k} className="text-text-2">{inline(p.slice(1, -1), k)}</em>;
-      const t = p.match(/^\[T#(\d+)\]$/);
-      if (t) { const id = byNumber.get(Number(t[1])); return id ? <Link key={k} href={`/journal/${id}`} className="num rounded border border-accent/40 px-1 text-[12px] text-accent hover:bg-accent/10">#{t[1]}</Link> : <span key={k} className="text-muted line-through" title="Not found in your journal">#{t[1]}</span>; }
-      const d = p.match(/^\[D:(\d{4}-\d{2}-\d{2})\]$/);
-      if (d) return <Link key={k} href={`/daily-journal?date=${d[1]}`} className="rounded border border-accent/40 px-1 text-[12px] text-accent hover:bg-accent/10">{fmtDate(d[1], "day")}</Link>;
-      return <Fragment key={k}>{p}</Fragment>;
-    });
-  };
-  const LIST = /^\s*([-*•]|\d+\.)\s+/;
-  const out: ReactNode[] = [];
-  const lines = text.trim().split("\n");
-  let para: string[] = [];
-  let list: { ordered: boolean; items: string[] } | null = null;
-  const flushPara = () => { if (para.length) { const k = `p${out.length}`; out.push(<p key={k} className="whitespace-pre-wrap">{para.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{inline(l, `${k}-${j}`)}</Fragment>)}</p>); para = []; } };
-  const flushList = () => { if (list) { const k = `l${out.length}`; const items = list.items.map((l, j) => <li key={j}>{inline(l, `${k}-${j}`)}</li>); out.push(list.ordered ? <ol key={k} className="ml-5 list-decimal space-y-1">{items}</ol> : <ul key={k} className="ml-5 list-disc space-y-1 marker:text-muted">{items}</ul>); list = null; } };
-  for (const line of lines) {
-    if (!line.trim()) { flushPara(); flushList(); continue; }
-    if (LIST.test(line)) {
-      flushPara();
-      const ordered = /^\s*\d+\./.test(line);
-      if (!list || list.ordered !== ordered) { flushList(); list = { ordered, items: [] }; }
-      list.items.push(line.replace(LIST, ""));
-      continue;
-    }
-    flushList();
-    if (/^#{1,4}\s/.test(line)) { flushPara(); out.push(<p key={`h${out.length}`} className="font-semibold">{inline(line.replace(/^#{1,4}\s/, ""), `h${out.length}`)}</p>); continue; }
-    para.push(line);
-  }
-  flushPara(); flushList();
-  return out;
-}
-
-/** The MatrixX app icon (from MatrixX's own assets). */
-function MatrixXLogo({ size }: { size: number }) {
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src="/matrixx-logo.png" alt="MatrixX" width={size} height={size} className="inline-block shrink-0" style={{ width: size, height: size, borderRadius: Math.round(size * 0.24) }} />;
 }
