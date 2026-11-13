@@ -1,38 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM_PROMPT } from "@/lib/ai";
+import { clientIp, limited, validateAI, type AIBody } from "@/lib/aiServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MODEL = "claude-opus-5-5";
-const MAX_MESSAGES = 40;
-const MAX_MESSAGE_CHARS = 8000;
-const MAX_CONTEXT_CHARS = 120_000;
-
-// Simple per-client rate limit (per server instance).
-const hits = new Map<string, number[]>();
-function limited(key: string) {
-  const now = Date.now();
-  const recent = (hits.get(key) ?? []).filter((t) => now - t < 60_000);
-  recent.push(now);
-  hits.set(key, recent);
-  return recent.length > 20;
-}
-
-interface Body { messages: { role: "user" | "assistant"; content: string }[]; context: string }
-
-function validate(b: unknown): Body | string {
-  if (!b || typeof b !== "object") return "Invalid request body.";
-  const { messages, context } = b as Partial<Body>;
-  if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) return "Invalid conversation.";
-  for (const m of messages) {
-    if (!m || (m.role !== "user" && m.role !== "assistant") || typeof m.content !== "string" || !m.content.trim() || m.content.length > MAX_MESSAGE_CHARS) return "Invalid message.";
-  }
-  if (messages[0].role !== "user" || messages[messages.length - 1].role !== "user") return "Conversation must start and end with a user message.";
-  if (typeof context !== "string" || context.length > MAX_CONTEXT_CHARS) return "Journal context is missing or too large.";
-  return { messages, context };
-}
-
 export async function GET() {
   return Response.json({ configured: Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN) });
 }
@@ -41,11 +14,10 @@ export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
     return Response.json({ error: "not_configured" }, { status: 503 });
   }
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  if (limited(ip)) return Response.json({ error: "Too many requests. Wait a minute and try again." }, { status: 429 });
+  if (limited(clientIp(req))) return Response.json({ error: "Too many requests. Wait a minute and try again." }, { status: 429 });
 
-  let parsed: Body | string;
-  try { parsed = validate(await req.json()); } catch { parsed = "Invalid JSON."; }
+  let parsed: AIBody | string;
+  try { parsed = validateAI(await req.json()); } catch { parsed = "Invalid JSON."; }
   if (typeof parsed === "string") return Response.json({ error: parsed }, { status: 400 });
 
   const client = new Anthropic();
