@@ -28,7 +28,15 @@ export default function AIPage() {
   // The user's own MatrixX key, kept in this browser only and sent with each MatrixX question.
   const [mxKey, setMxKeyState] = useState("");
   const [keyDraft, setKeyDraft] = useState("");
-  useEffect(() => { try { setMxKeyState(localStorage.getItem("ledgr.matrixxKey") ?? ""); } catch { /* ignore */ } }, []);
+  useEffect(() => {
+    try { setMxKeyState(localStorage.getItem("ledgr.matrixxKey") ?? ""); } catch { /* ignore */ }
+    const mxBack = new URLSearchParams(window.location.search).get("mx");
+    if (mxBack) {
+      toast(mxBack === "connected" ? "MatrixX connected" : mxBack === "cancelled" ? "MatrixX wasn't connected" : "Couldn't connect MatrixX. Try again.");
+      window.history.replaceState(null, "", "/ai");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const setMxKey = (k: string) => { setMxKeyState(k); try { if (k) localStorage.setItem("ledgr.matrixxKey", k); else localStorage.removeItem("ledgr.matrixxKey"); } catch { /* ignore */ } };
   const [showContext, setShowContext] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
@@ -111,22 +119,30 @@ export default function AIPage() {
         <Card pad={false} className="flex min-h-[620px] flex-col">
           <div className="flex flex-wrap items-center gap-2 border-b border-line-soft px-4 py-3 text-xs">
             {live === null ? <Badge>Checking…</Badge> : mxReady ? <Badge tone="accent"><Sparkles size={11} /> MatrixX connected</Badge> : <Badge tone="muted">Not connected · offline analysis</Badge>}
-            <span className="text-muted">{mxReady ? `MatrixX answers here, using ${current.length} records in the selected scope as summary rows.` : "Connect your MatrixX key to get MatrixX answers in this chat."}</span>
+            <span className="text-muted">{mxReady ? `MatrixX answers here, using ${current.length} records in the selected scope as summary rows.` : "Sign in with MatrixX to get MatrixX answers in this chat."}</span>
             <button type="button" onClick={() => setShowContext(true)} className="ml-auto inline-flex items-center gap-1 text-text-2 hover:text-text"><Eye size={13} /> What is shared</button>
           </div>
           {mxConfigured === false && (mxKey ? (
             <div className="flex items-center gap-2 border-b border-line-soft px-4 py-2 text-xs text-muted">
-              <span>Connected with your MatrixX key (saved in this browser only).</span>
+              <span>Connected to MatrixX (saved in this browser only).</span>
               <button type="button" onClick={() => { setMxKey(""); toast("MatrixX disconnected"); }} className="ml-auto text-text-2 hover:text-text">Disconnect</button>
             </div>
           ) : (
-            <form className="flex flex-wrap items-center gap-2 border-b border-line-soft bg-card-2/40 px-4 py-3 text-xs" onSubmit={(e) => { e.preventDefault(); const k = keyDraft.trim(); if (!/^mxk_\S{8,}$/.test(k)) { toast("A MatrixX API key starts with mxk_ — make one on getmatrixx.com/developers."); return; } setMxKey(k); setKeyDraft(""); toast("MatrixX connected"); }}>
-              <span className="font-medium text-text">Connect MatrixX</span>
-              <Input type="password" autoComplete="off" aria-label="MatrixX key" placeholder="Paste your MatrixX API key (mxk_…)" value={keyDraft} onChange={(e) => setKeyDraft(e.target.value)} className="h-8 min-w-[200px] flex-1 text-xs" />
-              <Button type="submit" size="sm">Connect</Button>
-              <a href="https://getmatrixx.com/developers" target="_blank" rel="noreferrer" className="text-text-2 underline-offset-2 hover:underline">Get a free key on getmatrixx.com/developers</a>
-              <span className="basis-full text-[11px] text-muted">The key stays in this browser and is only passed through to MatrixX with your questions.</span>
-            </form>
+            <div className="flex flex-col gap-2 border-b border-line-soft bg-card-2/40 px-4 py-3 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                <a href="/api/matrixx/connect" className="inline-flex h-9 items-center gap-2 rounded-[10px] bg-text px-4 text-[13px] font-semibold text-bg hover:opacity-90"><span className="grid h-5 w-5 place-items-center rounded bg-bg text-[10px] font-bold text-text">M</span> Sign in with MatrixX</a>
+                <span className="text-muted">Free MatrixX account works. Your questions use your own MatrixX plan.</span>
+              </div>
+              <details className="group">
+                <summary className="cursor-pointer list-none text-text-2 hover:text-text">Use an API key instead</summary>
+                <form className="mt-2 flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); const k = keyDraft.trim(); if (!/^mxk_\S{8,}$/.test(k)) { toast("A MatrixX API key starts with mxk_ — make one on getmatrixx.com/developers."); return; } setMxKey(k); setKeyDraft(""); toast("MatrixX connected"); }}>
+                  <Input type="password" autoComplete="off" aria-label="MatrixX key" placeholder="Paste your MatrixX API key (mxk_…)" value={keyDraft} onChange={(e) => setKeyDraft(e.target.value)} className="h-8 min-w-[200px] flex-1 text-xs" />
+                  <Button type="submit" size="sm">Connect</Button>
+                  <a href="https://getmatrixx.com/developers" target="_blank" rel="noreferrer" className="text-text-2 underline-offset-2 hover:underline">Get a key</a>
+                </form>
+              </details>
+              <span className="text-[11px] text-muted">Your MatrixX connection stays in this browser and is only passed through to MatrixX with your questions.</span>
+            </div>
           ))}
 
           <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-6 scroll-thin sm:px-8" style={{ maxHeight: "62vh" }} aria-live="polite">
