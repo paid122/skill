@@ -39,7 +39,7 @@ Ledgr works without accounts. To enable sign up, log in, Google sign-in, cloud s
 1. vercel.com → Add New → Project → import this repository.
 2. Root Directory: `ledgr`. Framework: Next.js (detected automatically).
 3. Environment Variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (the publishable key).
-4. Settings → Environments → Production → Branch Tracking: the branch you want live.
+4. Settings → Environments → Production → Branch Tracking: the branch you want live (currently `claude/quirky-ritchie-x47yc2`).
 5. Supabase → Authentication → URL Configuration: set the Site URL to your live address and add
    `https://<your-address>/auth/callback` to Redirect URLs (keep `http://localhost:3000/auth/callback`).
 6. Own domain: Vercel → Settings → Domains → add it, then repeat step 5 with the domain.
