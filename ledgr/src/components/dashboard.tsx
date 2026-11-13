@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer } from "recharts";
 import { chronological, closedOnly, type EnrichedTrade, type Stats } from "@/lib/calc";
-import { cx, fmtDate, fmtMoney, fmtNum, parseISODate, toISODate, today } from "@/lib/util";
+import { cx, fmtDate, fmtMoney, fmtNum, fmtPct, parseISODate, toISODate, today } from "@/lib/util";
 import { useThemeColors } from "./charts";
 import { Card, Tooltip } from "./ui";
 
@@ -119,7 +119,7 @@ export function StatRow({ stats, list, daily, currency }: { stats: Stats; list: 
       </StatCard>
       <StatCard label="Trade win %" tip="Wins ÷ (wins + losses). Break-even trades are shown in grey and excluded." href="/analytics"
         side={<WinGauge w={stats.wins} b={stats.breakeven} l={stats.losses} />}>
-        <p className="num text-[26px] font-semibold leading-none">{stats.winRate === null ? "—" : `${fmtNum(stats.winRate * 100, 2)}%`}</p>
+        <p className="num text-[26px] font-semibold leading-none">{fmtPct(stats.winRate)}</p>
       </StatCard>
       <StatCard label="Avg win / loss" tip="Average winning trade ÷ average losing trade." href="/analytics">
         <p className="num text-[26px] font-semibold leading-none">{ratio === null ? "—" : fmtNum(ratio, 2)}</p>
