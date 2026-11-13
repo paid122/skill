@@ -8,7 +8,7 @@ export const INCLUDED = [
   "Daily journal, weekly review and checklist",
   "Study room with video notes and boards",
   "Verse library with favourites and reflections",
-  "Ledgr AI (offline analysis; model analysis where enabled)",
+  "MatrixX AI (offline analysis; MatrixX answers when connected)",
   "Reports and P&L cards — PNG, PDF and video",
   "Cloud backup and sync with a free account",
   "Full data export at any time",

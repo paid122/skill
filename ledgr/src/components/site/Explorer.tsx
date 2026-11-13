@@ -10,7 +10,7 @@ const PARTS: { key: string; label: string; icon: LucideIcon; side: "l" | "r"; ti
   { key: "journal", label: "Journal", icon: NotebookPen, side: "l", title: "Journal", line: "Every trade, honestly recorded.", points: ["Multiple entries, partial exits and fees", "Drafts kept out of your statistics", "Search, filters and saved views"] },
   { key: "analytics", label: "Analytics", icon: ChartNoAxesCombined, side: "l", title: "Analytics", line: "Patterns, only when they're real.", points: ["Fourteen charts, fourteen pattern checks", "Sample sizes always shown", "What-if analysis on your own records"] },
   { key: "psychology", label: "Psychology", icon: Brain, side: "r", title: "Psychology", line: "Measure the process, not the result.", points: ["Emotion and mistake tracking", "Discipline score you can read line by line", "Never calculated from profit"] },
-  { key: "ai", label: "Ledgr AI", icon: Bot, side: "r", title: "Ledgr AI", line: "Ask about your own history.", points: ["Answers from your saved trades", "Every answer links the trades it used", "No predictions, no signals"] },
+  { key: "ai", label: "MatrixX AI", icon: Bot, side: "r", title: "MatrixX AI", line: "Ask about your own history.", points: ["Answers from your saved trades", "Every answer links the trades it used", "No predictions, no signals"] },
   { key: "reports", label: "Reports", icon: FileText, side: "r", title: "Reports", line: "Show your work, on your terms.", points: ["Weekly and monthly recaps", "PNG and PDF export", "Amounts hidden unless you include them"] },
 ];
 

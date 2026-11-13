@@ -8,7 +8,7 @@ export const SHOTS = [
   { key: "journal", label: "Journal", caption: "Every trade with its executions, setup, emotions and lessons. Drafts never pollute your statistics." },
   { key: "analytics", label: "Analytics", caption: "Fourteen charts and fourteen pattern checks, each built only from what you recorded." },
   { key: "psychology", label: "Psychology", caption: "A discipline score you can read line by line — process, never profit." },
-  { key: "ai", label: "Ledgr AI", caption: "Ask about your own history. Every answer links back to the trades it used." },
+  { key: "ai", label: "MatrixX AI", caption: "Ask about your own history. Every answer links back to the trades it used." },
   { key: "reports", label: "Reports", caption: "Clean recap cards and PDFs, with only the details you choose to share." },
 ] as const;
 

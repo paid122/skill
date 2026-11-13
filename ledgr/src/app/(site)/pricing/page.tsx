@@ -31,7 +31,7 @@ export default function PricingPage() {
           <Link href="/community" className="mt-8 inline-flex h-12 items-center justify-center rounded-full border border-ink/25 text-[15px] text-ink transition-colors hover:border-ink/60">Get updates</Link>
         </Reveal>
       </div>
-      <p className="mx-auto mt-10 max-w-xl text-center text-[13px] text-ink/40">Model-backed Ledgr AI requires the site owner to configure an AI provider; without it, Ledgr AI answers with offline analysis calculated from your records.</p>
+      <p className="mx-auto mt-10 max-w-xl text-center text-[13px] text-ink/40">MatrixX AI answers once MatrixX is connected; without it, it answers with offline analysis calculated from your records.</p>
       <section className="mx-auto mt-28 max-w-3xl">
         <Reveal><SectionHeading center title="Pricing questions" /></Reveal>
         <dl className="mt-12 divide-y divide-ink/10 border-y border-ink/10">
@@ -39,7 +39,7 @@ export default function PricingPage() {
             ["Is Ledgr really free?", "Yes. Every feature listed above is free. There's no trial period and no card to enter."],
             ["Will that change?", "If a paid plan is ever introduced, the features listed under Free stay free. Any change would be announced on this page first."],
             ["Do I need an account to use it?", "No. Ledgr works fully in your browser. A free account only adds cloud backup and sync across devices."],
-            ["What does model-backed Ledgr AI need?", "The site owner connects an AI provider. Without it, Ledgr AI still answers using offline analysis calculated from your records."],
+            ["What does MatrixX AI need?", "A connected MatrixX account. Without it, MatrixX AI still answers using offline analysis calculated from your records."],
           ].map(([q, a]) => (
             <div key={q} className="py-6"><dt className="text-[16px] font-medium">{q}</dt><dd className="mt-2 text-[15px] leading-relaxed text-ink/60">{a}</dd></div>
           ))}

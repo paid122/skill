@@ -181,7 +181,7 @@ async function check(name, fn) {
     await main().getByRole("tab", { name: /Favourites \(1\)/ }).waitFor();
   });
 
-  await check("Ledgr AI answers from journal records with valid citations", async () => {
+  await check("MatrixX AI answers from journal records with valid citations", async () => {
     await go("/ai");
     await main().getByRole("button", { name: "Review my most recent trade" }).click();
     await main().getByText(/Trade/).first().waitFor();

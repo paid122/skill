@@ -7,7 +7,7 @@ const QA = [
   ["Does Ledgr connect to my broker or place trades?", "No. Ledgr is a journal for simulated and historical records. It never connects to brokerage accounts, never executes trades and never gives financial advice."],
   ["Do I need an account?", "No. Ledgr works fully in your browser without one. An account adds cloud backup and lets you use the same journal on other devices."],
   ["How are my statistics calculated?", "From your closed trades only. Drafts and open positions are excluded and counted separately, and every formula — win rate, R, profit factor, drawdown — is shown in the app."],
-  ["What does Ledgr AI do with my data?", "It reads a summary of the records in the range you select and answers questions about your own history, citing the trades it used. You can view exactly what is shared before asking."],
+  ["What does MatrixX AI do with my data?", "It reads a summary of the records in the range you select and answers questions about your own history, citing the trades it used. You can view exactly what is shared before asking."],
   ["Why are there Bible verses?", "Ledgr is built around discipline, honesty and patience. Each page carries a short King James verse chosen for its purpose. They never react to your profit or loss."],
   ["Can I export my data?", "Yes — download a full backup (including images) any time, export trades to CSV, and export reports as PNG or PDF."],
 ];

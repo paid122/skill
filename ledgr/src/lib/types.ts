@@ -279,7 +279,7 @@ export interface AIMessage {
   content: string;
   citations: string[]; // trade ids / journal dates referenced
   mode?: "model" | "offline";
-  /** Which assistant wrote it; absent means Ledgr AI. */
+  /** Which assistant wrote it; absent means MatrixX AI. */
   by?: "matrixx";
   at: ISODateTime;
 }

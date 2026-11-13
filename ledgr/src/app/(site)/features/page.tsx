@@ -3,7 +3,7 @@ import { CtaLink } from "@/components/site/CtaLink";
 import { DisciplineDemo, VerseDemo } from "@/components/site/Demos";
 import { Reveal, SectionHeading, TiltCard } from "@/components/site/SiteChrome";
 
-export const metadata: Metadata = { title: "Features", description: "Every part of Ledgr: trade journal, analytics, psychology, strategies, accounts, study room, verse library, Ledgr AI and reports." };
+export const metadata: Metadata = { title: "Features", description: "Every part of Ledgr: trade journal, analytics, psychology, strategies, accounts, study room, verse library, MatrixX AI and reports." };
 
 const GROUPS: { title: string; sub: string; shot?: string; items: [string, string][] }[] = [
   { title: "Trade journal", sub: "Record what happened — completely and honestly.", shot: "journal", items: [
@@ -36,7 +36,7 @@ const GROUPS: { title: string; sub: string; shot?: string; items: [string, strin
   { title: "Learning & intelligence", sub: "Keep studying. Ask better questions.", shot: "ai", items: [
     ["Study room", "Folders, a block editor, YouTube notes with clickable timestamps, and draggable study boards."],
     ["Verse library", "King James verses by topic, favourites with your own reflections, and history."],
-    ["Ledgr AI", "Reviews your recorded history with linked citations. No predictions, no advice."],
+    ["MatrixX AI", "Reviews your recorded history with linked citations. No predictions, no advice."],
     ["Reports", "Six report types in five themes, exported as PNG or PDF."],
   ]},
 ];

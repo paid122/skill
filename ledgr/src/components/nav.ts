@@ -40,7 +40,7 @@ export const NAV: NavGroup[] = [
       { href: "/verses", label: "Verse Library", icon: BookOpen },
     ],
   },
-  { label: "Intelligence", items: [{ href: "/ai", label: "Ledgr AI", icon: Sparkles }] },
+  { label: "Intelligence", items: [{ href: "/ai", label: "MatrixX AI", icon: Sparkles }] },
   {
     label: "Personal",
     items: [

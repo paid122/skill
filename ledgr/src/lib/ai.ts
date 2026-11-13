@@ -1,5 +1,5 @@
 /**
- * Ledgr AI — context assembly and offline analyst.
+ * MatrixX AI — context assembly and offline analyst.
  *
  * Only data the user has saved is sent, and only what is needed: aggregate statistics
  * plus compact rows for recent trades and journal entries. Citations use stable tokens
@@ -136,7 +136,7 @@ export function offlineAnswer(question: string, state: LedgrState, list: Enriche
   return [`**Summary of ${s.closed} closed trades**`, `Net ${fmtMoney(s.net, cur)} · win rate ${fmtPct(s.winRate)} · profit factor ${s.profitFactor?.toFixed(2) ?? "n/a"} · average ${fmtR(s.avgR)} · maximum drawdown ${fmtMoney(s.maxDD.amount, cur)}.`, `Most recent trade: [T#${closed[closed.length - 1]?.trade.number ?? "-"}].`, "Ask about a specific trade (e.g. “review trade #12”), this week, setups, emotions, sessions or mistakes."].join("\n\n");
 }
 
-export const SYSTEM_PROMPT = `You are Ledgr AI, a historical journal analyst and learning assistant inside Ledgr, a private trading journal.
+export const SYSTEM_PROMPT = `You are MatrixX, a historical journal analyst and learning assistant inside Ledgr, a private trading journal.
 
 You work only from the JOURNAL CONTEXT supplied with each conversation. It contains the user's own saved, simulated or historical records.
 

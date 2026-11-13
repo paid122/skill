@@ -32,10 +32,10 @@ const FEATURES = [
   { icon: Brain, title: "Psychology, measured kindly", body: "Emotion and mistake tracking with a transparent discipline score." },
   { icon: SquareLibrary, title: "Strategies you can hold yourself to", body: "Written entry, exit and invalidation rules, linked to the trades that used them." },
   { icon: Wallet, title: "Accounts kept apart", body: "Simulated, backtest and evaluation-practice accounts with their own balances and rules." },
-  { icon: Sparkles, title: "An analyst for your own history", body: "Ledgr AI answers from your records and cites the trades it used." },
+  { icon: Sparkles, title: "An analyst for your own history", body: "MatrixX AI answers from your records and cites the trades it used." },
 ];
 
-const MARQUEE = ["Trade journal", "Daily reflection", "Weekly review", "Equity curve", "Discipline score", "Strategy library", "Study room", "Verse library", "Shareable cards", "What-if analysis", "Account desk", "Ledgr AI"];
+const MARQUEE = ["Trade journal", "Daily reflection", "Weekly review", "Equity curve", "Discipline score", "Strategy library", "Study room", "Verse library", "Shareable cards", "What-if analysis", "Account desk", "MatrixX AI"];
 
 export default function LandingPage() {
   return (

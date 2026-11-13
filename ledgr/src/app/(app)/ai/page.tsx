@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PageIntro, ScopeControls } from "@/components/blocks";
 import { LogoMark } from "@/components/Logo";
-import { Badge, Button, Card, IconButton, Input, Modal, Segmented, useFeedback } from "@/components/ui";
+import { Badge, Button, Card, IconButton, Input, Modal, useFeedback } from "@/components/ui";
 import { PageVerse } from "@/components/VerseCard";
 import { appendMessage, deleteConversation, newConversation } from "@/lib/actions";
 import { buildContext, extractCitations, offlineAnswer, SUGGESTED } from "@/lib/ai";
@@ -23,11 +23,7 @@ export default function AIPage() {
   const [input, setInput] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [configured, setConfigured] = useState<boolean | null>(null);
-  // Which assistant answers: Ledgr AI (built in) or MatrixX (your own assistant, via its API or its web app).
-  const [engine, setEngineState] = useState<"ledgr" | "matrixx">("ledgr");
-  useEffect(() => { try { if (localStorage.getItem("ledgr.aiEngine") === "matrixx") setEngineState("matrixx"); } catch { /* ignore */ } }, []);
-  const setEngine = (e: "ledgr" | "matrixx") => { setEngineState(e); try { localStorage.setItem("ledgr.aiEngine", e); } catch { /* ignore */ } };
+  // MatrixX is the assistant: server key (MATRIXX_API_KEY) or the user's own key from "Connect MatrixX".
   const [mxConfigured, setMxConfigured] = useState<boolean | null>(null);
   // The user's own MatrixX key, kept in this browser only and sent with each MatrixX question.
   const [mxKey, setMxKeyState] = useState("");
@@ -39,18 +35,15 @@ export default function AIPage() {
   const ctx = useMemo(() => buildContext(getState(), current), [current]);
   const byNumber = useMemo(() => new Map(trades.map((t) => [t.number, t.id])), [trades]);
 
-  useEffect(() => { fetch("/api/ai").then((r) => r.json()).then((d) => setConfigured(!!d.configured)).catch(() => setConfigured(false)); }, []);
   useEffect(() => { fetch("/api/matrixx").then((r) => r.json()).then((d) => setMxConfigured(!!d.configured)).catch(() => setMxConfigured(false)); }, []);
-  const mx = engine === "matrixx";
   const mxReady = mxConfigured === null ? null : mxConfigured || !!mxKey;
-  const live = mx ? mxReady : configured;
+  const live = mxReady;
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }); }, [active?.messages.length, pending]);
 
   const send = async (text: string) => {
     const q = text.trim();
     if (!q || busy) return;
-    if (mx && !mxReady) { toast("Connect MatrixX first — paste your MatrixX key above the chat."); return; }
-    const endpoint = mx ? "/api/matrixx" : "/api/ai";
+    const endpoint = "/api/matrixx";
     const conv = active ?? newConversation();
     setActiveId(conv.id);
     const userMsg: AIMessage = { id: uid("m"), role: "user", content: q.slice(0, 4000), citations: [], at: nowISO() };
@@ -62,7 +55,7 @@ export default function AIPage() {
     if (live) {
       try {
         const history = [...(conv.messages ?? []), userMsg].slice(-20).map((m) => ({ role: m.role, content: m.content }));
-        const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", ...(mx && mxKey ? { "x-matrixx-key": mxKey } : {}) }, body: JSON.stringify({ messages: history, context: ctx.text }) });
+        const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", ...(mxKey ? { "x-matrixx-key": mxKey } : {}) }, body: JSON.stringify({ messages: history, context: ctx.text }) });
         if (res.ok && res.body) {
           mode = "model";
           const reader = res.body.getReader();
@@ -84,19 +77,19 @@ export default function AIPage() {
           answer = `${offlineAnswer(q, getState(), current)}${err.error && err.error !== "not_configured" ? `\n\n_${err.error}_` : ""}`;
         }
       } catch {
-        answer = `${offlineAnswer(q, getState(), current)}\n\n_Could not reach ${mx ? "MatrixX" : "Ledgr AI"}; this answer was produced by offline analysis._`;
+        answer = `${offlineAnswer(q, getState(), current)}\n\n_Could not reach MatrixX; this answer was produced by offline analysis._`;
       }
     } else {
-      answer = offlineAnswer(q, getState(), current);
+      answer = `${offlineAnswer(q, getState(), current)}\n\n_Connect MatrixX above the chat to get MatrixX answers. This one was produced by offline analysis._`;
     }
-    appendMessage(conv.id, { id: uid("m"), role: "assistant", content: answer, citations: extractCitations(answer, ctx), mode, ...(mx && mode === "model" ? { by: "matrixx" as const } : {}), at: nowISO() });
+    appendMessage(conv.id, { id: uid("m"), role: "assistant", content: answer, citations: extractCitations(answer, ctx), mode, ...(mode === "model" ? { by: "matrixx" as const } : {}), at: nowISO() });
     setPending(null);
     setBusy(false);
   };
 
   return (
     <div className="flex flex-col gap-6">
-      <PageIntro title="Ledgr AI" sub="A historical analyst for your own journal. It reviews what you have recorded — it never gives financial advice or tells you what to trade." actions={<ScopeControls />} />
+      <PageIntro title="MatrixX AI" sub="A historical analyst for your own journal. It reviews what you have recorded — it never gives financial advice or tells you what to trade." actions={<ScopeControls />} />
       <PageVerse page="ai" compact />
 
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -117,12 +110,11 @@ export default function AIPage() {
 
         <Card pad={false} className="flex min-h-[620px] flex-col">
           <div className="flex flex-wrap items-center gap-2 border-b border-line-soft px-4 py-3 text-xs">
-            <Segmented size="sm" ariaLabel="Assistant" value={engine} onChange={setEngine} options={[{ value: "ledgr", label: "Ledgr AI" }, { value: "matrixx", label: "MatrixX" }]} />
-            {live === null ? <Badge>Checking…</Badge> : mx ? (mxReady ? <Badge tone="accent"><Sparkles size={11} /> MatrixX connected</Badge> : <Badge tone="muted">Not connected</Badge>) : configured ? <Badge tone="accent"><Sparkles size={11} /> Model analysis</Badge> : <Badge tone="muted">Offline analysis</Badge>}
-            <span className="text-muted">{mx ? (mxReady ? `MatrixX answers here, using ${current.length} records in the selected scope as summary rows.` : "Connect your MatrixX key to get MatrixX answers in this chat.") : configured === false ? "No AI key is configured on this server; answers are calculated locally from your records." : `Shares ${current.length} records in the selected scope, as summary rows.`}</span>
+            {live === null ? <Badge>Checking…</Badge> : mxReady ? <Badge tone="accent"><Sparkles size={11} /> MatrixX connected</Badge> : <Badge tone="muted">Not connected · offline analysis</Badge>}
+            <span className="text-muted">{mxReady ? `MatrixX answers here, using ${current.length} records in the selected scope as summary rows.` : "Connect your MatrixX key to get MatrixX answers in this chat."}</span>
             <button type="button" onClick={() => setShowContext(true)} className="ml-auto inline-flex items-center gap-1 text-text-2 hover:text-text"><Eye size={13} /> What is shared</button>
           </div>
-          {mx && mxConfigured === false && (mxKey ? (
+          {mxConfigured === false && (mxKey ? (
             <div className="flex items-center gap-2 border-b border-line-soft px-4 py-2 text-xs text-muted">
               <span>Connected with your MatrixX key (saved in this browser only).</span>
               <button type="button" onClick={() => { setMxKey(""); toast("MatrixX disconnected"); }} className="ml-auto text-text-2 hover:text-text">Disconnect</button>
@@ -163,13 +155,13 @@ export default function AIPage() {
               <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} rows={1} maxLength={4000} placeholder="Ask about a trade (#12), this week, setups, emotions or mistakes…" className="max-h-40 min-h-[36px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted" aria-label="Message" />
               <Button type="submit" variant="accent" size="sm" disabled={busy || !input.trim()} aria-label="Send" className="h-9 w-9 px-0"><ArrowUp size={16} /></Button>
             </div>
-            <p className="mt-2 px-1 text-[11px] text-muted">{mx ? "MatrixX is your own assistant (getmatrixx.com). " : ""}Ledgr AI analyses past records only. It can be wrong; check figures against your journal. Not financial advice.</p>
+            <p className="mt-2 px-1 text-[11px] text-muted">MatrixX AI analyses past records only. It can be wrong; check figures against your journal. Not financial advice.</p>
           </form>
         </Card>
       </div>
 
-      <Modal open={showContext} onClose={() => setShowContext(false)} size="lg" title="What Ledgr AI can see" description="Only the records in your selected account and date range, summarised as below. Images and attachments are never sent.">
-        <div className="mb-3 flex items-center gap-2 text-xs text-text-2"><ShieldCheck size={14} className="text-pos" /> {configured ? "Sent to the model provider over HTTPS when you ask a question. Not stored by Ledgr's server." : "Used locally in your browser only."}</div>
+      <Modal open={showContext} onClose={() => setShowContext(false)} size="lg" title="What MatrixX AI can see" description="Only the records in your selected account and date range, summarised as below. Images and attachments are never sent.">
+        <div className="mb-3 flex items-center gap-2 text-xs text-text-2"><ShieldCheck size={14} className="text-pos" /> {live ? "Sent to MatrixX (getmatrixx.com) over HTTPS when you ask a question. Not stored by Ledgr's server." : "Used locally in your browser only, until MatrixX is connected."}</div>
         <pre className="max-h-[55vh] overflow-auto whitespace-pre-wrap rounded-lg bg-bg-2 p-3 font-mono text-[11px] leading-relaxed text-text-2 scroll-thin">{ctx.text}</pre>
       </Modal>
     </div>

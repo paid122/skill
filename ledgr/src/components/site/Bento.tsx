@@ -69,7 +69,7 @@ export function Bento() {
       </Reveal>
       <Reveal delay={120} className="md:col-span-4">
         <div className={card + " h-full"}>
-          <p className="flex items-center gap-2 text-[13px] text-ink/50"><Sparkles size={14} /> Ledgr AI</p>
+          <p className="flex items-center gap-2 text-[13px] text-ink/50"><Sparkles size={14} /> MatrixX AI</p>
           <div className="mt-5 flex flex-col gap-3">
             <p className="ml-auto max-w-[80%] rounded-2xl rounded-br-md bg-ink px-4 py-2.5 text-[14px] text-paper">What did my most recent lesson say?</p>
             <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-ink/10 bg-paper-2 px-4 py-3 text-[14px] leading-relaxed text-ink/80">

@@ -1,4 +1,4 @@
-/** Shared request checks for the AI routes (Ledgr AI and MatrixX). Server only. */
+/** Shared request checks for the MatrixX AI route. Server only. */
 const MAX_MESSAGES = 40;
 const MAX_MESSAGE_CHARS = 8000;
 const MAX_CONTEXT_CHARS = 120_000;

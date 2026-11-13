@@ -9,7 +9,7 @@ export default function TermsPage() {
       <h2>What Ledgr is</h2>
       <p className="mt-3">Ledgr is a journaling and analysis tool for simulated and historical trading records. It does not connect to brokerage accounts, execute trades, hold funds, or verify any account status.</p>
       <h2>Not financial advice</h2>
-      <p className="mt-3">Nothing in Ledgr — including statistics, pattern insights, what-if analysis and Ledgr AI — is financial, investment or trading advice, or a prediction of future results. Decisions you make are your own.</p>
+      <p className="mt-3">Nothing in Ledgr — including statistics, pattern insights, what-if analysis and MatrixX AI — is financial, investment or trading advice, or a prediction of future results. Decisions you make are your own.</p>
       <h2>Your content</h2>
       <p className="mt-3">You own what you record. You're responsible for keeping backups of data stored only in your browser.</p>
       <h2>Acceptable use</h2>

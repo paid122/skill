@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  *   MATRIXX_API_KEY   – optional server key; otherwise each user connects their own key (x-matrixx-key)
  *   MATRIXX_API_URL   – default https://getmatrixx.com/v1
  *   MATRIXX_MODEL     – optional; otherwise the first model MatrixX lists
- * Answers stream back as plain text, the same format as /api/ai.
+ * Answers stream back as plain text, with errors as "[[ledgr-error]] …".
  */
 const KEY = () => process.env.MATRIXX_API_KEY ?? "";
 /** The server key, or the user's own key from the "Connect MatrixX" box (sent per request, never stored or logged). */
