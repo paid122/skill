@@ -122,12 +122,21 @@ function find(headers: string[], field: FillField | TradeField, taken: Set<numbe
     const i = hs.findIndex((h, j) => !taken.has(j) && h === norm(alias));
     if (i >= 0) return i;
   }
+  // Loose pass: the header must start or end with the alias (e.g. "Commission Fee", "Total Fees"),
+  // and identifier columns ("lastCommandId", "Order ID") never count as values.
+  const isId = (h: string) => /id$|ids$|number$|^id/.test(h);
   for (const alias of ALIASES[field]) {
-    const i = hs.findIndex((h, j) => !taken.has(j) && h.includes(norm(alias)) && norm(alias).length >= 4);
+    const a = norm(alias);
+    if (a.length < 4) continue;
+    const i = hs.findIndex((h, j) => !taken.has(j) && !isId(h) && (h.startsWith(a) || h.endsWith(a)));
     if (i >= 0) return i;
   }
   return undefined;
 }
+
+/** Commission per fill above this is not a real fee (usually an ID column picked by mistake). */
+const MAX_FEE = 10_000;
+const feeOf = (raw: string | undefined) => { const f = Math.abs(parseNumber(raw) ?? 0); return f > MAX_FEE ? 0 : f; };
 
 /** buySell: the file has buy/sell price and time columns (Tradovate Performance); the earlier side is the entry. */
 export interface Detected { mode: Mode; format: string; mapping: Mapping; buySell: boolean }
@@ -247,7 +256,7 @@ export function buildTrades(rows: string[][], mode: Mode, m: Mapping, opts: { da
       } else direction = qty < 0 ? "short" : "long";
       let entryPrice = ep, exitPrice = xp, entryTime = et ?? xt!, exitTime = xt ?? et!;
       if (opts.buySell && direction === "short") { entryPrice = xp; exitPrice = ep; [entryTime, exitTime] = [exitTime, entryTime]; }
-      const fees = Math.abs(parseNumber(cell(r, "fees")) ?? 0);
+      const fees = feeOf(cell(r, "fees"));
       const q = Math.abs(qty);
       const t: Omit<ImportedTrade, "key"> = {
         symbol, market, direction, open: false, csvPnl: parseNumber(cell(r, "pnl")),
@@ -283,7 +292,7 @@ export function buildTrades(rows: string[][], mode: Mode, m: Mapping, opts: { da
     if (!time) return problems.push({ row: line, reason: "Unreadable date/time" });
     qty = Math.abs(qty);
     const { symbol, market } = cleanSymbol(symRaw);
-    fills.push({ line, symbol, market, side, qty, price, time, fees: Math.abs(parseNumber(cell(r, "fees")) ?? 0) });
+    fills.push({ line, symbol, market, side, qty, price, time, fees: feeOf(cell(r, "fees")) });
   });
   fills.sort((a, b) => a.time.localeCompare(b.time) || a.line - b.line);
 

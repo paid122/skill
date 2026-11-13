@@ -116,3 +116,19 @@ describe("generic fills", () => {
     expect(run(csv).trades[0].key).toBe(run(csv).trades[0].key);
   });
 });
+
+describe("full Tradovate Orders export (real column set)", () => {
+  const head = "orderId,Account,Order ID,B/S,Contract,Product,Product Description,avgPrice,filledQty,Fill Time,lastCommandId,Status,_priceFormat,_priceFormatType,_tickSize,spreadDefinitionId,Version ID,Timestamp,Date,Quantity,Text,Type,Limit Price,Stop Price,decimalLimit,decimalStop,Filled Qty,Avg Fill Price,decimalFillAvg";
+  const row = (id: number, side: string, price: string, qty: number, time: string) =>
+    `${id},DEMO123,${id},${side},MGCZ6,MGC,Micro Gold,${price},${qty},${time},1390444440${id},Filled,-1,0,0.1,,${id},${time},10/12/2026,${qty},,Market,,,,,${qty},${price},${price}`;
+  const csv = [head, row(1, " Buy", "4209.70", 2, "10/12/2026 09:31:05"), row(2, " Sell", "4209.60", 2, "10/12/2026 09:40:00")].join("\n");
+  it("never reads lastCommandId as commission", () => {
+    const [h, ...rows] = parseCsv(csv);
+    const d = detect(h);
+    expect(d.mapping.fees).toBeUndefined();
+    const r = buildTrades(rows, d.mode, d.mapping);
+    expect(r.trades).toHaveLength(1);
+    expect(r.trades[0].executions.every((e) => e.fees === 0)).toBe(true);
+    expect(r.trades[0].executions.map((e) => e.price)).toEqual([4209.7, 4209.6]);
+  });
+});
