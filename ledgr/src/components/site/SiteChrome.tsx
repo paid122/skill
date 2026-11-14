@@ -7,6 +7,7 @@ import { useSession } from "@/lib/supabase";
 import { cx } from "@/lib/util";
 import { LogoMark, Wordmark } from "../Logo";
 import { SiteThemeToggle } from "./SiteThemeToggle";
+import { smoothScrollToTop } from "@/lib/smoothScroll";
 
 const LINKS = [
   { href: "/features", label: "Features" },
@@ -77,7 +78,7 @@ export function SiteFooter() {
       </div>
       <div className="relative mx-auto flex max-w-[1200px] flex-col gap-3 border-t border-ink/10 px-5 py-6 text-[12px] leading-relaxed text-ink/40 sm:px-8 md:flex-row md:items-center md:justify-between">
         <p className="max-w-3xl">Ledgr is a journaling and analysis tool. It does not execute trades, connect to brokers, or provide financial advice. All statistics describe records you enter. Scripture quotations are from the King James Version (public domain).</p>
-        <a href="#content" className="shrink-0 text-ink/60 hover:text-ink">Back to top ↑</a>
+        <a href="#content" onClick={(e) => { e.preventDefault(); smoothScrollToTop(); }} className="group inline-flex shrink-0 items-center gap-1.5 text-ink/60 transition-colors hover:text-ink">Back to top <span aria-hidden className="inline-block transition-transform duration-300 group-hover:-translate-y-1">↑</span></a>
       </div>
     </footer>
   );
