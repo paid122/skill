@@ -82,8 +82,8 @@ export function Bento() {
       <Reveal delay={60} className="md:col-span-3">
         <div className={card + " h-full"}>
           <p className="flex items-center gap-2 text-[13px] text-ink/50"><BookOpen size={14} /> Verse on every page</p>
-          <blockquote className="verse-text mt-5 text-[22px] leading-snug text-ink">A man slow to wrath abounds in wisdom: but a man of impatient spirit is very foolish.</blockquote>
-          <p className="mt-4 text-[11.5px] font-semibold uppercase tracking-[0.18em] text-ink/50">Proverbs 14:29 · Septuagint · Psychology page</p>
+          <blockquote className="verse-text mt-5 text-[22px] leading-snug text-ink">He that is slow to wrath is of great understanding: but he that is hasty of spirit exalteth folly.</blockquote>
+          <p className="mt-4 text-[11.5px] font-semibold uppercase tracking-[0.18em] text-ink/50">Proverbs 14:29 · KJV · Psychology page</p>
         </div>
       </Reveal>
       <Reveal delay={120} className="md:col-span-3">

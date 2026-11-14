@@ -61,7 +61,7 @@ const AI: Item[] = [
 
 const LEARN: Item[] = [
   [GraduationCap, "Study room", "Folders, a block editor, YouTube notes with clickable timestamps, and study boards."],
-  [BookOpen, "Verse library", "Orthodox Bible verses by topic, favourites with your own reflections, and history."],
+  [BookOpen, "Verse library", "King James verses by topic, favourites with your own reflections, and history."],
   [FileText, "Reports", "Six report types in five themes."],
   [FileDown, "Export everything", "Reports as PNG or PDF, trades as CSV, and a full backup of your data any time."],
 ];
@@ -192,7 +192,7 @@ export default function FeaturesPage() {
           <Reveal delay={100} className="site-shadow rounded-[28px] border border-ink/10 bg-paper p-7 sm:p-9">
             <p className="text-[13px] font-medium uppercase tracking-[0.14em] text-ink/45">Scripture, chosen with care</p>
             <h3 className="mt-2 text-[24px] font-semibold tracking-[-0.02em]">The right verse for the moment.</h3>
-            <p className="mt-2 text-[14.5px] leading-relaxed text-ink/60">Each page has its own verse from the Orthodox Bible. On your dashboard and daily journal, LEDGR notices how your day is going and responds.</p>
+            <p className="mt-2 text-[14.5px] leading-relaxed text-ink/60">Each page has its own King James verse. On your dashboard and daily journal, LEDGR notices how your day is going and responds.</p>
             <div className="mt-7"><VerseDemo /></div>
           </Reveal>
         </div>

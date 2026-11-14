@@ -116,8 +116,8 @@ export default function LandingPage() {
       <section className="relative overflow-hidden border-y border-ink/10 px-5 py-32 sm:px-8">
         <div aria-hidden className="dot-grid dot-fade absolute inset-0 -z-10" />
         <Reveal className="mx-auto max-w-3xl text-center">
-          <blockquote className="verse-text text-[30px] leading-snug text-ink sm:text-[44px]">Disclose thy way to the Lord, and hope in him; and he shall bring [it] to pass.</blockquote>
-          <p className="mt-7 text-[12px] font-semibold uppercase tracking-[0.2em] text-ink/50">Psalm 36:5 · Septuagint</p>
+          <blockquote className="verse-text text-[30px] leading-snug text-ink sm:text-[44px]">Commit thy works unto the LORD, and thy thoughts shall be established.</blockquote>
+          <p className="mt-7 text-[12px] font-semibold uppercase tracking-[0.2em] text-ink/50">Proverbs 16:3 · KJV</p>
           <p className="mx-auto mt-8 max-w-lg text-[15px] leading-relaxed text-ink/55">Every page in Ledgr carries a verse chosen for the work it holds — honesty in the journal, wisdom in analytics, patience in psychology. Quietly, never preachy.</p>
         </Reveal>
       </section>

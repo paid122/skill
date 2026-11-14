@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { combineDiscipline, DISCIPLINE_LABELS, DISCIPLINE_WEIGHTS } from "@/lib/calc";
-import { selectVerse, verseSource } from "@/lib/verses";
+import { selectVerse } from "@/lib/verses";
 import { cx } from "@/lib/util";
 
 /** Interactive discipline score — uses the app's own weights and combining function. */
@@ -47,7 +47,7 @@ export function VerseDemo() {
       </div>
       <figure key={choice.verse.id} className="animate-fade mt-8 border-l-2 border-ink pl-5">
         <blockquote className="verse-text text-[24px] leading-snug text-ink sm:text-[28px]">{choice.verse.text}</blockquote>
-        <figcaption className="mt-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-ink/55">{choice.verse.reference} · {verseSource(choice.verse) === "WEB" ? "WEB" : "Septuagint"}</figcaption>
+        <figcaption className="mt-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-ink/55">{choice.verse.reference} · KJV</figcaption>
         <p className="mt-2 text-[13px] text-ink/50">{choice.reason}</p>
       </figure>
       <p className="mt-6 text-[12.5px] leading-relaxed text-ink/45">Verses respond to how you're working — finished entries, recorded emotions — and never to profit or loss.</p>

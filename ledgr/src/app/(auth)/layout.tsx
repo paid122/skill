@@ -11,8 +11,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="relative flex h-full flex-col justify-between p-12">
           <Link href="/" className="flex items-center gap-2.5 text-ink"><LogoMark size={28} /><Wordmark className="text-ink" /></Link>
           <figure className="max-w-md">
-            <blockquote className="verse-text text-[30px] leading-snug text-ink">False balances are an abomination before the Lord: but a just weight is acceptable unto him.</blockquote>
-            <figcaption className="mt-5 text-[12px] font-semibold uppercase tracking-[0.2em] text-ink/50">Proverbs 11:1 · Septuagint</figcaption>
+            <blockquote className="verse-text text-[30px] leading-snug text-ink">A false balance is abomination to the LORD: but a just weight is his delight.</blockquote>
+            <figcaption className="mt-5 text-[12px] font-semibold uppercase tracking-[0.2em] text-ink/50">Proverbs 11:1 · KJV</figcaption>
             <p className="mt-6 text-[14px] leading-relaxed text-ink/50">Keep an honest ledger. Accurate records are a form of integrity.</p>
           </figure>
           <p className="text-[12px] text-ink/35">For simulated and historical records only. No broker connection.</p>
