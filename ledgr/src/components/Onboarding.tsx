@@ -13,7 +13,7 @@ export function Onboarding() {
   const [name, setName] = useState("");
   const [acct, setAcct] = useState({ name: "Main simulation", type: "Personal simulation" as AccountType, balance: 10000 as number | null, currency: "USD" });
   const [error, setError] = useState<string | null>(null);
-  const verse = VERSE_BY_ID.get("PRO.16.3")!;
+  const verse = VERSE_BY_ID.get("PSA.36.5")!;
 
   const loadSample = async () => {
     const s = buildSampleState(getState());
@@ -40,7 +40,7 @@ export function Onboarding() {
             <p className="mt-3 text-[15px] leading-relaxed text-text-2">Ledgr is a private journal for your trading decisions. Track every lesson, measure every step, and review the habits behind the numbers.</p>
             <figure className="mt-8 border-l-2 border-accent/50 pl-4">
               <blockquote className="verse-text text-[17px] text-ivory">{verse.text}</blockquote>
-              <figcaption className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">{verse.reference} · KJV</figcaption>
+              <figcaption className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">{verse.reference} · Septuagint</figcaption>
             </figure>
             <Field label="What should Ledgr call you?" className="mt-10" htmlFor="ob-name">
               <Input id="ob-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your first name" maxLength={40} />

@@ -67,7 +67,7 @@ export function SiteFooter() {
           <Link href="/" className="flex items-center gap-2.5 text-ink"><LogoMark size={24} /><Wordmark className="text-ink" /></Link>
           <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-ink/50">Discipline over impulse. A private journal for trading decisions, built on simulated and historical records.</p>
           <p className="verse-text mt-6 max-w-xs text-[15px] leading-snug text-ink/70">“Let all things be done decently and in order.”</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/40">1 Corinthians 14:40 · KJV</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/40">1 Corinthians 14:40 · WEB</p>
         </div>
         <FooterCol title="Product" links={[["Features", "/features"], ["Pricing", "/pricing"], ["Install the app", "/#install"], ["Open the app", "/dashboard"]]} />
         <FooterCol title="People" links={[["Reviews", "/reviews"], ["Community", "/community"], ["Affiliates", "/affiliates"]]} />
@@ -77,7 +77,7 @@ export function SiteFooter() {
         <p className="translate-y-[16%] bg-gradient-to-b from-ink/[0.14] to-transparent bg-clip-text text-[23vw] font-semibold leading-[0.8] tracking-[-0.07em] text-transparent">LEDGR</p>
       </div>
       <div className="relative mx-auto flex max-w-[1200px] flex-col gap-3 border-t border-ink/10 px-5 py-6 text-[12px] leading-relaxed text-ink/40 sm:px-8 md:flex-row md:items-center md:justify-between">
-        <p className="max-w-3xl">Ledgr is a journaling and analysis tool. It does not execute trades, connect to brokers, or provide financial advice. All statistics describe records you enter. Scripture quotations are from the King James Version (public domain).</p>
+        <p className="max-w-3xl">Ledgr is a journaling and analysis tool. It does not execute trades, connect to brokers, or provide financial advice. All statistics describe records you enter. Scripture: Old Testament from Brenton's English Septuagint (1851), New Testament from the World English Bible — both public domain.</p>
         <a href="#content" onClick={(e) => { e.preventDefault(); smoothScrollToTop(); }} className="group inline-flex shrink-0 items-center gap-1.5 text-ink/60 transition-colors hover:text-ink">Back to top <span aria-hidden className="inline-block transition-transform duration-300 group-hover:-translate-y-1">↑</span></a>
       </div>
     </footer>

@@ -93,7 +93,7 @@ export default function SettingsPage() {
 
         <Card className="xl:col-span-2">
           <SectionTitle title="About Ledgr" />
-          <p className="max-w-3xl text-[13px] leading-relaxed text-text-2">Ledgr is a personal journal for simulated and historical trading records. It does not connect to brokers, execute trades, or provide financial advice. Statistics describe your saved records only. Scripture is quoted from the King James Version, which is in the public domain.</p>
+          <p className="max-w-3xl text-[13px] leading-relaxed text-text-2">Ledgr is a personal journal for simulated and historical trading records. It does not connect to brokers, execute trades, or provide financial advice. Statistics describe your saved records only. Scripture: Old Testament from Brenton's English Septuagint (1851), New Testament from the World English Bible — both in the public domain.</p>
         </Card>
       </div>
     </div>

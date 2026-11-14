@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { computeStats, disciplineScore, enrich, equityCurve, maxDrawdown, tradeMetrics } from "@/lib/calc";
-import { blankTrade } from "@/lib/defaults";
+import { blankTrade, migrate } from "@/lib/defaults";
 import { computeInsights } from "@/lib/insights";
 import { buildSampleState } from "@/lib/sample";
 import type { Trade } from "@/lib/types";
-import { selectVerse, VERSES, PAGE_VERSES, VERSE_BY_ID } from "@/lib/verses";
+import { LEGACY_VERSE_IDS, selectVerse, verseSource, VERSES, PAGE_VERSES, VERSE_BY_ID } from "@/lib/verses";
 import { toCSV } from "@/lib/util";
 
 let n = 0;
@@ -137,6 +137,19 @@ describe("insights", () => {
 describe("verses", () => {
   it("has a verse for every page mapping", () => {
     for (const p of Object.values(PAGE_VERSES)) expect(VERSE_BY_ID.get(p.verseId)).toBeDefined();
+  });
+  it("maps every retired King James id to a verse that exists", () => {
+    for (const id of Object.values(LEGACY_VERSE_IDS)) expect(VERSE_BY_ID.get(id)).toBeDefined();
+  });
+  it("labels Old Testament verses as Septuagint and New Testament as WEB", () => {
+    expect(verseSource(VERSE_BY_ID.get("PSA.38.5")!)).toBe("LXX");
+    expect(verseSource(VERSE_BY_ID.get("JAS.1.5")!)).toBe("WEB");
+  });
+  it("migrates old favourites and the KJV setting", () => {
+    const m = migrate({ settings: { translation: "KJV" } as never, favouriteVerses: [{ verseId: "PRO.16.3", reflection: "x", savedAt: "2026-01-01" }], verseHistory: [{ verseId: "PSA.90.12", page: "daily", at: "2026-01-01" }] });
+    expect(m.settings.translation).toBe("LXX+WEB");
+    expect(m.favouriteVerses[0].verseId).toBe("PSA.36.5");
+    expect(m.verseHistory[0].verseId).toBe("PSA.38.5");
   });
   it("has unique ids", () => {
     expect(new Set(VERSES.map((v) => v.id)).size).toBe(VERSES.length);

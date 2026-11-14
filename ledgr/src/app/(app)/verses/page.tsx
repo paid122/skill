@@ -33,7 +33,7 @@ function Library() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageIntro title="Verse library" sub="Scripture chosen for the work of reflection, discipline and learning. Text is the King James Version (public domain)." />
+      <PageIntro title="Verse library" sub="Scripture chosen for the work of reflection, discipline and learning. Old Testament from Brenton's English Septuagint (Septuagint numbering, so Psalm 38 is Psalm 39 in many Bibles); New Testament from the World English Bible. Both public domain." />
       <section>
         <p className="mb-2 text-xs text-muted">Verse of the day</p>
         <VerseCard verse={daily} page="verses" />

@@ -341,7 +341,7 @@ export interface Settings {
   avatar?: string | null;
   baseCurrency: string;
   breakevenThreshold: number; // |net| <= threshold counts as break-even
-  translation: "KJV";
+  translation: "LXX+WEB";
   checklist: ChecklistItem[];
   mistakeCategories: string[];
   setups: string[];

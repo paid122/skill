@@ -3,20 +3,20 @@ import { BookOpen, Check, Copy, Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { recordVerseView, toggleFavourite } from "@/lib/actions";
 import { useLedgr } from "@/lib/store";
-import { selectVerse, type PageKey, type Verse, type VerseContext } from "@/lib/verses";
+import { selectVerse, verseSource, type PageKey, type Verse, type VerseContext } from "@/lib/verses";
 import { cx } from "@/lib/util";
 import { IconButton } from "./ui";
 
 export function VerseCard({ verse, reason, compact = false, className, page }: { verse: Verse; reason?: string; compact?: boolean; className?: string; page?: string }) {
   const fav = useLedgr((s) => s.favouriteVerses.some((f) => f.verseId === verse.id));
-  const translation = useLedgr((s) => s.settings.translation);
+  const source = verseSource(verse);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (page) recordVerseView(verse.id, page);
   }, [verse.id, page]);
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(`“${verse.text}” — ${verse.reference} (${translation})`);
+      await navigator.clipboard.writeText(`“${verse.text}” — ${verse.reference} (${source})`);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -36,7 +36,7 @@ export function VerseCard({ verse, reason, compact = false, className, page }: {
           <blockquote className={cx("verse-text text-ivory", compact ? "text-[15px]" : "text-[17px] sm:text-[19px]")}>{verse.text}</blockquote>
           <figcaption className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">{verse.reference}</span>
-            <span className="text-[11px] text-muted">{translation}</span>
+            <span className="text-[11px] text-muted">{source === "WEB" ? "WEB" : "Septuagint"}</span>
             {reason && <span className="text-[11px] text-muted">· {reason}</span>}
           </figcaption>
           {!compact && verse.reflection && <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-text-2">{verse.reflection}</p>}

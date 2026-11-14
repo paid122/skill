@@ -1,5 +1,6 @@
 import type { Appearance, LedgrState, Settings, Trade } from "./types";
 import { nowISO, today, uid } from "./util";
+import { LEGACY_VERSE_IDS, VERSE_BY_ID } from "./verses";
 
 export const STATE_VERSION = 1;
 
@@ -30,7 +31,7 @@ export function defaultSettings(): Settings {
     displayName: "",
     baseCurrency: "USD",
     breakevenThreshold: 0,
-    translation: "KJV",
+    translation: "LXX+WEB",
     checklist: [
       { id: "prep", label: "Complete preparation" },
       { id: "objectives", label: "Record learning objectives" },
@@ -126,6 +127,11 @@ export function migrate(raw: Partial<LedgrState>): LedgrState {
   if (ap.positiveColor.toUpperCase() === "#42B883") ap.positiveColor = defaultAppearance.positiveColor;
   if (ap.negativeColor.toUpperCase() === "#E36E73") ap.negativeColor = defaultAppearance.negativeColor;
   s.settings.insights = { ...base.settings.insights, ...(raw.settings?.insights ?? {}), enabled: { ...base.settings.insights.enabled, ...(raw.settings?.insights?.enabled ?? {}) } };
+  // Orthodox verses: retire the King James setting and move saved verse ids to their Septuagint replacements.
+  s.settings.translation = "LXX+WEB";
+  const vid = (id: string) => LEGACY_VERSE_IDS[id] ?? id;
+  s.favouriteVerses = (s.favouriteVerses ?? []).map((f) => ({ ...f, verseId: vid(f.verseId) })).filter((f, i, a) => VERSE_BY_ID.has(f.verseId) && a.findIndex((g) => g.verseId === f.verseId) === i);
+  s.verseHistory = (s.verseHistory ?? []).map((h) => ({ ...h, verseId: vid(h.verseId) })).filter((h) => VERSE_BY_ID.has(h.verseId));
   s.trades = (s.trades ?? []).map((t) => ({ ...blankTrade(t.number, t.accountId), ...t, reflection: { ...blankTrade(0, null).reflection, ...t.reflection } }));
   s.version = STATE_VERSION;
   return s;
