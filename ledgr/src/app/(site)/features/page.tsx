@@ -111,7 +111,7 @@ export default function FeaturesPage() {
 
       {/* -------------------------------------------------------------- Groups */}
       {GROUPS.map((g, gi) => (
-        <section key={g.id} id={g.id} className="mx-auto max-w-[1200px] scroll-mt-24 px-5 pt-28 sm:px-8">
+        <section key={g.id} id={g.id} className="mx-auto max-w-[1200px] scroll-mt-24 overflow-x-clip px-5 pt-28 sm:px-8">
           <div className={`grid items-start gap-12 ${g.shot ? "lg:grid-cols-2" : ""}`}>
             <div className={g.shot && gi % 2 ? "lg:order-2" : ""}>
               <Reveal><SectionHeading kicker={`0${gi + 1} · ${g.nav}`} title={g.title} sub={g.sub} /></Reveal>

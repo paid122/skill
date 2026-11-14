@@ -1,21 +1,19 @@
-import { ArrowRight, Brain, Check, ChartNoAxesCombined, NotebookPen, Sparkles, SquareLibrary, Wallet } from "lucide-react";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Bento } from "@/components/site/Bento";
 import { ScrollScene } from "@/components/site/Cinematic";
-import { Explorer } from "@/components/site/Explorer";
 import { Compare, HomePricing, Install } from "@/components/site/HomeSections";
 import { Mark } from "@/components/site/Mark";
 import { CtaLink } from "@/components/site/CtaLink";
 import { Faq } from "@/components/site/Faq";
 import { Hero3D } from "@/components/site/Hero3D";
-import { HeroInsights } from "@/components/site/HeroInsights";
-import { CountUp, LiveCalculator, Magnetic, ScrollStory, SplitHeadline, Spotlight, type StoryStep } from "@/components/site/Interactive";
-import { Reveal, SectionHeading, TiltCard } from "@/components/site/SiteChrome";
+import { CommunityBand, MatrixxSection, PnlCardSection, ProductShot } from "@/components/site/HomeExtras";
+import { LiveCalculator, Magnetic, ScrollStory, SplitHeadline, Spotlight, type StoryStep } from "@/components/site/Interactive";
+import { Reveal, SectionHeading } from "@/components/site/SiteChrome";
 
 export const metadata: Metadata = {
   title: "Ledgr — Discipline over impulse",
-  description: "A private trading journal for reflective, disciplined traders. Log trades, review your process, and measure the habits behind the numbers.",
+  description: "The free trading journal for disciplined traders: log trades, see your real numbers, and let MatrixX AI review your trades and your week.",
 };
 
 const STORY: StoryStep[] = [
@@ -26,16 +24,8 @@ const STORY: StoryStep[] = [
   { key: "share", kicker: "Share", title: "Show your work, on your terms.", body: "Recap cards and PDFs that hide amounts and account names unless you choose to include them.", shot: "reports" },
 ];
 
-const FEATURES = [
-  { icon: NotebookPen, title: "A journal that tells the truth", body: "Multiple entries, partial exits and fees, calculated in the open. Drafts never pollute your statistics." },
-  { icon: ChartNoAxesCombined, title: "Analytics without guesswork", body: "Setups, sessions, weekdays and emotions compared — with sample sizes always shown." },
-  { icon: Brain, title: "Psychology, measured kindly", body: "Emotion and mistake tracking with a transparent discipline score." },
-  { icon: SquareLibrary, title: "Strategies you can hold yourself to", body: "Written entry, exit and invalidation rules, linked to the trades that used them." },
-  { icon: Wallet, title: "Accounts kept apart", body: "Simulated, backtest and evaluation-practice accounts with their own balances and rules." },
-  { icon: Sparkles, title: "An analyst for your own history", body: "MatrixX AI answers from your records and cites the trades it used." },
-];
 
-const MARQUEE = ["Trade journal", "Daily reflection", "Weekly review", "Equity curve", "Discipline score", "Strategy library", "Study room", "Verse library", "Shareable cards", "What-if analysis", "Account desk", "MatrixX AI"];
+const MARQUEE = ["Trade journal", "CSV import", "P&L calendar", "MatrixX trade reviews", "Weekly AI reviews", "Discipline score", "P&L cards", "Strategy library", "Psychology tracking", "Study room", "Verse library", "Prop-firm practice", "What-if analysis"];
 
 export default function LandingPage() {
   return (
@@ -55,12 +45,12 @@ export default function LandingPage() {
           </Reveal>
           <SplitHeadline text="Discipline over impulse." className="max-w-[12ch] text-[54px] font-semibold leading-[0.95] tracking-[-0.05em] sm:text-[88px] lg:text-[112px]" />
           <Reveal delay={500}>
-            <p className="mt-8 max-w-[34rem] text-[17px] leading-relaxed text-ink/65 sm:text-[19px]">Track every lesson. Measure every step. Ledgr is a private journal for the decisions, habits and discipline behind your results.</p>
+            <p className="mt-8 max-w-[34rem] text-[17px] leading-relaxed text-ink/65 sm:text-[19px]">Track every lesson. Measure every step. LEDGR is the free trading journal for the decisions, habits and discipline behind your results — with an AI coach that reads it.</p>
           </Reveal>
           <Reveal delay={650}>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <Magnetic><CtaLink className="group inline-flex h-[52px] items-center gap-2 rounded-full bg-ink px-7 text-[15px] font-medium text-paper shadow-[0_14px_30px_-12px_rgba(0,0,0,0.5)] transition-transform hover:scale-[1.03]">Start your journal <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></CtaLink></Magnetic>
-              <Magnetic><Link href="#try" className="inline-flex h-[52px] items-center rounded-full border border-ink/20 bg-paper/70 px-7 text-[15px] text-ink/85 backdrop-blur transition-colors hover:border-ink/50 hover:text-ink">Try the calculator</Link></Magnetic>
+              <Magnetic><a href="#matrixx" className="inline-flex h-[52px] items-center gap-2 rounded-full border border-ink/20 bg-paper/70 px-7 text-[15px] text-ink/85 backdrop-blur transition-colors hover:border-ink/50 hover:text-ink"><Sparkles size={15} /> Meet MatrixX AI</a></Magnetic>
             </div>
             <p className="mt-7 text-[12.5px] text-ink/40">For simulated and historical records. No broker connection, no trade execution, no financial advice.</p>
           </Reveal>
@@ -71,8 +61,8 @@ export default function LandingPage() {
       </section>
 
       {/* ------------------------------------------------- Insight cards */}
-      <section aria-label="Example insights" className="relative z-10 -mt-10 px-5 pb-20 sm:px-8 lg:-mt-24">
-        <HeroInsights />
+      <section aria-label="The LEDGR dashboard" className="relative z-10 -mt-6 overflow-x-clip px-5 pb-24 sm:px-8 lg:-mt-16">
+        <Reveal><ProductShot /></Reveal>
       </section>
 
       {/* ------------------------------------------------------- Marquee */}
@@ -94,10 +84,14 @@ export default function LandingPage() {
         <div className="mt-6"><ScrollStory steps={STORY} /></div>
       </section>
 
-      {/* ------------------------------------------------------- Explorer */}
-      <section id="explore" className="mx-auto max-w-[1280px] scroll-mt-20 px-3 pt-28 sm:px-6">
-        <div className="px-2 sm:px-2"><Reveal><SectionHeading kicker="Look inside" title={<>Every part of Ledgr, <Mark>before</Mark> you sign up.</>} sub="Pick a part to see it in the app. Shown with simulated sample records." /></Reveal></div>
-        <Reveal delay={100} className="mt-12"><Explorer /></Reveal>
+      {/* ------------------------------------------------------ MatrixX AI */}
+      <section id="matrixx" className="scroll-mt-20 px-5 pt-28 sm:px-8">
+        <div className="mx-auto max-w-[1240px]"><MatrixxSection /></div>
+      </section>
+
+      {/* ------------------------------------------------------- P&L cards */}
+      <section className="mx-auto max-w-[1200px] overflow-x-clip px-5 pt-28 sm:px-8">
+        <PnlCardSection />
       </section>
 
       {/* ------------------------------------------------- Live calculator */}
@@ -118,39 +112,6 @@ export default function LandingPage() {
         <Reveal delay={100} className="mt-12"><Compare /></Reveal>
       </section>
 
-      {/* ------------------------------------------------------ Features */}
-      <section className="border-y border-ink/10 bg-paper-2">
-        <div className="mx-auto max-w-[1200px] px-5 py-24 sm:px-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <Reveal><SectionHeading kicker="Everything included" title={<>A complete journal. <Mark>Free</Mark>.</>} /></Reveal>
-            <Reveal delay={100}><Link href="/features" className="inline-flex items-center gap-2 text-[14px] text-ink/70 hover:text-ink">Every feature <ArrowRight size={14} /></Link></Reveal>
-          </div>
-          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f, i) => (
-              <Reveal key={f.title} delay={i * 60}>
-                <TiltCard className="h-full rounded-[22px]">
-                  <div className="site-shadow h-full rounded-[22px] border border-ink/10 bg-paper p-7">
-                    <span className="grid h-11 w-11 place-items-center rounded-2xl bg-ink text-paper shadow-[0_8px_20px_-8px_rgba(0,0,0,0.45)]"><f.icon size={19} strokeWidth={1.6} /></span>
-                    <h3 className="mt-6 text-[18px] font-semibold tracking-tight">{f.title}</h3>
-                    <p className="mt-2 text-[14.5px] leading-relaxed text-ink/60">{f.body}</p>
-                  </div>
-                </TiltCard>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* --------------------------------------------------------- Facts */}
-      <section className="mx-auto grid max-w-[1200px] grid-cols-2 px-5 sm:px-8 lg:grid-cols-4">
-        {([[14, "analytics charts", ""], [14, "pattern checks", ""], [60, "KJV verses, chosen by page", "+"], [0, "broker connections", ""]] as [number, string, string][]).map(([v, l, suf], i) => (
-          <Reveal key={l} delay={i * 60} className="border-ink/10 py-16 text-center [&:not(:last-child)]:lg:border-r">
-            <p className="font-mono text-[52px] font-medium tracking-tight"><CountUp to={v} suffix={suf} /></p>
-            <p className="mt-1 text-[13px] text-ink/50">{l}</p>
-          </Reveal>
-        ))}
-      </section>
-
       {/* --------------------------------------------------------- Verse */}
       <section className="relative overflow-hidden border-y border-ink/10 px-5 py-32 sm:px-8">
         <div aria-hidden className="dot-grid dot-fade absolute inset-0 -z-10" />
@@ -165,6 +126,11 @@ export default function LandingPage() {
       <section id="pricing" className="mx-auto max-w-[1200px] scroll-mt-20 px-5 py-28 sm:px-8">
         <Reveal><SectionHeading kicker="Pricing" title={<>Free. <Mark>Actually</Mark> free.</>} sub="Every journal feature, no card, no trial clock. Add MatrixX AI with LEDGR+ whenever you want." /></Reveal>
         <Reveal delay={100} className="mt-12"><HomePricing /></Reveal>
+      </section>
+
+      {/* ----------------------------------------------------- Community */}
+      <section className="mx-auto max-w-[1200px] px-5 pb-28 sm:px-8">
+        <CommunityBand />
       </section>
 
       {/* ------------------------------------------------------- Install */}
@@ -183,10 +149,10 @@ export default function LandingPage() {
         <Reveal className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[36px] bg-ink px-8 py-24 text-center text-paper sm:px-16">
           <div aria-hidden className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(to bottom, transparent 0 31px, var(--paper) 31px 32px)" }} />
           <h2 className="relative mx-auto max-w-2xl text-[40px] font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[64px]">Start keeping an honest record.</h2>
-          <p className="relative mx-auto mt-5 max-w-md text-[16px] text-paper/60">Free. Private. Ready in under a minute.</p>
+          <p className="relative mx-auto mt-5 max-w-md text-[16px] text-paper/60">Free journal. MatrixX AI when you want it. Ready in under a minute.</p>
           <Magnetic><CtaLink className="relative mt-10 inline-flex h-[52px] items-center gap-2 rounded-full bg-paper px-8 text-[15px] font-medium text-ink transition-transform hover:scale-[1.03]">Start your journal <ArrowRight size={16} /></CtaLink></Magnetic>
           <ul className="relative mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[13.5px] text-paper/60">
-            {["No card to start", "Works in your browser", "Free forever"].map((x) => <li key={x} className="flex items-center gap-2"><Check size={15} className="text-paper" />{x}</li>)}
+            {["No card to start", "Works in your browser", "Imports your Tradovate CSV"].map((x) => <li key={x} className="flex items-center gap-2"><Check size={15} className="text-paper" />{x}</li>)}
           </ul>
         </Reveal>
       </section>
