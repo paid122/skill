@@ -74,10 +74,11 @@ const SECTIONS: LegalSection[] = [
       <li><strong>Delete</strong> local data in Settings, or your whole account by emailing <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</li>
       <li><strong>Disconnect</strong> MatrixX at any time.</li>
     </ul>
-    <p>Depending on where you live, you may have further rights under data protection law. Email us and we&apos;ll help.</p>
+    <p>LEDGR is run from the United Arab Emirates and follows its data protection law. Depending on where you live, you may have further rights under your local law. Email us and we&apos;ll help.</p>
   </> },
-  { id: "children", title: "Children", icon: I(Baby), body: <>
-    <p>LEDGR is meant for adults and isn&apos;t intended for anyone under 18. If you believe a child has created an account, email us and we&apos;ll delete it.</p>
+  { id: "children", title: "Young people", icon: I(Baby), body: <>
+    <p>LEDGR is for people aged <strong>14 and over</strong>. If you&apos;re under 18, please use LEDGR with a parent or guardian&apos;s permission.</p>
+    <p>We don&apos;t knowingly collect data from anyone under 14. If you believe someone under 14 has created an account, email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and we&apos;ll delete it.</p>
   </> },
   { id: "changes", title: "Changes to this policy", icon: I(RefreshCw), body: <>
     <p>If this policy changes, we&apos;ll update the date at the top of this page, and announce important changes on the website first.</p>

@@ -23,7 +23,9 @@ const SECTIONS: LegalSection[] = [
     <p>Trading involves risk, and past results don&apos;t guarantee future ones. Every decision you make is your own.</p>
   </> },
   { id: "eligibility", title: "Who can use LEDGR", icon: I(UserRound), body: <>
-    <p>You must be at least 18 years old. If you create an account, keep your sign-in details private — you&apos;re responsible for what happens under your account.</p>
+    <p>You must be at least <strong>14 years old</strong> to use LEDGR.</p>
+    <p>If you&apos;re under 18, you need a parent or guardian&apos;s permission to use LEDGR, and they must agree to these terms for you. <strong>Only an adult, or someone with their parent or guardian&apos;s permission, may buy {PLUS.name}.</strong></p>
+    <p>If you create an account, keep your sign-in details private — you&apos;re responsible for what happens under your account.</p>
   </> },
   { id: "content", title: "Your content", icon: I(PenLine), body: <>
     <p><strong>You own what you record.</strong> You give us permission to store and process it only to run LEDGR for you (for example, to sync it between your devices or send a summary to MatrixX when you ask).</p>
@@ -67,6 +69,10 @@ const SECTIONS: LegalSection[] = [
   </> },
   { id: "ending", title: "Ending your use", icon: I(LogOut), body: <>
     <p>You can stop using LEDGR at any time and ask us to delete your account. We may suspend or close accounts that seriously or repeatedly break these terms.</p>
+  </> },
+  { id: "law", title: "Governing law", icon: I(Gavel), body: <>
+    <p>LEDGR is run from the <strong>United Arab Emirates</strong>. These terms are governed by the laws of the United Arab Emirates, and any dispute will be handled by the competent courts of the United Arab Emirates, unless the law where you live gives you the right to bring a claim there.</p>
+    <p>Before going to court, please email us first — most problems can be solved quickly.</p>
   </> },
   { id: "updates", title: "Changes to these terms", icon: I(RefreshCw), body: <>
     <p>If these terms change, we&apos;ll update the date at the top of this page, and announce important changes on the website first. Continuing to use LEDGR after a change means you accept the new terms.</p>
