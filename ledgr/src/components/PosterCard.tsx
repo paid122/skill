@@ -161,7 +161,8 @@ function ExecutionPath({ trade, color, label, labelText }: { trade: Trade; color
   );
 }
 
-export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMetrics; opts: PosterOptions }>(function PosterCard({ trade: t, m, opts }, ref) {
+/** chartLoading: the real price chart is on its way, so don't draw the simple Entry→Exit line meanwhile. */
+export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMetrics; opts: PosterOptions; chartLoading?: boolean }>(function PosterCard({ trade: t, m, opts, chartLoading = false }, ref) {
   const media = t.showcase?.media ?? null;
   const chart = t.showcase?.chart?.bars.length ? t.showcase.chart : null;
   const theme = themeColors(t.showcase?.background ?? "ledger");
@@ -240,8 +241,20 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
       <div className="absolute" style={{ left: 470, top: 74, width: 460, height: 330 }}>
         {chart
           ? <PriceChart trade={t} chart={chart} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
+          : chartLoading ? <ChartPlaceholder color={fg} />
           : <ExecutionPath trade={t} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />}
       </div>
     </div>
   );
 });
+
+/** A faint, pulsing chart shape shown while the real price chart loads. */
+function ChartPlaceholder({ color }: { color: string }) {
+  const d = "M0 250 L40 232 L80 240 L120 205 L160 214 L200 180 L240 192 L280 150 L320 162 L360 120 L400 132 L460 96";
+  return (
+    <svg viewBox="0 0 460 330" width="100%" height="100%" className="animate-pulse" aria-label="Loading the price chart">
+      <path d={`${d} L460 330 L0 330 Z`} fill={color} opacity={0.05} />
+      <path d={d} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

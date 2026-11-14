@@ -113,21 +113,23 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const timesKey = t.executions.map((e) => e.time).join("|");
   useEffect(() => {
     setChartState("idle");
-    if (layout !== "poster" || !t.symbol) return;
+    if (layout !== "poster") return;
+    if (!t.symbol) { setChartState("none"); return; }
     const times = t.executions.map((e) => e.time);
     const unknown = timesUnknown(times);
     if (unknown && !tried.current.has(`fill:${t.id}`)) {
       tried.current.add(`fill:${t.id}`);
       setChartState("loading");
-      void fillTimes(t.id).then((ok) => { if (!ok) setChartState("idle"); }); // success re-runs this effect with the new times
+      void fillTimes(t.id).then((ok) => { if (!ok) setChartState("none"); }); // success re-runs this effect with the new times
       return;
     }
     // Re-fetch once if a trade without times still has a short (non full-day) chart saved.
     const needsChart = !sc.chart?.bars.length || (unknown && sc.chart.interval !== "15m") || (!unknown && sc.chart.interval === "15m" && t.executions.some((e) => e.estimated));
     const key = `chart:${t.id}:${timesKey}`;
-    if (!needsChart || tried.current.has(key)) return;
+    if (!needsChart) return;
+    if (tried.current.has(key)) { if (!sc.chart?.bars.length) setChartState("none"); return; }
     const win = unknown ? dayWindow(times[0]) : pickWindow(times);
-    if (!win) return;
+    if (!win) { setChartState("none"); return; }
     tried.current.add(key);
     const { provider, dataSymbol } = guessSource(t);
     const q = new URLSearchParams({ provider, symbol: dataSymbol, interval: win.interval, from: String(win.from), to: String(win.to) });
@@ -139,7 +141,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
         if (!live) return;
         if (!j.bars?.length) return setChartState("none");
         const cur = getState().trades.find((x) => x.id === t.id)?.showcase;
-        if (!cur) return;
+        if (!cur) return setChartState("none");
         patchTrade(t.id, { showcase: { ...cur, chart: { provider, dataSymbol, interval: j.interval ?? win.interval, bars: j.bars, fetchedAt: new Date().toISOString() } } });
         setChartState("idle");
       })
@@ -239,7 +241,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
         {layout === "poster" ? (
           <div className="relative">
             <FitWidth width={960} height={504}>
-              <PosterCard ref={ref} trade={t} m={x.m} opts={{ amounts: privacy.amounts, account: privacy.account && account ? account.name : null, handle: handle.trim().slice(0, 30), currency: account?.currency ?? "USD", avatar }} />
+              <PosterCard ref={ref} trade={t} m={x.m} opts={{ amounts: privacy.amounts, account: privacy.account && account ? account.name : null, handle: handle.trim().slice(0, 30), currency: account?.currency ?? "USD", avatar }} chartLoading={chartState !== "none"} />
             </FitWidth>
             {media?.kind === "video" && (
               <button type="button" onClick={() => setHear(!hear)} aria-pressed={hear} aria-label={hear ? "Mute video" : "Play video sound"}
