@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CtaLink } from "./CtaLink";
 import { INCLUDED } from "./included";
+import { PLUS } from "@/lib/plus";
 
 /* ------------------------------------------------------------------ Comparison */
 type Cell = true | false | string;
@@ -54,16 +55,17 @@ export function HomePricing() {
   return (
     <div className="grid items-start gap-5 md:grid-cols-[1.25fr_1fr]">
       <div className="rounded-[28px] bg-ink p-8 text-paper sm:p-10">
-        <div className="flex items-center justify-between"><p className="text-[14px] font-medium">Free</p><span className="rounded-full border border-paper/25 px-3 py-1 text-[12px] text-paper/70">Every feature</span></div>
+        <div className="flex items-center justify-between"><p className="text-[14px] font-medium">Free</p><span className="rounded-full border border-paper/25 px-3 py-1 text-[12px] text-paper/70">Every journal feature</span></div>
         <p className="mt-4 flex items-end gap-2"><span className="text-[64px] font-semibold leading-none tracking-[-0.04em]">$0</span><span className="mb-2 text-paper/50">forever</span></p>
         <CtaLink className="mt-8 flex h-12 items-center justify-center rounded-full bg-paper text-[15px] font-medium text-ink transition-transform hover:scale-[1.02]">Start your journal</CtaLink>
         <ul className="mt-8 grid gap-3 sm:grid-cols-2">{INCLUDED.map((f) => <li key={f} className="flex gap-2.5 text-[14px]"><Check size={16} className="mt-0.5 shrink-0" />{f}</li>)}</ul>
       </div>
       <div className="grid gap-5">
         <div className="rounded-[28px] border border-ink/10 bg-paper-2 p-8">
-          <p className="text-[14px] font-medium text-ink/70">No paid plan</p>
-          <p className="mt-3 text-[15px] leading-relaxed text-ink/60">There's nothing to upgrade to. If a paid plan ever arrives, everything listed under Free stays free — announced on the pricing page first.</p>
-          <Link href="/pricing" className="mt-6 inline-flex text-[14px] font-medium underline underline-offset-4">Pricing details</Link>
+          <div className="flex items-center justify-between"><p className="text-[14px] font-medium text-ink/70">{PLUS.name}</p><span className="rounded-full border border-ink/15 px-3 py-1 text-[12px] text-ink/60">Optional</span></div>
+          <p className="mt-3 flex items-end gap-2"><span className="text-[44px] font-semibold leading-none tracking-[-0.04em]">${PLUS.priceUsd}</span><span className="mb-1 text-ink/50">for {PLUS.days} days</span></p>
+          <p className="mt-3 text-[15px] leading-relaxed text-ink/60">MatrixX AI included: trade reviews, weekly reviews and AI chat with {PLUS.matrixxPlan}. One-time payment, no auto-renewal.</p>
+          <Link href="/pricing" className="mt-6 inline-flex text-[14px] font-medium underline underline-offset-4">See {PLUS.name}</Link>
         </div>
         <div className="rounded-[28px] border border-ink/10 bg-paper-2 p-8">
           <p className="text-[14px] font-medium text-ink/70">No card. No trial clock.</p>

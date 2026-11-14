@@ -50,7 +50,7 @@ export default function LandingPage() {
           <Reveal>
             <p className="mb-7 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-paper/70 px-3 py-1 text-[12.5px] text-ink/70 backdrop-blur">
               <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ink/40" /><span className="relative inline-flex h-2 w-2 rounded-full bg-ink" /></span>
-              Free to use · Private by default
+              Free journal · AI by MatrixX
             </p>
           </Reveal>
           <SplitHeadline text="Discipline over impulse." className="max-w-[12ch] text-[54px] font-semibold leading-[0.95] tracking-[-0.05em] sm:text-[88px] lg:text-[112px]" />
@@ -65,7 +65,7 @@ export default function LandingPage() {
             <p className="mt-7 text-[12.5px] text-ink/40">For simulated and historical records. No broker connection, no trade execution, no financial advice.</p>
           </Reveal>
         </div>
-        <div aria-hidden className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-[11px] text-ink/40 lg:flex">
+        <div aria-hidden className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-[11px] text-ink/40 lg:flex [@media(max-height:940px)]:!hidden">
           Scroll<span className="h-10 w-px overflow-hidden bg-ink/10"><span className="block h-4 w-px animate-[drift_2s_ease-in-out_infinite] bg-ink/60" /></span>
         </div>
       </section>
@@ -163,7 +163,7 @@ export default function LandingPage() {
 
       {/* ------------------------------------------------------- Pricing */}
       <section id="pricing" className="mx-auto max-w-[1200px] scroll-mt-20 px-5 py-28 sm:px-8">
-        <Reveal><SectionHeading kicker="Pricing" title={<>Free. <Mark>Actually</Mark> free.</>} sub="Every feature, no card, no trial clock." /></Reveal>
+        <Reveal><SectionHeading kicker="Pricing" title={<>Free. <Mark>Actually</Mark> free.</>} sub="Every journal feature, no card, no trial clock. Add MatrixX AI with LEDGR+ whenever you want." /></Reveal>
         <Reveal delay={100} className="mt-12"><HomePricing /></Reveal>
       </section>
 
