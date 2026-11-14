@@ -250,11 +250,16 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
 
 /** A faint, pulsing chart shape shown while the real price chart loads. */
 function ChartPlaceholder({ color }: { color: string }) {
-  const d = "M0 250 L40 232 L80 240 L120 205 L160 214 L200 180 L240 192 L280 150 L320 162 L360 120 L400 132 L460 96";
+  // No line shape at all (it read as a chart flashing in): an empty area with a small spinner.
   return (
-    <svg viewBox="0 0 460 330" width="100%" height="100%" className="animate-pulse" aria-label="Loading the price chart">
-      <path d={`${d} L460 330 L0 330 Z`} fill={color} opacity={0.05} />
-      <path d={d} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 460 330" width="100%" height="100%" aria-label="Loading the price chart">
+      <g transform="translate(230 152)">
+        <circle r="13" fill="none" stroke={color} strokeOpacity={0.12} strokeWidth={3} />
+        <path d="M0 -13 A13 13 0 0 1 13 0" fill="none" stroke={color} strokeOpacity={0.55} strokeWidth={3} strokeLinecap="round">
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="0.9s" repeatCount="indefinite" />
+        </path>
+      </g>
+      <text x="230" y="194" textAnchor="middle" fontSize="14" fontWeight="500" fill={color} fillOpacity={0.45} fontFamily="'Inter Variable', Inter, sans-serif">Loading chart…</text>
     </svg>
   );
 }
