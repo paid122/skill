@@ -227,7 +227,7 @@ async function check(name, fn) {
     await page.goto(BASE + "/"); await page.waitForTimeout(1500);
     assert.ok(await page.getByRole("heading", { name: "Discipline over impulse." }).isVisible());
     await page.locator("canvas").first().waitFor({ state: "attached" });
-    for (const [label, heading] of [["Features", /Every feature/], ["Pricing", /Simple\. Free\./], ["Reviews", /^Reviews$/], ["Community", /Grow alongside/], ["Affiliates", /Share Ledgr/]]) {
+    for (const [label, heading] of [["Features", /Every feature/], ["Pricing", /Free to journal/], ["Reviews", /What traders say/], ["Community", /Grow alongside/], ["Affiliates", /Share LEDGR/]]) {
       await page.getByRole("navigation", { name: "Site" }).getByRole("link", { name: label }).click();
       await page.getByRole("heading", { level: 1, name: heading }).waitFor();
     }
