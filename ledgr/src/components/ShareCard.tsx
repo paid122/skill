@@ -2,6 +2,7 @@
 import { forwardRef, type ReactNode } from "react";
 import { cx } from "@/lib/util";
 import { LogoMark } from "./Logo";
+import { SITE_HOST } from "@/lib/contact";
 
 /** Visual themes for shareable cards and reports. Fixed colours so exports look identical everywhere. */
 export const CARD_THEMES: Record<string, { name: string; bg: string; fg: string; sub: string; line: string; accent: string; pos: string; neg: string; ruled?: boolean; gradient?: string }> = {
@@ -38,9 +39,9 @@ export const ShareSurface = forwardRef<HTMLDivElement, { theme: string; font?: "
             <div className="mt-8 flex items-center justify-between gap-4 pt-5" style={{ borderTop: `1px solid ${t.line}` }}>
               <span className="text-[11px]" style={{ color: t.sub }}>{footer}</span>
               {showLogo && (
-                <span className="inline-flex items-center gap-2" style={{ color: t.fg }}>
-                  <LogoMark size={20} />
-                  <span className="text-[11px] font-semibold tracking-[0.28em]">LEDGR</span>
+                <span className="inline-flex flex-col items-end gap-1" style={{ color: t.fg }}>
+                  <span className="inline-flex items-center gap-2"><LogoMark size={20} /><span className="text-[11px] font-semibold tracking-[0.28em]">LEDGR</span></span>
+                  <span className="text-[10.5px] font-medium" style={{ color: t.sub }}>{SITE_HOST}</span>
                 </span>
               )}
             </div>

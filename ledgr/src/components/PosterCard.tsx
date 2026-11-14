@@ -8,6 +8,7 @@ import type { Trade } from "@/lib/types";
 import { fmtMoney, fmtNum, fmtR, parseISODate } from "@/lib/util";
 import { useBlobUrl } from "./BlobImage";
 import { LogoMark } from "./Logo";
+import { SITE_HOST } from "@/lib/contact";
 import { themeColors } from "./ShareCard";
 
 /** How wide the big P&L number may be: from the left padding (48) to just before the chart (470). */
@@ -237,6 +238,8 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
           </div>
         </div>
       </div>
+      {/* Where to find LEDGR, for anyone who sees the card */}
+      <span className="absolute bottom-12 right-12 text-[16px] font-semibold tracking-tight" style={{ color: sub }}>{SITE_HOST}</span>
       {/* Chart fills the right half, like a poster. */}
       <div className="absolute" style={{ left: 470, top: 74, width: 460, height: 330 }}>
         {chart
