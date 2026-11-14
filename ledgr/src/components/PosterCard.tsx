@@ -1,7 +1,7 @@
 "use client";
 import { Droplet, Flame } from "lucide-react";
 import { marketGlyph, symbolImage } from "@/lib/instrument";
-import { forwardRef, useState } from "react";
+import { forwardRef, useLayoutEffect, useRef, useState } from "react";
 import { INTERVAL_MS, locateByPrice, timesUnknown, type TradeChart } from "@/lib/candles";
 import type { TradeMetrics } from "@/lib/calc";
 import type { Trade } from "@/lib/types";
@@ -10,13 +10,16 @@ import { useBlobUrl } from "./BlobImage";
 import { LogoMark } from "./Logo";
 import { themeColors } from "./ShareCard";
 
+/** How wide the big P&L number may be: from the left padding (48) to just before the chart (470). */
+const BIG_ROOM = 390;
+
 /** Price with 2 decimals (up to 3 under 1,000, up to 5 under 10), without trailing zeros (6.27200 → 6.272). */
 function fmtPrice(p: number | null) {
   if (p === null) return "—";
   return p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: p >= 1000 ? 2 : p >= 10 ? 3 : 5 });
 }
 
-export interface PosterOptions { amounts: boolean; account: string | null; handle: string; currency: string }
+export interface PosterOptions { amounts: boolean; account: string | null; handle: string; currency: string; /** profile photo (data URL) */ avatar?: string | null }
 
 /** Background media (the user's own image or video), dimmed and optionally blurred for legibility. */
 function Media({ blobId, kind, dim, blur }: { blobId: string; kind: "image" | "video"; dim: number; blur: number }) {
@@ -177,8 +180,26 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
   const date = parseISODate(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
   const noun = t.market === "Futures" ? "contract" : t.market === "Stocks" ? "share" : t.market === "Forex" || t.market === "Commodities" || t.market === "Indices" ? "lot" : "unit";
   const size = m.entryQty ? `${fmtNum(m.entryQty, m.entryQty % 1 ? 2 : 0)} ${noun}${m.entryQty === 1 ? "" : "s"}` : "—";
-  // Big number shrinks for long amounts so it never runs into the chart.
-  const bigSize = big.length <= 8 ? 92 : big.length <= 10 ? 78 : big.length <= 12 ? 66 : 56;
+  // Big number: as large as it can be while staying left of the chart (which starts at x=470; the text starts at x=48).
+  const bigMax = big.length <= 8 ? 92 : 80;
+  const bigRef = useRef<HTMLParagraphElement>(null);
+  const [bigSize, setBigSize] = useState(bigMax);
+  useLayoutEffect(() => {
+    const el = bigRef.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.fontSize = `${bigMax}px`;
+      const w = el.scrollWidth;
+      const next = w > BIG_ROOM ? Math.max(34, Math.floor((bigMax * BIG_ROOM) / w)) : bigMax;
+      el.style.fontSize = `${next}px`;
+      setBigSize(next);
+    };
+    fit();
+    // measure again once the web font has loaded (its letters are wider than the fallback's)
+    let live = true;
+    document.fonts?.ready.then(() => { if (live) fit(); });
+    return () => { live = false; };
+  }, [big, bigMax]);
 
   return (
     <div ref={ref} className="relative overflow-hidden rounded-[28px]" style={{ width: 960, height: 504, background: theme.gradient ? `${theme.gradient}, ${theme.bg}` : theme.bg, color: fg, fontFamily: "'Inter Variable', Inter, system-ui, sans-serif" }}>
@@ -191,7 +212,7 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
             <span className="text-[15px] font-semibold uppercase tracking-[0.14em]" style={{ color: sub }}>{t.direction ?? ""} · {date}</span>
           </div>
           <div>
-            <p className="font-extrabold leading-none tracking-[-0.04em]" style={{ fontSize: bigSize, color: onMedia ? fg : good ? theme.pos : theme.neg, textShadow: onMedia ? "0 8px 40px rgba(0,0,0,0.45)" : undefined }}>{big}</p>
+            <p ref={bigRef} className="w-max whitespace-nowrap font-extrabold leading-none tracking-[-0.04em]" style={{ fontSize: bigSize, color: onMedia ? fg : good ? theme.pos : theme.neg, textShadow: onMedia ? "0 8px 40px rgba(0,0,0,0.45)" : undefined }}>{big}</p>
             {opts.amounts && (m.r !== null || points !== null) && <p className="mt-2 font-mono text-[18px]" style={{ color: sub }}>{m.r !== null ? fmtR(m.r) : fmtPts(points!)}</p>}
           </div>
           <dl className="grid w-fit grid-cols-[110px_auto] gap-y-3 text-[22px]">
@@ -204,7 +225,10 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
             {opts.handle && (
               <>
                 <span style={{ color: sub }}>×</span>
-                <span className="grid h-8 w-8 place-items-center rounded-full text-[14px] font-extrabold" style={{ background: onMedia ? "#FFFFFF" : theme.fg, color: onMedia ? "#0A0A0A" : theme.bg }}>{opts.handle.replace(/^@/, "").charAt(0).toUpperCase() || "·"}</span>
+                {opts.avatar
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={opts.avatar} alt="" className="h-8 w-8 rounded-full object-cover" style={{ boxShadow: `0 0 0 2px ${onMedia ? "#FFFFFF" : theme.fg}` }} />
+                  : <span className="grid h-8 w-8 place-items-center rounded-full text-[14px] font-extrabold" style={{ background: onMedia ? "#FFFFFF" : theme.fg, color: onMedia ? "#0A0A0A" : theme.bg }}>{opts.handle.replace(/^@/, "").charAt(0).toUpperCase() || "·"}</span>}
                 <span>{opts.handle}</span>
               </>
             )}

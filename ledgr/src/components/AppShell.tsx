@@ -1,4 +1,5 @@
 "use client";
+import { Avatar } from "./Avatar";
 import { Bell, ChevronsLeft, ChevronsRight, Eye, EyeOff, Menu, PanelRightOpen, Plus, Search, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -188,12 +189,12 @@ function Sidebar({ collapsed, translucent }: { collapsed: boolean; translucent: 
               <ChevronsRight size={16} />
             </IconButton>
             <Tooltip text={name || "Profile"} side="right">
-              <Link href="/settings" className="grid h-9 w-9 place-items-center rounded-full border border-line bg-card-2 text-[12px] font-semibold text-accent">{(name || "L").slice(0, 1).toUpperCase()}</Link>
+              <Link href="/settings" aria-label="Settings and profile" className="rounded-full"><Avatar size={36} /></Link>
             </Tooltip>
           </>
         ) : (
           <Link href="/settings" className="flex items-center gap-3 rounded-[10px] px-2 py-2 transition-colors hover:bg-card/70">
-            <span className="grid h-9 w-9 place-items-center rounded-full border border-line bg-card-2 text-[13px] font-semibold text-accent">{(name || "L").slice(0, 1).toUpperCase()}</span>
+            <Avatar size={36} />
             <span className="min-w-0">
               <span className="block truncate text-[13px] font-medium text-text">{name || "Your profile"}</span>
               <span className="block text-[11.5px] text-muted">{accounts} active account{accounts === 1 ? "" : "s"}</span>

@@ -2,6 +2,7 @@
 import { Database, Download, Plus, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { AccountCard } from "@/components/AccountCard";
+import { Avatar, makeAvatar } from "@/components/Avatar";
 import { PageIntro } from "@/components/blocks";
 import { SettingsNav } from "@/components/SettingsNav";
 import { Button, Card, Field, Input, NumberInput, SectionTitle, Select, Toggle, useFeedback } from "@/components/ui";
@@ -33,6 +34,7 @@ export default function SettingsPage() {
         <div className="xl:col-span-2"><AccountCard /></div>
         <Card>
           <SectionTitle title="Profile" />
+          <ProfilePhoto />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
             <Field label="Display name"><Input value={name} maxLength={40} onChange={(e) => setName(e.target.value)} onBlur={() => { if (name.trim() !== s.displayName) { updateSettings({ displayName: name.trim() }); toast("Name updated"); } }} /></Field>
             <Field label="Base currency" hint="Used for combined views across accounts"><Input value={s.baseCurrency} maxLength={3} onChange={(e) => /^[A-Za-z]{0,3}$/.test(e.target.value) && updateSettings({ baseCurrency: e.target.value.toUpperCase() || "USD" })} /></Field>
@@ -110,5 +112,39 @@ function ListEditor({ title, sub, items, onChange }: { title: string; sub: strin
       </div>
       <div className="mt-3 flex gap-2"><Input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder={`Add to ${title.toLowerCase()}`} /><Button icon={<Plus size={14} />} onClick={add}>Add</Button></div>
     </Card>
+  );
+}
+
+/** Profile photo: shown in the top bar, the side menu and on your P&L cards. */
+function ProfilePhoto() {
+  const photo = useLedgr((x) => x.settings.avatar ?? null);
+  const { toast } = useFeedback();
+  const input = useRef<HTMLInputElement>(null);
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      updateSettings({ avatar: await makeAvatar(file) });
+      toast("Profile photo updated");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "That image couldn't be used.", "error");
+    } finally {
+      if (input.current) input.current.value = "";
+    }
+  };
+  return (
+    <div className="mb-5 flex items-center gap-4">
+      <button type="button" onClick={() => input.current?.click()} className="group relative rounded-full" aria-label="Change profile photo">
+        <Avatar size={64} />
+        <span className="absolute inset-0 grid place-items-center rounded-full bg-black/55 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">Change</span>
+      </button>
+      <div className="flex flex-col gap-1.5">
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={() => input.current?.click()}>{photo ? "Change photo" : "Upload photo"}</Button>
+          {photo && <Button size="sm" variant="ghost" onClick={() => { updateSettings({ avatar: null }); toast("Profile photo removed"); }}>Remove</Button>}
+        </div>
+        <p className="text-[12px] text-muted">Shown in the top bar and on your P&amp;L cards. Cropped to a square.</p>
+      </div>
+      <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
+    </div>
   );
 }

@@ -11,6 +11,7 @@ import { LogoMark } from "./Logo";
 import { ALL_NAV, isActive, type NavItem } from "./nav";
 import { Button, IconButton } from "./ui";
 import { NotificationsButton } from "./AppShell";
+import { Avatar } from "./Avatar";
 
 const find = (href: string) => ALL_NAV.find((i) => i.href === href)!;
 
@@ -68,7 +69,7 @@ export function TopNav() {
           <Button variant="accent" size="sm" icon={<Plus size={15} />} onClick={openQuickLog} className="ml-1 h-9 rounded-full" aria-keyshortcuts="n" aria-label="Quick Log"><span className="hidden xl:inline">Quick Log</span></Button>
           <Link href="/settings" aria-label="Settings and profile" className="ml-1 flex items-center gap-2.5 rounded-full py-1 pl-2 pr-1 transition-colors hover:bg-card-2">
             <span className="hidden max-w-[120px] truncate text-[13.5px] font-medium text-text 2xl:inline">{name || "Your profile"}</span>
-            <span className={cx("grid h-8 w-8 place-items-center rounded-full border text-[13px] font-semibold", pathname.startsWith("/settings") ? "border-accent bg-accent text-on-accent" : "border-line bg-card-2 text-text")}>{(name || "L").slice(0, 1).toUpperCase()}</span>
+            <Avatar size={32} active={pathname.startsWith("/settings")} />
           </Link>
         </div>
       </div>

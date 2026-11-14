@@ -89,6 +89,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const t = x.trade;
   const account = useLedgr((s) => s.accounts.find((a) => a.id === t.accountId) ?? null);
   const displayName = useLedgr((s) => s.settings.displayName);
+  const avatar = useLedgr((s) => s.settings.avatar ?? null);
   const [desc, setDesc] = useState(t.showcase?.description ?? "");
   const [privacy, setPrivacy] = useState<Privacy>({ amounts: true, account: false, image: true, reflection: true });
   const [handle, setHandle] = useState(displayName);
@@ -238,7 +239,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
         {layout === "poster" ? (
           <div className="relative">
             <FitWidth width={960} height={504}>
-              <PosterCard ref={ref} trade={t} m={x.m} opts={{ amounts: privacy.amounts, account: privacy.account && account ? account.name : null, handle: handle.trim().slice(0, 30), currency: account?.currency ?? "USD" }} />
+              <PosterCard ref={ref} trade={t} m={x.m} opts={{ amounts: privacy.amounts, account: privacy.account && account ? account.name : null, handle: handle.trim().slice(0, 30), currency: account?.currency ?? "USD", avatar }} />
             </FitWidth>
             {media?.kind === "video" && (
               <button type="button" onClick={() => setHear(!hear)} aria-pressed={hear} aria-label={hear ? "Mute video" : "Play video sound"}
