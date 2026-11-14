@@ -268,7 +268,8 @@ select.input {
   to { background-position: 200px 0; }
 }
 .animate-fade {
-  animation: fade-in 200ms ease both;
+  /* backwards, not both: a transform kept after the animation would trap position:fixed children (the AI chat box) */
+  animation: fade-in 200ms ease backwards;
 }
 .animate-modal {
   animation: modal-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;

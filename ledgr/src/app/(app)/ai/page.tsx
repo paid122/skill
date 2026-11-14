@@ -166,15 +166,19 @@ export default function AIPage() {
             )}
           </div>
 
-          <form className="border-t border-line-soft p-3" onSubmit={(e) => { e.preventDefault(); send(input); }}>
+          {/* Always reachable: on phones it floats just above the bottom bar; on larger screens it stays pinned to the
+              bottom of the window while the chat is in view. */}
+          <form className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 rounded-2xl border border-line bg-card p-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.45)] lg:sticky lg:inset-x-auto lg:bottom-0 lg:z-20 lg:rounded-none lg:rounded-b-[var(--radius-card)] lg:border-x-0 lg:border-b-0 lg:border-line-soft lg:p-3 lg:shadow-[0_-12px_24px_-12px_rgba(0,0,0,0.45)]" onSubmit={(e) => { e.preventDefault(); send(input); }}>
             <div className="flex items-end gap-2 rounded-xl border border-line bg-bg-2 p-2 focus-within:border-accent">
-              <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} rows={1} maxLength={4000} placeholder="Ask about a trade (#12), this week, setups, emotions or mistakes…" className="max-h-40 min-h-[36px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted" aria-label="Message" />
+              <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} rows={1} maxLength={4000} placeholder="Ask MatrixX about your trades…" className="max-h-40 min-h-[36px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted" aria-label="Message" />
               <Button type="submit" variant="accent" size="sm" disabled={busy || !input.trim()} aria-label="Send" className="h-9 w-9 px-0"><ArrowUp size={16} /></Button>
             </div>
-            <p className="mt-2 px-1 text-[11px] text-muted"><a href="/plus" className="text-text-2 underline-offset-2 hover:underline">LEDGR+</a> includes MatrixX Starter. MatrixX AI analyses past records only. It can be wrong; check figures against your journal. Not financial advice.</p>
+            <p className="mt-2 hidden px-1 text-[11px] text-muted lg:block"><a href="/plus" className="text-text-2 underline-offset-2 hover:underline">LEDGR+</a> includes MatrixX Starter. MatrixX AI analyses past records only. It can be wrong; check figures against your journal. Not financial advice.</p>
           </form>
         </Card>
       </div>
+      {/* (phones: the note that sits under the box on larger screens, plus room so the floating box never covers the end of the page) */}
+      <p className="px-1 pb-20 text-[11px] text-muted lg:hidden"><a href="/plus" className="text-text-2 underline-offset-2 hover:underline">LEDGR+</a> includes MatrixX Starter. MatrixX AI analyses past records only. It can be wrong; check figures against your journal. Not financial advice.</p>
 
       <Modal open={showContext} onClose={() => setShowContext(false)} size="lg" title="What MatrixX AI can see" description="Only the records in your selected account and date range, summarised as below. Images and attachments are never sent.">
         <div className="mb-3 flex items-center gap-2 text-xs text-text-2"><ShieldCheck size={14} className="text-pos" /> {live ? "Sent to MatrixX (getmatrixx.com) over HTTPS when you ask a question. Not stored by Ledgr's server." : "Used locally in your browser only, until MatrixX is connected."}</div>
