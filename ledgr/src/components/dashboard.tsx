@@ -10,6 +10,7 @@ import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, Responsi
 import { chronological, closedOnly, type EnrichedTrade, type Stats } from "@/lib/calc";
 import { cx, fmtDate, fmtMoney, fmtNum, fmtPct, parseISODate, toISODate, today } from "@/lib/util";
 import { useThemeColors } from "./charts";
+import { CountUp } from "./CountUp";
 import { Card, Tooltip } from "./ui";
 
 const Info = ({ tip }: { tip: string }) => (
@@ -114,7 +115,7 @@ export function StatRow({ stats, list, daily, currency }: { stats: Stats; list: 
   return (
     <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Key figures">
       <StatCard label="Net P&L" tip="Sum of net results (after fees) for closed trades in range." href="/analytics">
-        <p className={cx("num whitespace-nowrap text-[26px] font-semibold leading-none", tone(stats.net))}>{fmtMoney(stats.net, currency, { sign: true })}</p>
+        <p className={cx("num whitespace-nowrap text-[26px] font-semibold leading-none tabular-nums", tone(stats.net))}><CountUp value={stats.net} format={(v) => fmtMoney(v, currency, { sign: true })} /></p>
         <p className="mt-2 w-fit rounded-md bg-card-2 px-2 py-0.5 text-[11px] text-text-2">{stats.closed} trade{stats.closed === 1 ? "" : "s"}</p>
       </StatCard>
       <StatCard label="Trade win %" tip="Wins ÷ (wins + losses). Break-even trades are shown in grey and excluded." href="/analytics"
