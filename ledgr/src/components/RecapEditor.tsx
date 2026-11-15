@@ -1,5 +1,5 @@
 "use client";
-import { CalendarRange, Download, Film, ImagePlus, Trash2, X } from "lucide-react";
+import { CalendarRange, Download, Film, ImagePlus, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FitWidth } from "@/components/FitWidth";
 import { finishCountUp } from "@/components/PosterCard";
@@ -36,6 +36,8 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [recording, setRecording] = useState<{ at: number; total: number } | null>(null);
   const [sound, setSound] = useState(true);
+  // Preview sound: browsers only allow sound after a click, so the card starts muted until you turn it on.
+  const [hear, setHear] = useState(false);
   const [clipSeconds, setClipSeconds] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -61,6 +63,13 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
     }, 250);
     return () => clearInterval(id);
   }, [media?.kind, media?.blobId, start, format]);
+
+  useEffect(() => {
+    const v = ref.current?.querySelector<HTMLVideoElement>("video[data-poster-video]");
+    if (!v) return;
+    v.muted = !hear;
+    if (hear) { v.volume = 1; v.play().catch(() => setHear(false)); }
+  }, [hear, media?.blobId, clipSeconds, format, start]);
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
@@ -115,9 +124,17 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="mx-auto w-full" style={{ maxWidth: size.width }}>
-        <FitWidth width={size.width} height={size.height}>
-          <RecapCard ref={ref} recap={recap} opts={opts} format={format} key={format} />
-        </FitWidth>
+        <div className="relative">
+          <FitWidth width={size.width} height={size.height}>
+            <RecapCard ref={ref} recap={recap} opts={opts} format={format} key={format} />
+          </FitWidth>
+          {media?.kind === "video" && (
+            <button type="button" onClick={() => setHear(!hear)} aria-pressed={hear} aria-label={hear ? "Mute video" : "Play video sound"}
+              className="absolute right-3 top-3 z-10 flex h-10 items-center gap-2 rounded-full bg-black/60 px-3.5 text-[13px] font-medium text-white backdrop-blur-md transition-colors hover:bg-black/75">
+              {hear ? <Volume2 size={16} /> : <VolumeX size={16} />}{hear ? "Sound on" : "Sound off"}
+            </button>
+          )}
+        </div>
       </div>
 
       <Card>
@@ -170,7 +187,7 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
           </div>
           {media?.kind === "video" && (
             <div className="grid gap-2">
-              <Toggle label="Include video sound" description="Only in the exported video. The card itself plays muted." checked={sound} onChange={setSound} />
+              <Toggle label="Include video sound" description="Keeps your clip's sound in the exported video." checked={sound} onChange={setSound} />
               {recording && <div className="h-1.5 overflow-hidden rounded-full bg-line-soft"><div className="h-full rounded-full bg-accent transition-[width]" style={{ width: `${(recording.at / recording.total) * 100}%` }} /></div>}
               <p className="text-xs text-muted">{recording ? "Recording in real time — keep this tab open." : "The video is as long as your clip. The amount counts up and the chart draws in at the start."}</p>
             </div>
