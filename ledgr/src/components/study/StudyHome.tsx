@@ -7,16 +7,16 @@ import { closedOnly } from "@/lib/calc";
 import { useEnriched } from "@/lib/hooks";
 import { getState, useLedgr } from "@/lib/store";
 import type { NoteBlock } from "@/lib/types";
-import { addDays, cx, fmtMoney, fmtR, nowISO, parseISODate, today, uid, weekStart, youtubeId } from "@/lib/util";
+import { cx, fmtMoney, fmtR, nowISO, parseISODate, today, uid, youtubeId } from "@/lib/util";
 import { verseOfTheDay } from "@/lib/verses";
-import { FocusTimer } from "./FocusTimer";
+import { FocusTimer, useStudyWeek } from "./FocusTimer";
 import { StudyPlan } from "./StudyPlan";
 
 /** Weekly focus goal for the ring, in minutes. */
 const WEEK_GOAL = 150;
 
 /** An hourglass drawn from broken horizontal scanlines (patience, time). Deterministic, so it never flickers. */
-function HourglassArt() {
+export function HourglassArt({ size = 230 }: { size?: number }) {
   const W = 220, H = 300, step = 5;
   let seed = 7;
   const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
@@ -38,9 +38,24 @@ function HourglassArt() {
     }
     rows.push({ y, segs });
   }
+  // Grains falling through the neck, and a slow shimmer on some segments (both off for reduced motion).
+  const neckY = 10 + (H - 20) * 0.5;
+  const grains = Array.from({ length: 7 }, (_, i) => ({ x: W / 2 - 3 + (i % 3) * 2.5, delay: (i * 0.37) % 2.2 }));
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-[230px] w-auto text-text" aria-hidden>
-      {rows.map((r) => r.segs.map((s, i) => <rect key={`${r.y}-${i}`} x={s.x} y={r.y} width={s.w} height={step - 1.5} fill="currentColor" opacity={s.o} />))}
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-auto text-text" style={{ height: size }} aria-hidden>
+      <style>{`
+        @keyframes hg-fall { 0% { transform: translateY(0); opacity: 0 } 15% { opacity: .9 } 100% { transform: translateY(${(H - 20) * 0.22}px); opacity: 0 } }
+        @keyframes hg-shimmer { 0%, 100% { opacity: var(--o) } 50% { opacity: calc(var(--o) * 0.35) } }
+        .hg-grain { animation: hg-fall 2.2s linear infinite }
+        .hg-shim { animation: hg-shimmer 5s ease-in-out infinite }
+        @media (prefers-reduced-motion: reduce) { .hg-grain, .hg-shim { animation: none } .hg-grain { opacity: 0 } }
+      `}</style>
+      {rows.map((r) => r.segs.map((sg, i) => {
+        const shim = (r.y * 7 + i * 13) % 9 === 0;
+        return <rect key={`${r.y}-${i}`} x={sg.x} y={r.y} width={sg.w} height={step - 1.5} fill="currentColor" opacity={sg.o}
+          className={shim ? "hg-shim" : undefined} style={shim ? ({ "--o": sg.o, animationDelay: `${(r.y % 50) / 10}s` } as React.CSSProperties) : undefined} />;
+      }))}
+      {grains.map((g, i) => <rect key={i} className="hg-grain" x={g.x} y={neckY} width={2.2} height={3} fill="currentColor" style={{ animationDelay: `${g.delay}s` }} />)}
     </svg>
   );
 }
@@ -62,7 +77,6 @@ function words(blocks: NoteBlock[]) {
 export function StudyHome({ onOpen, onLibrary }: { onOpen: (id: string) => void; onLibrary: () => void }) {
   const notes = useLedgr((s) => s.studyNotes);
   const folders = useLedgr((s) => s.studyFolders);
-  const log = useLedgr((s) => s.studyLog) ?? {};
   const all = useEnriched();
   const [tab, setTab] = useState<"video" | "trade">("video");
   const [url, setUrl] = useState("");
@@ -71,9 +85,8 @@ export function StudyHome({ onOpen, onLibrary }: { onOpen: (id: string) => void;
   const trades = useMemo(() => closedOnly(all).sort((a, b) => b.trade.date.localeCompare(a.trade.date)).slice(0, 30), [all]);
   const currency = useLedgr((s) => s.settings.baseCurrency) || "USD";
 
-  const ws = weekStart(today());
-  const week = Array.from({ length: 7 }, (_, i) => log[addDays(ws, i)] ?? 0).reduce((a, b) => a + b, 0);
-  const todayMin = log[today()] ?? 0;
+  const { days, week, today: todayMin } = useStudyWeek();
+  const dayMax = Math.max(30, ...days.map((d) => d.min));
   const pct = Math.min(1, week / WEEK_GOAL);
   const recent = [...notes].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6);
 
@@ -156,6 +169,15 @@ export function StudyHome({ onOpen, onLibrary }: { onOpen: (id: string) => void;
               <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">This week</p>
               <p className="text-[20px] font-semibold leading-tight text-text">{Math.round(week)} min</p>
               <p className="text-[12.5px] text-text-2">Today {Math.round(todayMin)} min · goal {WEEK_GOAL} min</p>
+            </div>
+            {/* Minutes per day, Monday to Sunday */}
+            <div className="flex h-12 items-end gap-1.5" aria-label="Study minutes per day this week">
+              {days.map((d) => (
+                <div key={d.date} className="flex flex-col items-center gap-1" title={`${Math.round(d.min)} min`}>
+                  <span className={cx("w-2.5 rounded-sm", d.date === today() ? "bg-text" : "bg-text/25")} style={{ height: Math.max(3, (d.min / dayMax) * 32) }} />
+                  <span className={cx("font-mono text-[9.5px]", d.date === today() ? "text-text" : "text-muted")}>{parseISODate(d.date).toLocaleDateString("en-US", { weekday: "narrow" })}</span>
+                </div>
+              ))}
             </div>
             <div className="ml-auto"><FocusTimer compact /></div>
           </div>

@@ -1,10 +1,11 @@
 "use client";
-import { Check, Folder, FolderPlus, LayoutGrid, Pencil, Pin, Plus, Search, Trash2 } from "lucide-react";
+import { Check, Clock, DoorClosed, Folder, FolderPlus, LayoutGrid, Pencil, Pin, Plus, Search, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { PageIntro } from "@/components/blocks";
 import { Board } from "@/components/study/Board";
-import { FocusTimer } from "@/components/study/FocusTimer";
+import { FocusRoom } from "@/components/study/FocusRoom";
+import { FocusTimer, useStudyWeek } from "@/components/study/FocusTimer";
 import { NoteEditor } from "@/components/study/NoteEditor";
 import { StudyHome } from "@/components/study/StudyHome";
 import { Button, Card, EmptyState, Field, IconButton, Input, Modal, Segmented, Select, useFeedback } from "@/components/ui";
@@ -23,17 +24,32 @@ function Study() {
   const router = useRouter();
   const [mode, setMode] = useState<"notes" | "boards">(params.get("board") ? "boards" : "notes");
   const count = useLedgr((s) => s.studyNotes.length);
+  const folders = useLedgr((s) => s.studyFolders);
   const home = mode === "notes" && !params.get("note") && !params.get("library");
+  const [focus, setFocus] = useState(false);
+  const { today: todayMin } = useStudyWeek();
+  const newNoteHere = () => {
+    const fid = folders[0]?.id ?? (() => { const id = uid("fld"); saveFolder({ id, name: "Loose papers", createdAt: nowISO() }); return id; })();
+    const n = newNote(fid);
+    saveNote(n);
+    setMode("notes");
+    router.replace(`/study?note=${n.id}`);
+  };
   return (
     <div className="flex flex-col gap-6">
       <PageIntro title="Study room" sub={`${count} note${count === 1 ? "" : "s"}`} actions={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {mode === "notes" && !home && <Button size="sm" variant="ghost" onClick={() => router.replace("/study")}>Home</Button>}
+          <IconButton label="Search notes" onClick={() => { setMode("notes"); router.replace("/study?library=1"); }}><Search size={15} /></IconButton>
+          <Button size="sm" variant="ghost" icon={<Plus size={14} />} onClick={newNoteHere}>New note</Button>
+          <span className="inline-flex h-8 items-center gap-1.5 px-1 font-mono text-[12.5px] text-text-2" title="Focused study today"><Clock size={13} /> {Math.round(todayMin)} min</span>
+          <Button size="sm" variant="accent" icon={<DoorClosed size={14} />} onClick={() => setFocus(true)}>Focus mode</Button>
           <Segmented ariaLabel="Study view" value={mode} onChange={(m) => { setMode(m); router.replace("/study"); }} options={[{ value: "notes", label: "Notes" }, { value: "boards", label: "Boards" }]} />
         </div>
       } />
       {!home && <PageVerse page="study" compact />}
       {!home && <FocusTimer />}
+      {focus && <FocusRoom onClose={() => setFocus(false)} onOpenNote={(id) => { setFocus(false); setMode("notes"); router.replace(`/study?note=${id}`); }} />}
       {mode === "notes" ? (home ? <StudyHome onOpen={(id) => router.replace(`/study?note=${id}`)} onLibrary={() => router.replace("/study?library=1")} /> : <Notes />) : <Boards />}
     </div>
   );
