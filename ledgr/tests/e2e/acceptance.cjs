@@ -155,6 +155,8 @@ async function check(name, fn) {
   await check("Charts and statistics update from stored records", async () => {
     await go("/dashboard");
     const kpis = page.getByRole("region", { name: "Key figures" }).or(main().locator('section[aria-label="Key figures"]'));
+    // Net P&L counts up from zero, so wait for it to land.
+    await page.waitForFunction(() => /\+\$50\.00/.test(document.querySelector('section[aria-label="Key figures"]')?.textContent ?? ""), null, { timeout: 5000 });
     assert.match(await kpis.textContent(), /\+\$50\.00/); // 100 − 50
     assert.match(await kpis.textContent(), /50\.0%/);
   });
