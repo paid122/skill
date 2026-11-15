@@ -21,17 +21,21 @@ function fmtPrice(p: number | null) {
 }
 
 /** Count-up: how long the amount takes to count from zero to the result, and the small landing pop. */
-export const COUNT_UP_SECONDS = 2.6;
-export const COUNT_POP_SECONDS = 0.7;
+export const COUNT_UP_SECONDS = 3;
+export const COUNT_POP_SECONDS = 0.8;
 /** Count-up progress (0 → 1) at time `t` seconds: fast start, gentle landing. The chart line uses the same curve. */
 export function countUpProgress(t: number) {
   const x = Math.min(1, Math.max(0, t / COUNT_UP_SECONDS));
-  return 1 - Math.pow(1 - x, 3);
+  // Ease in briefly, then glide out (smootherstep start blended into a quartic ease-out): no jolt at either end.
+  const easeOut = 1 - Math.pow(1 - x, 4);
+  const easeIn = x * x * (3 - 2 * x);
+  const w = Math.min(1, x / 0.25);
+  return easeIn * (1 - w) + easeOut * w;
 }
 /** Scale of the landing pop at time `t` seconds (1 when not popping). */
 export function countUpPop(t: number) {
   const x = (t - COUNT_UP_SECONDS) / COUNT_POP_SECONDS;
-  return x <= 0 || x >= 1 ? 1 : 1 + 0.035 * Math.sin(Math.PI * x);
+  return x <= 0 || x >= 1 ? 1 : 1 + 0.03 * Math.sin(Math.PI * x) * (1 - x * 0.3);
 }
 
 /** The big number on the card, at count-up progress `p` (1 = the real result). */
@@ -47,7 +51,14 @@ export function posterAmount(t: Trade, m: TradeMetrics, opts: Pick<PosterOptions
 /** Finish any running count-up on a card straight away (used before exporting a PNG). */
 export function finishCountUp(card: HTMLElement) {
   card.querySelectorAll<HTMLElement>("[data-poster-amount]").forEach((el) => { el.textContent = el.dataset.final ?? el.textContent; el.style.transform = ""; });
-  card.querySelectorAll<HTMLElement>("[data-poster-chart]").forEach((el) => { el.style.clipPath = ""; });
+  card.querySelectorAll<HTMLElement>("[data-poster-chart]").forEach((el) => setReveal(el, 1));
+}
+
+/** Reveal the chart from left to right up to `q` (0 → 1), with a soft fading edge. */
+function setReveal(el: HTMLElement, q: number) {
+  const m = q >= 1 ? "" : `linear-gradient(90deg, #000 calc(${q * 100}% - 10px), transparent calc(${q * 100}% + 30px))`;
+  el.style.maskImage = m;
+  el.style.setProperty("-webkit-mask-image", m);
 }
 
 export interface PosterOptions { amounts: boolean; account: string | null; handle: string; currency: string; /** profile photo (data URL) */ avatar?: string | null }
@@ -250,12 +261,12 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
       const q = countUpProgress(sec);
       el.textContent = q >= 1 ? (el.dataset.final ?? "") : amountAt.current(q);
       el.style.transform = `scale(${countUpPop(sec)})`;
-      if (ch) ch.style.clipPath = q >= 1 ? "" : `inset(-20px ${(1 - q) * 100}% -20px -20px)`;
+      if (ch) setReveal(ch, q);
       if (sec < COUNT_UP_SECONDS + COUNT_POP_SECONDS) raf = requestAnimationFrame(frame);
-      else { el.style.transform = ""; if (ch) ch.style.clipPath = ""; }
+      else { el.style.transform = ""; if (ch) setReveal(ch, 1); }
     };
     raf = requestAnimationFrame(frame);
-    return () => { cancelAnimationFrame(raf); el.textContent = el.dataset.final ?? el.textContent; el.style.transform = ""; if (ch) ch.style.clipPath = ""; };
+    return () => { cancelAnimationFrame(raf); el.textContent = el.dataset.final ?? el.textContent; el.style.transform = ""; if (ch) setReveal(ch, 1); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t.id]);
 

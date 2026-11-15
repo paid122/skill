@@ -116,6 +116,10 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
   const canvas = document.createElement("canvas");
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext("2d")!;
+  const K = W / 960;
+  const softCanvas = document.createElement("canvas");
+  softCanvas.width = W; softCanvas.height = H;
+  const soft = softCanvas.getContext("2d")!;
   const draw = () => {
     ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
     const vw = video.videoWidth || W, vh = video.videoHeight || H;
@@ -137,12 +141,17 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
     if (base && chartAt && p < 1) {
       // Everything but the chart, then the chart revealed from left to right.
       ctx.drawImage(base, 0, 0, W, H);
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(chartAt.x - 40, 0, 40 + chartAt.w * p, H);
-      ctx.clip();
-      ctx.drawImage(fg, 0, 0, W, H);
-      ctx.restore();
+      // The chart (full foreground minus the base), faded out past the reveal edge.
+      const edge = chartAt.x + chartAt.w * p;
+      soft.clearRect(0, 0, W, H);
+      soft.globalCompositeOperation = "source-over";
+      soft.drawImage(fg, 0, 0, W, H);
+      soft.globalCompositeOperation = "destination-in";
+      const fade = soft.createLinearGradient(edge - 20 * K, 0, edge + 60 * K, 0);
+      fade.addColorStop(0, "#000"); fade.addColorStop(1, "rgba(0,0,0,0)");
+      soft.fillStyle = fade;
+      soft.fillRect(chartAt.x - 40 * K, 0, W, H);
+      ctx.drawImage(softCanvas, 0, 0);
     } else ctx.drawImage(fg, 0, 0, W, H);
     // The amount, laid out like the card's text (line-height 1, so the glyphs sit centred on the line box).
     const a = amount;
@@ -152,18 +161,25 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
     ctx.textBaseline = "alphabetic";
     if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${a.spacing}px`;
     const text = p >= 1 ? o.countUp!(1) : o.countUp!(p);
-    const mt = ctx.measureText(text);
+    // Tabular digits (like the card), so the number doesn't wobble as it counts.
+    const digitW = Math.max(...Array.from("0123456789", (d) => ctx.measureText(d).width));
+    const mt = ctx.measureText("0");
     const asc = mt.fontBoundingBoxAscent ?? a.size * 0.97, desc = mt.fontBoundingBoxDescent ?? a.size * 0.24;
     const baseline = a.y + (a.size - (asc + desc)) / 2 + asc;
     const pop = countUpPop(sec);
     ctx.translate(a.x, baseline - a.size * 0.35);
     ctx.scale(pop, pop);
     if (a.shadow) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowOffsetY = 8 * (W / 960); ctx.shadowBlur = 40 * (W / 960); }
-    ctx.fillText(text, 0, a.size * 0.35);
+    if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = "0px";
+    let x = 0;
+    for (const ch of text) {
+      if (/[0-9]/.test(ch)) { const cw = ctx.measureText(ch).width; ctx.fillText(ch, x + (digitW - cw) / 2, a.size * 0.35); x += digitW + a.spacing; }
+      else { ctx.fillText(ch, x, a.size * 0.35); x += ctx.measureText(ch).width + a.spacing; }
+    }
     ctx.restore();
   };
 
-  const stream = canvas.captureStream(30);
+  const stream = canvas.captureStream(60);
   let audio: AudioContext | null = null;
   if (o.sound) {
     try {
@@ -176,7 +192,7 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
   } else video.muted = true;
 
   const chunks: Blob[] = [];
-  const rec = new MediaRecorder(stream, { mimeType: fmt.mime, videoBitsPerSecond: 12_000_000 });
+  const rec = new MediaRecorder(stream, { mimeType: fmt.mime, videoBitsPerSecond: 16_000_000 });
   rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
   const stopped = new Promise<void>((r) => { rec.onstop = () => r(); });
 
