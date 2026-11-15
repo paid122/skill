@@ -3,8 +3,8 @@ import { CalendarRange, Download, Film, ImagePlus, Trash2, X } from "lucide-reac
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FitWidth } from "@/components/FitWidth";
 import { finishCountUp } from "@/components/PosterCard";
-import { RECAP_SIZE, RecapCard, recapValue } from "@/components/RecapCard";
-import { Button, Card, EmptyState, Field, Input, SectionTitle, Select, Toggle, useFeedback } from "@/components/ui";
+import { RecapCard, recapCounts, recapSize, recapValue, type RecapFormat } from "@/components/RecapCard";
+import { Button, Card, EmptyState, Field, Input, SectionTitle, Segmented, Select, Toggle, useFeedback } from "@/components/ui";
 import { updateSettings } from "@/lib/actions";
 import { exportPng } from "@/lib/exporter";
 import { freezeVideosForExport } from "@/lib/freezeVideo";
@@ -29,6 +29,7 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
   const media = settings.recapMedia ?? null;
   const [accountId, setAccountId] = useState<string>("all");
   const [amounts, setAmounts] = useState(true);
+  const [format, setFormat] = useState<RecapFormat>("post");
   const [handle, setHandle] = useState(settings.displayName);
   const [picked, setPicked] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -59,7 +60,7 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
       else if (++tries > 40) clearInterval(id);
     }, 250);
     return () => clearInterval(id);
-  }, [media?.kind, media?.blobId, start]);
+  }, [media?.kind, media?.blobId, start, format]);
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
@@ -74,7 +75,7 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
   };
   const removeMedia = async () => { if (media) await deleteBlob(media.blobId).catch(() => undefined); updateSettings({ recapMedia: null }); };
 
-  const fileName = start ? `ledgr-${kind === "week" ? "week" : "month"}-${start}` : "ledgr-recap";
+  const fileName = start ? `ledgr-${kind === "week" ? "week" : "month"}-${start}${format === "story" ? "-story" : ""}` : "ledgr-recap";
   const exportCard = async () => {
     const node = ref.current;
     if (!node) return;
@@ -95,7 +96,7 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
     abortRef.current = ctrl;
     setRecording({ at: 0, total: Math.min(v.duration, MAX_EXPORT_SECONDS) });
     try {
-      const { blob, ext } = await exportCardVideo({ card: node, videoUrl: v.src, dim: media.dim, blur: media.blur, sound, countUp: (q) => recapValue(recap.total, { amounts, currency }, q), signal: ctrl.signal, onProgress: (at, total) => setRecording({ at, total }) });
+      const { blob, ext } = await exportCardVideo({ card: node, videoUrl: v.src, dim: media.dim, blur: media.blur, sound, countUp: (q) => recapValue(recap.total, { amounts, currency }, q), counts: recapCounts(recap, { amounts, currency }), signal: ctrl.signal, onProgress: (at, total) => setRecording({ at, total }) });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = `${fileName}.${ext}`; a.click();
@@ -109,13 +110,13 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
   if (!recap) {
     return <EmptyState icon={<CalendarRange size={18} />} title={`No closed trades to recap yet`} body={`Close a trade and your ${kind === "week" ? "weekly" : "monthly"} recap card appears here.`} />;
   }
-  const size = RECAP_SIZE[kind];
+  const size = recapSize(kind, format);
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div className={kind === "month" ? "mx-auto w-full max-w-[720px]" : ""}>
+      <div className="mx-auto w-full" style={{ maxWidth: size.width }}>
         <FitWidth width={size.width} height={size.height}>
-          <RecapCard ref={ref} recap={recap} opts={opts} />
+          <RecapCard ref={ref} recap={recap} opts={opts} format={format} key={format} />
         </FitWidth>
       </div>
 
@@ -126,6 +127,9 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
             <Select value={start ?? ""} onChange={(e) => setPicked(e.target.value)}>
               {periods.map((p) => <option key={p} value={p}>{periodLabel(kind, p)}</option>)}
             </Select>
+          </Field>
+          <Field label="Format" hint={format === "story" ? "9:16, fills a TikTok or Instagram story" : kind === "week" ? "Wide, for posts and X" : "Square, for posts"}>
+            <Segmented value={format} onChange={setFormat} options={[{ value: "post", label: kind === "week" ? "Post (wide)" : "Post (square)" }, { value: "story", label: "Story (9:16)" }]} ariaLabel="Card format" />
           </Field>
           {accounts.length > 1 && (
             <Field label="Account">

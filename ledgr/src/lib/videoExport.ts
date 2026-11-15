@@ -26,6 +26,8 @@ export interface VideoExportOptions {
   sound: boolean;
   /** The big amount at count-up progress 0 → 1. Leave out for a still foreground. */
   countUp?: (p: number) => string;
+  /** Other numbers that count up, keyed by their element's `data-count` value. */
+  counts?: Record<string, (p: number) => string>;
   onProgress?: (seconds: number, total: number) => void;
   signal?: AbortSignal;
 }
@@ -96,17 +98,29 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
   // Counting: capture the card without the amount (drawn per frame), plus a copy without the chart (revealed per frame).
   // The two captures toggle visibility on the same card, so they must run one after the other.
   const videoP = loadVideo(o.videoUrl);
-  const fg = await foreground(o.card, counting ? ["[data-poster-amount]"] : []);
-  const base = counting && chartEl ? await foreground(o.card, ["[data-poster-amount]", "[data-poster-chart]"]) : null;
+  const hideText = counting ? ["[data-poster-amount]", ...(o.counts ? ["[data-count]"] : [])] : [];
+  const fg = await foreground(o.card, hideText);
+  const base = counting && chartEl ? await foreground(o.card, [...hideText, "[data-poster-chart]"]) : null;
   const video = await videoP;
-  let amount: null | { x: number; y: number; size: number; font: string; color: string; spacing: number; shadow: boolean } = null;
-  if (counting && amountEl) {
-    const at = placeOf(o.card, amountEl, W);
-    const cs = getComputedStyle(amountEl);
-    // Font size is in card pixels; positions above already account for on-screen scaling.
+  // Every counting number, measured where it sits on the card.
+  type Counter = { x: number; y: number; size: number; font: string; color: string; spacing: number; shadow: boolean; pop: boolean; at: (p: number) => string };
+  const measure = (el: HTMLElement, at: (p: number) => string, pop: boolean): Counter => {
+    const box = placeOf(o.card, el, W);
+    const cs = getComputedStyle(el);
+    // Font size is in card pixels; positions already account for on-screen scaling.
     const size = parseFloat(cs.fontSize) * (W / cardW);
-    amount = { x: at.x, y: at.y, size, font: `${cs.fontWeight} ${size}px ${cs.fontFamily}`, color: cs.color, spacing: -0.04 * size, shadow: cs.textShadow !== "none" };
+    const em = parseFloat(cs.letterSpacing);
+    return { x: box.x, y: box.y + (box.h - size) / 2, size, font: `${cs.fontWeight} ${size}px ${cs.fontFamily}`, color: cs.color, spacing: Number.isFinite(em) ? em * (W / cardW) : 0, shadow: cs.textShadow !== "none" && pop, pop, at };
+  };
+  const counters: Counter[] = [];
+  if (counting && amountEl) counters.push(measure(amountEl, o.countUp!, true));
+  if (counting && o.counts) {
+    o.card.querySelectorAll<HTMLElement>("[data-count]").forEach((el) => {
+      const at = o.counts![el.dataset.count ?? ""];
+      if (at) counters.push(measure(el, at, false));
+    });
   }
+  const amount = counters.length ? counters : null;
   const chartAt = counting && chartEl ? placeOf(o.card, chartEl, W) : null;
   const total0 = Math.min(video.duration || 0, MAX_EXPORT_SECONDS);
   const timeScale = Math.min(1, (total0 * 0.8) / (COUNT_UP_SECONDS + COUNT_POP_SECONDS)) || 1;
@@ -121,6 +135,29 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
   const softCanvas = document.createElement("canvas");
   softCanvas.width = W; softCanvas.height = H;
   const soft = softCanvas.getContext("2d")!;
+  // A counting number, laid out like the card's text (line-height 1, glyphs centred on the line box), with tabular digits.
+  const drawCounter = (a: { x: number; y: number; size: number; font: string; color: string; spacing: number; shadow: boolean; pop: boolean; at: (p: number) => string }, p: number, sec: number) => {
+    ctx.save();
+    ctx.font = a.font;
+    ctx.fillStyle = a.color;
+    ctx.textBaseline = "alphabetic";
+    if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = "0px";
+    const text = a.at(p >= 1 ? 1 : p);
+    const digitW = Math.max(...Array.from("0123456789", (d) => ctx.measureText(d).width));
+    const mt = ctx.measureText("0");
+    const asc = mt.fontBoundingBoxAscent ?? a.size * 0.97, desc = mt.fontBoundingBoxDescent ?? a.size * 0.24;
+    const baseline = a.y + (a.size - (asc + desc)) / 2 + asc;
+    const pop = a.pop ? countUpPop(sec) : 1;
+    ctx.translate(a.x, baseline - a.size * 0.35);
+    ctx.scale(pop, pop);
+    if (a.shadow) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowOffsetY = 8 * K; ctx.shadowBlur = 40 * K; }
+    let x = 0;
+    for (const ch of text) {
+      if (/[0-9]/.test(ch)) { const cw = ctx.measureText(ch).width; ctx.fillText(ch, x + (digitW - cw) / 2, a.size * 0.35); x += digitW + a.spacing; }
+      else { ctx.fillText(ch, x, a.size * 0.35); x += ctx.measureText(ch).width + a.spacing; }
+    }
+    ctx.restore();
+  };
   const draw = () => {
     ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
     const vw = video.videoWidth || W, vh = video.videoHeight || H;
@@ -154,30 +191,7 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
       soft.fillRect(chartAt.x - 40 * K, 0, W, H);
       ctx.drawImage(softCanvas, 0, 0);
     } else ctx.drawImage(fg, 0, 0, W, H);
-    // The amount, laid out like the card's text (line-height 1, so the glyphs sit centred on the line box).
-    const a = amount;
-    ctx.save();
-    ctx.font = a.font;
-    ctx.fillStyle = a.color;
-    ctx.textBaseline = "alphabetic";
-    if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${a.spacing}px`;
-    const text = p >= 1 ? o.countUp!(1) : o.countUp!(p);
-    // Tabular digits (like the card), so the number doesn't wobble as it counts.
-    const digitW = Math.max(...Array.from("0123456789", (d) => ctx.measureText(d).width));
-    const mt = ctx.measureText("0");
-    const asc = mt.fontBoundingBoxAscent ?? a.size * 0.97, desc = mt.fontBoundingBoxDescent ?? a.size * 0.24;
-    const baseline = a.y + (a.size - (asc + desc)) / 2 + asc;
-    const pop = countUpPop(sec);
-    ctx.translate(a.x, baseline - a.size * 0.35);
-    ctx.scale(pop, pop);
-    if (a.shadow) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowOffsetY = 8 * K; ctx.shadowBlur = 40 * K; }
-    if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = "0px";
-    let x = 0;
-    for (const ch of text) {
-      if (/[0-9]/.test(ch)) { const cw = ctx.measureText(ch).width; ctx.fillText(ch, x + (digitW - cw) / 2, a.size * 0.35); x += digitW + a.spacing; }
-      else { ctx.fillText(ch, x, a.size * 0.35); x += ctx.measureText(ch).width + a.spacing; }
-    }
-    ctx.restore();
+    for (const a of amount) drawCounter(a, p, sec);
   };
 
   const stream = canvas.captureStream(60);
