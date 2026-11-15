@@ -6,6 +6,7 @@ import { PageIntro } from "@/components/blocks";
 import { Board } from "@/components/study/Board";
 import { FocusTimer } from "@/components/study/FocusTimer";
 import { NoteEditor } from "@/components/study/NoteEditor";
+import { StudyPlan } from "@/components/study/StudyPlan";
 import { Button, Card, EmptyState, Field, IconButton, Input, Modal, Segmented, Select, useFeedback } from "@/components/ui";
 import { PageVerse } from "@/components/VerseCard";
 import { deleteBoard, deleteFolder, deleteNote, newNote, saveBoard, saveFolder, saveNote, ValidationError } from "@/lib/actions";
@@ -25,6 +26,7 @@ function Study() {
     <div className="flex flex-col gap-6">
       <PageIntro title="Study room" sub="Your personal library: notes, video lessons and visual boards." actions={<Segmented ariaLabel="Study view" value={mode} onChange={(m) => { setMode(m); router.replace("/study"); }} options={[{ value: "notes", label: "Notes" }, { value: "boards", label: "Boards" }]} />} />
       <PageVerse page="study" compact />
+      {mode === "notes" && <StudyPlan />}
       <FocusTimer />
       {mode === "notes" ? <Notes /> : <Boards />}
     </div>
