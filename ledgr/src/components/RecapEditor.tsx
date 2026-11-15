@@ -3,7 +3,7 @@ import { CalendarRange, Download, Film, ImagePlus, Trash2, X } from "lucide-reac
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FitWidth } from "@/components/FitWidth";
 import { finishCountUp } from "@/components/PosterCard";
-import { RecapCard, recapCounts, recapSize, recapValue, type RecapFormat } from "@/components/RecapCard";
+import { RecapCard, recapSize, recapValue, type RecapFormat } from "@/components/RecapCard";
 import { Button, Card, EmptyState, Field, Input, SectionTitle, Segmented, Select, Toggle, useFeedback } from "@/components/ui";
 import { updateSettings } from "@/lib/actions";
 import { exportPng } from "@/lib/exporter";
@@ -96,7 +96,7 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
     abortRef.current = ctrl;
     setRecording({ at: 0, total: Math.min(v.duration, MAX_EXPORT_SECONDS) });
     try {
-      const { blob, ext } = await exportCardVideo({ card: node, videoUrl: v.src, dim: media.dim, blur: media.blur, sound, countUp: (q) => recapValue(recap.total, { amounts, currency }, q), counts: recapCounts(recap, { amounts, currency }), signal: ctrl.signal, onProgress: (at, total) => setRecording({ at, total }) });
+      const { blob, ext } = await exportCardVideo({ card: node, videoUrl: v.src, dim: media.dim, blur: media.blur, sound, countUp: (q) => recapValue(recap.total, { amounts, currency }, q), signal: ctrl.signal, onProgress: (at, total) => setRecording({ at, total }) });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = `${fileName}.${ext}`; a.click();
