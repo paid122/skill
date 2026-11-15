@@ -12,7 +12,7 @@ const read = (): Saved => { try { return JSON.parse(localStorage.getItem(KEY) ??
 const write = (s: Saved) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* ignore */ } };
 
 /** A study focus timer. Time survives reloads; finished sessions add minutes to today's study log. */
-export function FocusTimer() {
+export function FocusTimer({ compact = false }: { compact?: boolean } = {}) {
   const log = useLedgr((s) => s.studyLog) ?? {};
   const [state, setState] = useState<Saved>({ startedAt: null, carried: 0 });
   const [now, setNow] = useState(Date.now());
@@ -35,6 +35,15 @@ export function FocusTimer() {
   const todayMin = log[today()] ?? 0;
   const mm = Math.floor(elapsed / 60000), ss = Math.floor((elapsed % 60000) / 1000);
 
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3">
+        {(running || elapsed > 0) && <span className="num text-[18px] leading-none" aria-live="off">{String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}</span>}
+        {running ? <Button size="sm" icon={<Pause size={14} />} onClick={pause}>Pause</Button> : <Button size="sm" variant="accent" icon={<Play size={14} />} onClick={start}>{elapsed ? "Resume" : "Start focus"}</Button>}
+        {elapsed > 0 && <Button size="sm" icon={<Square size={13} />} onClick={finish}>Finish & log</Button>}
+      </div>
+    );
+  }
   return (
     <div className="card flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
       <div className="flex items-center gap-3">

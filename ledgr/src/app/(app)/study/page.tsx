@@ -6,7 +6,7 @@ import { PageIntro } from "@/components/blocks";
 import { Board } from "@/components/study/Board";
 import { FocusTimer } from "@/components/study/FocusTimer";
 import { NoteEditor } from "@/components/study/NoteEditor";
-import { StudyPlan } from "@/components/study/StudyPlan";
+import { StudyHome } from "@/components/study/StudyHome";
 import { Button, Card, EmptyState, Field, IconButton, Input, Modal, Segmented, Select, useFeedback } from "@/components/ui";
 import { PageVerse } from "@/components/VerseCard";
 import { deleteBoard, deleteFolder, deleteNote, newNote, saveBoard, saveFolder, saveNote, ValidationError } from "@/lib/actions";
@@ -22,13 +22,19 @@ function Study() {
   const params = useSearchParams();
   const router = useRouter();
   const [mode, setMode] = useState<"notes" | "boards">(params.get("board") ? "boards" : "notes");
+  const count = useLedgr((s) => s.studyNotes.length);
+  const home = mode === "notes" && !params.get("note") && !params.get("library");
   return (
     <div className="flex flex-col gap-6">
-      <PageIntro title="Study room" sub="Your personal library: notes, video lessons and visual boards." actions={<Segmented ariaLabel="Study view" value={mode} onChange={(m) => { setMode(m); router.replace("/study"); }} options={[{ value: "notes", label: "Notes" }, { value: "boards", label: "Boards" }]} />} />
-      <PageVerse page="study" compact />
-      {mode === "notes" && <StudyPlan />}
-      <FocusTimer />
-      {mode === "notes" ? <Notes /> : <Boards />}
+      <PageIntro title="Study room" sub={`${count} note${count === 1 ? "" : "s"}`} actions={
+        <div className="flex items-center gap-2">
+          {mode === "notes" && !home && <Button size="sm" variant="ghost" onClick={() => router.replace("/study")}>Home</Button>}
+          <Segmented ariaLabel="Study view" value={mode} onChange={(m) => { setMode(m); router.replace("/study"); }} options={[{ value: "notes", label: "Notes" }, { value: "boards", label: "Boards" }]} />
+        </div>
+      } />
+      {!home && <PageVerse page="study" compact />}
+      {!home && <FocusTimer />}
+      {mode === "notes" ? (home ? <StudyHome onOpen={(id) => router.replace(`/study?note=${id}`)} onLibrary={() => router.replace("/study?library=1")} /> : <Notes />) : <Boards />}
     </div>
   );
 }
