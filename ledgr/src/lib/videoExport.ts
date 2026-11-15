@@ -8,9 +8,13 @@
  *     darkening as the card, and the foreground drawn on top of each frame.
  *  3. The canvas (plus the video's own sound) is recorded with MediaRecorder.
  *
+ * With `countUp`, the big amount counts from zero to the result over the first seconds while the
+ * chart draws in (the same timing as on the card), then lands with a small pop.
+ *
  * Recording runs in real time, so a 15 s video takes about 15 s to export.
  */
 import { toPng } from "html-to-image";
+import { COUNT_POP_SECONDS, COUNT_UP_SECONDS, countUpPop, countUpProgress } from "@/components/PosterCard";
 
 export const MAX_EXPORT_SECONDS = 60;
 
@@ -20,6 +24,8 @@ export interface VideoExportOptions {
   dim: number;
   blur: number;
   sound: boolean;
+  /** The big amount at count-up progress 0 → 1. Leave out for a still foreground. */
+  countUp?: (p: number) => string;
   onProgress?: (seconds: number, total: number) => void;
   signal?: AbortSignal;
 }
@@ -39,11 +45,13 @@ export function recordingFormat(): { mime: string; ext: "mp4" | "webm" } | null 
   return hit ? { mime: hit[0], ext: hit[1] } : null;
 }
 
-async function foreground(card: HTMLElement): Promise<HTMLImageElement> {
+async function foreground(card: HTMLElement, hide: string[] = []): Promise<HTMLImageElement> {
   // Hide the background media and the card colour so only the foreground is captured.
   const media = card.querySelector<HTMLElement>("[data-poster-media]");
+  const hidden = hide.flatMap((sel) => Array.from(card.querySelectorAll<HTMLElement>(sel)));
   const prevBg = card.style.background;
   if (media) media.style.visibility = "hidden";
+  hidden.forEach((el) => { el.style.visibility = "hidden"; });
   card.style.background = "transparent";
   try {
     const url = await toPng(card, { pixelRatio: 2, cacheBust: false, filter: (n) => !(n instanceof HTMLVideoElement) });
@@ -53,8 +61,16 @@ async function foreground(card: HTMLElement): Promise<HTMLImageElement> {
     return img;
   } finally {
     if (media) media.style.visibility = "";
+    hidden.forEach((el) => { el.style.visibility = ""; });
     card.style.background = prevBg;
   }
+}
+
+/** Where an element sits on the card, in export pixels (the card may be shown scaled down on screen). */
+function placeOf(card: HTMLElement, el: HTMLElement, exportWidth: number) {
+  const c = card.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const k = exportWidth / c.width;
+  return { x: (r.left - c.left) * k, y: (r.top - c.top) * k, w: r.width * k, h: r.height * k, k };
 }
 
 function loadVideo(url: string): Promise<HTMLVideoElement> {
@@ -73,7 +89,27 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
   const fmt = recordingFormat();
   if (!fmt) throw new Error("Your browser can't record video. Try Chrome, Edge or Safari.");
   const W = 1920, H = 1008;
-  const [fg, video] = await Promise.all([foreground(o.card), loadVideo(o.videoUrl)]);
+  const amountEl = o.countUp ? o.card.querySelector<HTMLElement>("[data-poster-amount]") : null;
+  const chartEl = o.card.querySelector<HTMLElement>("[data-poster-chart]");
+  const counting = !!(o.countUp && amountEl);
+  // Counting: capture the card without the amount (drawn per frame), plus a copy without the chart (revealed per frame).
+  // The two captures toggle visibility on the same card, so they must run one after the other.
+  const videoP = loadVideo(o.videoUrl);
+  const fg = await foreground(o.card, counting ? ["[data-poster-amount]"] : []);
+  const base = counting && chartEl ? await foreground(o.card, ["[data-poster-amount]", "[data-poster-chart]"]) : null;
+  const video = await videoP;
+  let amount: null | { x: number; y: number; size: number; font: string; color: string; spacing: number; shadow: boolean } = null;
+  if (counting && amountEl) {
+    const at = placeOf(o.card, amountEl, W);
+    const cs = getComputedStyle(amountEl);
+    // Font size is in card pixels (960 wide); positions above already account for on-screen scaling.
+    const size = parseFloat(cs.fontSize) * (W / 960);
+    amount = { x: at.x, y: at.y, size, font: `${cs.fontWeight} ${size}px ${cs.fontFamily}`, color: cs.color, spacing: -0.04 * size, shadow: cs.textShadow !== "none" };
+  }
+  const chartAt = counting && chartEl ? placeOf(o.card, chartEl, W) : null;
+  const total0 = Math.min(video.duration || 0, MAX_EXPORT_SECONDS);
+  const timeScale = Math.min(1, (total0 * 0.8) / (COUNT_UP_SECONDS + COUNT_POP_SECONDS)) || 1;
+  let ended = false;
   const total = Math.min(video.duration || 0, MAX_EXPORT_SECONDS);
   if (!total || !Number.isFinite(total)) throw new Error("Couldn't read the video's length.");
 
@@ -94,7 +130,37 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
     g.addColorStop(0.45, `rgba(0,0,0,${o.dim})`);
     g.addColorStop(1, `rgba(0,0,0,${Math.max(0, o.dim - 0.15)})`);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.drawImage(fg, 0, 0, W, H);
+    // Short clips count faster, so the amount always lands before the clip ends.
+    const sec = ended ? Infinity : video.currentTime / timeScale;
+    if (!amount) { ctx.drawImage(fg, 0, 0, W, H); return; }
+    const p = countUpProgress(sec);
+    if (base && chartAt && p < 1) {
+      // Everything but the chart, then the chart revealed from left to right.
+      ctx.drawImage(base, 0, 0, W, H);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(chartAt.x - 40, 0, 40 + chartAt.w * p, H);
+      ctx.clip();
+      ctx.drawImage(fg, 0, 0, W, H);
+      ctx.restore();
+    } else ctx.drawImage(fg, 0, 0, W, H);
+    // The amount, laid out like the card's text (line-height 1, so the glyphs sit centred on the line box).
+    const a = amount;
+    ctx.save();
+    ctx.font = a.font;
+    ctx.fillStyle = a.color;
+    ctx.textBaseline = "alphabetic";
+    if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${a.spacing}px`;
+    const text = p >= 1 ? o.countUp!(1) : o.countUp!(p);
+    const mt = ctx.measureText(text);
+    const asc = mt.fontBoundingBoxAscent ?? a.size * 0.97, desc = mt.fontBoundingBoxDescent ?? a.size * 0.24;
+    const baseline = a.y + (a.size - (asc + desc)) / 2 + asc;
+    const pop = countUpPop(sec);
+    ctx.translate(a.x, baseline - a.size * 0.35);
+    ctx.scale(pop, pop);
+    if (a.shadow) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowOffsetY = 8 * (W / 960); ctx.shadowBlur = 40 * (W / 960); }
+    ctx.fillText(text, 0, a.size * 0.35);
+    ctx.restore();
   };
 
   const stream = canvas.captureStream(30);
@@ -121,6 +187,7 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
   const finish = () => {
     if (done) return;
     done = true;
+    ended = true;
     cancelAnimationFrame(raf);
     video.pause();
     draw();

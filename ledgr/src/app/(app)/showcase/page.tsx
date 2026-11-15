@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BlobImage } from "@/components/BlobImage";
 import { PageIntro } from "@/components/blocks";
 import { FitWidth } from "@/components/FitWidth";
-import { PosterCard } from "@/components/PosterCard";
+import { finishCountUp, PosterCard, posterAmount } from "@/components/PosterCard";
 import { CARD_THEMES, ShareSurface, themeColors } from "@/components/ShareCard";
 import { Badge, Button, Card, EmptyState, Field, Input, Modal, SectionTitle, Segmented, Textarea, Toggle, useFeedback } from "@/components/ui";
 import { dayWindow, guessSource, pickWindow, timesUnknown, type Bar, type TradeChart } from "@/lib/candles";
@@ -194,9 +194,10 @@ function Editor({ x }: { x: EnrichedTrade }) {
     if (!node || !v || !media) return;
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+    finishCountUp(node);
     setRecording({ at: 0, total: Math.min(v.duration, MAX_EXPORT_SECONDS) });
     try {
-      const { blob, ext } = await exportCardVideo({ card: node, videoUrl: v.src, dim: media.dim, blur: media.blur, sound, signal: ctrl.signal, onProgress: (at, total) => setRecording({ at, total }) });
+      const { blob, ext } = await exportCardVideo({ card: node, videoUrl: v.src, dim: media.dim, blur: media.blur, sound, countUp: (q) => posterAmount(t, x.m, { amounts: privacy.amounts, currency: account?.currency ?? "USD" }, q), signal: ctrl.signal, onProgress: (at, total) => setRecording({ at, total }) });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = `ledgr-${t.symbol}-${t.number}.${ext}`; a.click();
@@ -212,6 +213,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const exportCard = async () => {
     const node = ref.current;
     if (!node) return;
+    finishCountUp(node);
     setBusy(true);
     // Videos can't be captured directly: freeze the current frame as an image for the export.
     const swaps: (() => void)[] = [];

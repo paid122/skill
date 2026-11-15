@@ -1,7 +1,7 @@
 "use client";
 import { Droplet, Flame } from "lucide-react";
 import { marketGlyph, symbolImage } from "@/lib/instrument";
-import { forwardRef, useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { INTERVAL_MS, locateByPrice, timesUnknown, type TradeChart } from "@/lib/candles";
 import type { TradeMetrics } from "@/lib/calc";
 import type { Trade } from "@/lib/types";
@@ -18,6 +18,36 @@ const BIG_ROOM = 390;
 function fmtPrice(p: number | null) {
   if (p === null) return "—";
   return p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: p >= 1000 ? 2 : p >= 10 ? 3 : 5 });
+}
+
+/** Count-up: how long the amount takes to count from zero to the result, and the small landing pop. */
+export const COUNT_UP_SECONDS = 2.6;
+export const COUNT_POP_SECONDS = 0.7;
+/** Count-up progress (0 → 1) at time `t` seconds: fast start, gentle landing. The chart line uses the same curve. */
+export function countUpProgress(t: number) {
+  const x = Math.min(1, Math.max(0, t / COUNT_UP_SECONDS));
+  return 1 - Math.pow(1 - x, 3);
+}
+/** Scale of the landing pop at time `t` seconds (1 when not popping). */
+export function countUpPop(t: number) {
+  const x = (t - COUNT_UP_SECONDS) / COUNT_POP_SECONDS;
+  return x <= 0 || x >= 1 ? 1 : 1 + 0.035 * Math.sin(Math.PI * x);
+}
+
+/** The big number on the card, at count-up progress `p` (1 = the real result). */
+export function posterAmount(t: Trade, m: TradeMetrics, opts: Pick<PosterOptions, "amounts" | "currency">, p = 1) {
+  const points = m.avgEntry !== null && m.avgExit !== null ? (m.avgExit - m.avgEntry) * (t.direction === "short" ? -1 : 1) : null;
+  const fmtPts = (v: number) => `${v >= 0 ? "+" : "−"}${fmtNum(Math.abs(v), Math.abs(v) < 1 ? 4 : 2)} pts`;
+  if (opts.amounts) return fmtMoney(m.net === null ? null : m.net * p, opts.currency, { sign: true });
+  if (m.r !== null) return fmtR(m.r * p);
+  if (points !== null) return fmtPts(points * p);
+  return "—";
+}
+
+/** Finish any running count-up on a card straight away (used before exporting a PNG). */
+export function finishCountUp(card: HTMLElement) {
+  card.querySelectorAll<HTMLElement>("[data-poster-amount]").forEach((el) => { el.textContent = el.dataset.final ?? el.textContent; el.style.transform = ""; });
+  card.querySelectorAll<HTMLElement>("[data-poster-chart]").forEach((el) => { el.style.clipPath = ""; });
 }
 
 export interface PosterOptions { amounts: boolean; account: string | null; handle: string; currency: string; /** profile photo (data URL) */ avatar?: string | null }
@@ -175,10 +205,7 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
   // (no stop recorded) and the dollar amount is hidden, so the card never shows a bare dash.
   const points = m.avgEntry !== null && m.avgExit !== null ? (m.avgExit - m.avgEntry) * (t.direction === "short" ? -1 : 1) : null;
   const fmtPts = (p: number) => `${p >= 0 ? "+" : "−"}${fmtNum(Math.abs(p), Math.abs(p) < 1 ? 4 : 2)} pts`;
-  const big = opts.amounts ? fmtMoney(m.net, opts.currency, { sign: true })
-    : m.r !== null ? fmtR(m.r)
-    : points !== null ? fmtPts(points)
-    : "—";
+  const big = posterAmount(t, m, opts);
   const date = parseISODate(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
   const noun = t.market === "Futures" ? "contract" : t.market === "Stocks" ? "share" : t.market === "Forex" || t.market === "Commodities" || t.market === "Indices" ? "lot" : "unit";
   const size = m.entryQty ? `${fmtNum(m.entryQty, m.entryQty % 1 ? 2 : 0)} ${noun}${m.entryQty === 1 ? "" : "s"}` : "—";
@@ -203,6 +230,35 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
     return () => { live = false; };
   }, [big, bigMax]);
 
+  const countRef = useRef<HTMLSpanElement>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  // The visible amount is written directly (the count-up below rewrites it every frame).
+  useLayoutEffect(() => { if (countRef.current) countRef.current.textContent = big; }, [big]);
+
+  // Count-up: the amount counts from zero to the result while the chart draws in, then lands with a small pop.
+  // Updated straight in the DOM (no re-render per frame). Plays when the card opens or shows another trade.
+  const amountAt = useRef((q: number) => posterAmount(t, m, opts, q));
+  amountAt.current = (q: number) => posterAmount(t, m, opts, q);
+  useEffect(() => {
+    const el = countRef.current, ch = chartRef.current;
+    if (!el || big === "—") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    const t0 = performance.now();
+    const frame = (now: number) => {
+      const sec = (now - t0) / 1000;
+      const q = countUpProgress(sec);
+      el.textContent = q >= 1 ? (el.dataset.final ?? "") : amountAt.current(q);
+      el.style.transform = `scale(${countUpPop(sec)})`;
+      if (ch) ch.style.clipPath = q >= 1 ? "" : `inset(-20px ${(1 - q) * 100}% -20px -20px)`;
+      if (sec < COUNT_UP_SECONDS + COUNT_POP_SECONDS) raf = requestAnimationFrame(frame);
+      else { el.style.transform = ""; if (ch) ch.style.clipPath = ""; }
+    };
+    raf = requestAnimationFrame(frame);
+    return () => { cancelAnimationFrame(raf); el.textContent = el.dataset.final ?? el.textContent; el.style.transform = ""; if (ch) ch.style.clipPath = ""; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t.id]);
+
   return (
     <div ref={ref} className="relative overflow-hidden rounded-[28px]" style={{ width: 960, height: 504, background: theme.gradient ? `${theme.gradient}, ${theme.bg}` : theme.bg, color: fg, fontFamily: "'Inter Variable', Inter, system-ui, sans-serif" }}>
       {media && <Media {...media} />}
@@ -214,7 +270,13 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
             <span className="text-[15px] font-semibold uppercase tracking-[0.14em]" style={{ color: sub }}>{t.direction ?? ""} · {date}</span>
           </div>
           <div>
-            <p ref={bigRef} className="w-max whitespace-nowrap font-extrabold leading-none tracking-[-0.04em]" style={{ fontSize: bigSize, color: onMedia ? fg : good ? theme.pos : theme.neg, textShadow: onMedia ? "0 8px 40px rgba(0,0,0,0.45)" : undefined }}>{big}</p>
+            <p ref={bigRef} className="w-max whitespace-nowrap font-extrabold leading-none tracking-[-0.04em]" style={{ fontSize: bigSize, color: onMedia ? fg : good ? theme.pos : theme.neg, textShadow: onMedia ? "0 8px 40px rgba(0,0,0,0.45)" : undefined }}>
+              {/* The final amount sets the size; the counting amount sits on top of it. */}
+              <span className="relative block tabular-nums">
+                <span aria-hidden className="invisible">{big}</span>
+                <span ref={countRef} data-poster-amount data-final={big} className="absolute left-0 top-0 origin-left" />
+              </span>
+            </p>
             {opts.amounts && (m.r !== null || points !== null) && <p className="mt-2 font-mono text-[18px]" style={{ color: sub }}>{m.r !== null ? fmtR(m.r) : fmtPts(points!)}</p>}
           </div>
           <dl className="grid w-fit grid-cols-[110px_auto] gap-y-3 text-[22px]">
@@ -241,7 +303,7 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
       {/* Where to find LEDGR, for anyone who sees the card */}
       <span className="absolute bottom-12 right-12 text-[16px] font-semibold tracking-tight" style={{ color: sub }}>{SITE_HOST}</span>
       {/* Chart fills the right half, like a poster. */}
-      <div className="absolute" style={{ left: 470, top: 74, width: 460, height: 330 }}>
+      <div ref={chartRef} data-poster-chart className="absolute" style={{ left: 470, top: 74, width: 460, height: 330 }}>
         {chart
           ? <PriceChart trade={t} chart={chart} color={fg} label={onMedia ? "#FFFFFF" : theme.fg} labelText={onMedia ? "#0A0A0A" : theme.bg} />
           : chartLoading ? <ChartPlaceholder color={fg} />
