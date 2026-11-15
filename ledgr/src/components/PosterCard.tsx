@@ -289,14 +289,14 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
       <div className="relative flex h-full">
         <div className="flex flex-1 flex-col justify-between p-12">
           <div className="flex items-center gap-4">
+            {/* LEDGR first, then the market — every shared card says where it is from */}
+            <span className="inline-flex shrink-0 items-center gap-2 text-[19px] font-extrabold tracking-[0.06em]"><LogoMark size={30} /> LEDGR</span>
+            <span className="mx-1 h-10 w-px shrink-0" style={{ background: onMedia ? "rgba(255,255,255,0.3)" : theme.line }} aria-hidden />
             <MarketBadge trade={t} bg={onMedia ? "#FFFFFF" : theme.fg} fg={onMedia ? "#0A0A0A" : theme.bg} />
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-[32px] font-bold leading-none tracking-tight">{t.symbol || "—"}</span>
               <span className="mt-1.5 text-[13px] font-semibold uppercase tracking-[0.14em]" style={{ color: sub }}>{t.direction ?? ""} · {date}</span>
             </span>
-            {/* LEDGR mark beside the symbol, so every shared card says where it's from */}
-            <span className="ml-1 h-10 w-px shrink-0" style={{ background: onMedia ? "rgba(255,255,255,0.3)" : theme.line }} aria-hidden />
-            <span className="inline-flex shrink-0 items-center gap-2 text-[19px] font-extrabold tracking-[0.06em]"><LogoMark size={30} /> LEDGR</span>
           </div>
           <div>
             <p ref={bigRef} className="w-max whitespace-nowrap font-extrabold leading-none tracking-[-0.04em]" style={{ fontSize: bigSize, color: onMedia ? fg : good ? theme.pos : theme.neg, textShadow: onMedia ? "0 8px 40px rgba(0,0,0,0.45)" : undefined }}>
