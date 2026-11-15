@@ -23,6 +23,10 @@ export interface VideoExportOptions {
   videoUrl: string;
   dim: number;
   blur: number;
+  /** "contain": whole video over a blurred fill (default "cover"). */
+  fit?: "cover" | "contain";
+  /** "even": flat darkening (default "left": darker on the left, behind the text). */
+  shade?: "left" | "even";
   sound: boolean;
   /** The big amount at count-up progress 0 → 1. Leave out for a still foreground. */
   countUp?: (p: number) => string;
@@ -164,14 +168,28 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
     const zoom = o.blur ? 1.06 : 1;
     const scale = Math.max(W / vw, H / vh) * zoom;
     const dw = vw * scale, dh = vh * scale;
-    ctx.filter = o.blur ? `blur(${o.blur * 2}px)` : "none";
-    ctx.drawImage(video, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    if (o.fit === "contain") {
+      // Blurred fill behind, then the whole video, sharp, fitted inside the card.
+      const fill = Math.max(W / vw, H / vh) * 1.15;
+      ctx.filter = `blur(${28 * (W / cardW)}px) brightness(0.7)`;
+      ctx.drawImage(video, (W - vw * fill) / 2, (H - vh * fill) / 2, vw * fill, vh * fill);
+      const fitScale = Math.min(W / vw, H / vh) * zoom;
+      ctx.filter = o.blur ? `blur(${o.blur * 2}px)` : "none";
+      ctx.drawImage(video, (W - vw * fitScale) / 2, (H - vh * fitScale) / 2, vw * fitScale, vh * fitScale);
+    } else {
+      ctx.filter = o.blur ? `blur(${o.blur * 2}px)` : "none";
+      ctx.drawImage(video, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    }
     ctx.filter = "none";
-    const g = ctx.createLinearGradient(0, 0, W, 0);
-    g.addColorStop(0, `rgba(0,0,0,${Math.min(0.95, o.dim + 0.2)})`);
-    g.addColorStop(0.45, `rgba(0,0,0,${o.dim})`);
-    g.addColorStop(1, `rgba(0,0,0,${Math.max(0, o.dim - 0.15)})`);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    if (o.shade === "even") ctx.fillStyle = `rgba(0,0,0,${o.dim})`;
+    else {
+      const g = ctx.createLinearGradient(0, 0, W, 0);
+      g.addColorStop(0, `rgba(0,0,0,${Math.min(0.95, o.dim + 0.2)})`);
+      g.addColorStop(0.45, `rgba(0,0,0,${o.dim})`);
+      g.addColorStop(1, `rgba(0,0,0,${Math.max(0, o.dim - 0.15)})`);
+      ctx.fillStyle = g;
+    }
+    ctx.fillRect(0, 0, W, H);
     // Short clips count faster, so the amount always lands before the clip ends.
     const sec = ended ? Infinity : video.currentTime / timeScale;
     if (!amount) { ctx.drawImage(fg, 0, 0, W, H); return; }

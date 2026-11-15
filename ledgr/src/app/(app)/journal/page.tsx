@@ -1,4 +1,5 @@
 "use client";
+import { SymbolIcon } from "@/components/SymbolIcon";
 import { ArrowDown, ArrowUp, Bookmark, ChevronLeft, ChevronRight, Download, Filter, LayoutGrid, List, NotebookPen, Plus, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -184,7 +185,7 @@ function Journal() {
                       <Link href={`/journal/${x.trade.id}`} className="card-2 group flex h-full flex-col gap-3 p-4 transition-colors hover:border-muted/60">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="truncate text-[15px] font-semibold">{x.trade.symbol || "Untitled"} <span className="font-normal text-muted">#{x.trade.number}</span></p>
+                            <p className="flex min-w-0 items-center gap-2 truncate text-[15px] font-semibold"><SymbolIcon symbol={x.trade.symbol} market={x.trade.market} size={22} />{x.trade.symbol || "Untitled"} <span className="font-normal text-muted">#{x.trade.number}</span></p>
                             <p className="truncate text-xs text-muted">{fmtDate(x.trade.date)} · {x.trade.session ?? "No session"}</p>
                           </div>
                           <ResultBadge x={x} />
@@ -219,7 +220,7 @@ function Journal() {
                   {rows.map((x) => (
                     <tr key={x.trade.id} className="cursor-pointer border-b border-line-soft transition-colors last:border-0 hover:bg-card-2/50" onClick={() => router.push(`/journal/${x.trade.id}`)}>
                       <td className="num py-2.5 pl-4 pr-3 text-muted"><Link href={`/journal/${x.trade.id}`} onClick={(e) => e.stopPropagation()} className="hover:text-text">{x.trade.number}</Link></td>
-                      <td className="px-3 py-2.5 font-medium text-text">{x.trade.symbol || <span className="text-muted">—</span>}</td>
+                      <td className="px-3 py-2.5 font-medium text-text">{x.trade.symbol ? <span className="inline-flex items-center gap-2"><SymbolIcon symbol={x.trade.symbol} market={x.trade.market} size={20} />{x.trade.symbol}</span> : <span className="text-muted">—</span>}</td>
                       <td className="px-3 py-2.5 text-text-2">{x.trade.market ?? "—"}</td>
                       <td className={cx("px-3 py-2.5 capitalize", x.trade.direction === "long" ? "pos" : x.trade.direction === "short" ? "neg" : "text-muted")}>{x.trade.direction ?? "—"}</td>
                       <td className="max-w-[180px] truncate px-3 py-2.5 text-text-2">{x.trade.setup || "—"}</td>
@@ -241,7 +242,7 @@ function Journal() {
                 <li key={x.trade.id}>
                   <Link href={`/journal/${x.trade.id}`} className="flex items-center gap-3 px-4 py-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-medium">{x.trade.symbol || "Untitled"} <span className="text-muted">#{x.trade.number}</span> <span className={cx("text-xs capitalize", x.trade.direction === "long" ? "pos" : "neg")}>{x.trade.direction}</span></p>
+                      <p className="flex flex-wrap items-center gap-x-1.5 text-[14px] font-medium"><SymbolIcon symbol={x.trade.symbol} market={x.trade.market} size={20} />{x.trade.symbol || "Untitled"} <span className="text-muted">#{x.trade.number}</span> <span className={cx("text-xs capitalize", x.trade.direction === "long" ? "pos" : "neg")}>{x.trade.direction}</span></p>
                       <p className="truncate text-xs text-muted">{fmtDate(x.trade.date)} · {x.trade.setup || "No setup"} · {acctName.get(x.trade.accountId ?? "") ?? "No account"}</p>
                     </div>
                     <div className="text-right">

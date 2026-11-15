@@ -48,14 +48,24 @@ const FUTURE_OWNER: Record<string, string> = {
   ES: "SPGI", MES: "SPGI", SPX500: "SPGI", US500: "SPGI", SPX: "SPGI",
   YM: "SPGI", MYM: "SPGI", US30: "SPGI", DJ30: "SPGI", WS30: "SPGI",
   CL: "CME", MCL: "CME", QM: "CME", NG: "CME", QG: "CME", GC: "CME", MGC: "CME", SI: "CME", SIL: "CME", HG: "CME", PL: "CME", PA: "CME",
-  RTY: "CME", M2K: "CME", ZB: "CME", ZN: "CME", ZF: "CME", ZT: "CME", "6E": "CME", "6J": "CME", "6B": "CME", "6A": "CME", ZC: "CME", ZS: "CME", ZW: "CME", BTC: "CME", MBT: "CME", ETH: "CME", MET: "CME",
+  RTY: "CME", M2K: "CME", MNG: "CME", MSI: "CME", "M6E": "CME", "M6B": "CME", "M6A": "CME", MBTC: "CME", MXRP: "CME", MSOL: "CME", ZB: "CME", ZN: "CME", ZF: "CME", ZT: "CME", "6E": "CME", "6J": "CME", "6B": "CME", "6A": "CME", ZC: "CME", ZS: "CME", ZW: "CME", BTC: "CME", MBT: "CME", ETH: "CME", MET: "CME",
   USOIL: "CME", WTI: "CME", NATGAS: "CME",
 };
+
+/** Futures root without the contract month (MNQZ5 → MNQ), also when no market is picked yet. */
+function futuresRoot(s: string, market: Market | null) {
+  const stripped = s.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || s;
+  if (market === "Futures") return stripped;
+  if (!market && stripped !== s && (FUTURE_OWNER[stripped] || /^M?(GC|SI|HG|PL|PA)$/.test(stripped))) return stripped;
+  return s;
+}
 
 export function symbolImage(symbol: string, market: Market | null): SymbolImage | null {
   const s = (symbol || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!s) return null;
-  const root = market === "Futures" ? s.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || s : s;
+  const root = futuresRoot(s, market);
+  // Oil and gas use Ledgr's drawn drop / flame badge, which reads better than an exchange logo.
+  if (OIL.has(root) || GAS.has(root)) return null;
   if (/^(XAU|XAG|XPT|XPD|XCU)/.test(root)) return metalImage(root.slice(0, 3));
   // Metal futures and names use the same bullion icons.
   const METAL_ROOT: Record<string, string> = { GC: "XAU", MGC: "XAU", GOLD: "XAU", SI: "XAG", SIL: "XAG", SILVER: "XAG", PL: "XPT", PLATINUM: "XPT", PA: "XPD", PALLADIUM: "XPD", HG: "XCU", MHG: "XCU", COPPER: "XCU" };

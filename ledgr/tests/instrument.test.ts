@@ -25,7 +25,7 @@ describe("symbolImage", () => {
     expect(symbolImage("MNQ", "Futures")).toEqual({ kind: "single", src: "/api/logo?s=NDAQ" });
     expect(symbolImage("ESZ6", "Futures")).toEqual({ kind: "single", src: "/api/logo?s=SPGI" });
     expect(symbolImage("NAS100", "Indices")).toEqual({ kind: "single", src: "/api/logo?s=NDAQ" });
-    expect(symbolImage("CL", "Futures")).toEqual({ kind: "single", src: "/api/logo?s=CME" });
+    expect(symbolImage("CL", "Futures")).toBeNull(); // drawn oil-drop badge instead
     expect(symbolImage("GCZ6", "Futures")).toEqual({ kind: "single", src: "/symbols/metals/xau.svg" });
     expect(symbolImage("HG", "Futures")).toEqual({ kind: "single", src: "/symbols/metals/xcu.svg" });
     expect(symbolImage("XCUUSD", "Commodities")).toEqual({ kind: "single", src: "/symbols/metals/xcu.svg" });

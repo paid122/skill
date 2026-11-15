@@ -94,17 +94,25 @@ export function useCountUp(countRef: React.RefObject<HTMLElement | null>, chartR
 export interface PosterOptions { amounts: boolean; account: string | null; handle: string; currency: string; /** profile photo (data URL) */ avatar?: string | null }
 
 /** Background media (the user's own image or video), dimmed and optionally blurred for legibility. */
-export function Media({ blobId, kind, dim, blur }: { blobId: string; kind: "image" | "video"; dim: number; blur: number }) {
+export function Media({ blobId, kind, dim, blur, fit = "cover", shade = "left" }: { blobId: string; kind: "image" | "video"; dim: number; blur: number; fit?: "cover" | "contain"; shade?: "left" | "even" }) {
   const { url } = useBlobUrl(blobId);
   const style = { filter: blur ? `blur(${blur}px)` : undefined, transform: blur ? "scale(1.06)" : undefined };
+  const contain = fit === "contain";
+  // "contain": the whole picture, sharp, over a blurred copy that fills the rest of the card.
+  const fillStyle = { filter: "blur(28px) brightness(0.7)", transform: "scale(1.15)" };
   return (
-    <div data-poster-media className="absolute inset-0">
+    <div data-poster-media className="absolute inset-0 overflow-hidden">
+      {url && contain && (kind === "video"
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        ? <video data-poster-video-fill src={url} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" style={fillStyle} />
+        // eslint-disable-next-line @next/next/no-img-element
+        : <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" style={fillStyle} />)}
       {url && (kind === "video"
         // eslint-disable-next-line jsx-a11y/media-has-caption
-        ? <video data-poster-video src={url} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" style={style} />
+        ? <video data-poster-video src={url} autoPlay muted loop playsInline className={`absolute inset-0 h-full w-full ${contain ? "object-contain" : "object-cover"}`} style={style} />
         // eslint-disable-next-line @next/next/no-img-element
-        : <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" style={style} />)}
-      <div className="absolute inset-0" style={{ background: `linear-gradient(90deg, rgba(0,0,0,${Math.min(0.95, dim + 0.2)}) 0%, rgba(0,0,0,${dim}) 45%, rgba(0,0,0,${Math.max(0, dim - 0.15)}) 100%)` }} />
+        : <img src={url} alt="" className={`absolute inset-0 h-full w-full ${contain ? "object-contain" : "object-cover"}`} style={style} />)}
+      <div className="absolute inset-0" style={{ background: shade === "even" ? `rgba(0,0,0,${dim})` : `linear-gradient(90deg, rgba(0,0,0,${Math.min(0.95, dim + 0.2)}) 0%, rgba(0,0,0,${dim}) 45%, rgba(0,0,0,${Math.max(0, dim - 0.15)}) 100%)` }} />
     </div>
   );
 }

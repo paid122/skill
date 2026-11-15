@@ -3,7 +3,7 @@ import { CalendarRange, Download, Film, ImagePlus, Trash2, X } from "lucide-reac
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FitWidth } from "@/components/FitWidth";
 import { finishCountUp } from "@/components/PosterCard";
-import { RecapCard, recapSize, recapValue, type RecapFormat } from "@/components/RecapCard";
+import { RECAP_FORMATS, RecapCard, recapSize, recapValue, type RecapFormat } from "@/components/RecapCard";
 import { Button, Card, EmptyState, Field, Input, SectionTitle, Segmented, Select, Toggle, useFeedback } from "@/components/ui";
 import { updateSettings } from "@/lib/actions";
 import { exportPng } from "@/lib/exporter";
@@ -29,7 +29,7 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
   const media = settings.recapMedia ?? null;
   const [accountId, setAccountId] = useState<string>("all");
   const [amounts, setAmounts] = useState(true);
-  const [format, setFormat] = useState<RecapFormat>("post");
+  const [format, setFormat] = useState<RecapFormat>(kind === "week" ? "wide" : "square");
   const [handle, setHandle] = useState(settings.displayName);
   const [picked, setPicked] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,12 +70,12 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
     const blobId = uid("blob");
     await putBlob(blobId, file);
     if (media) await deleteBlob(media.blobId).catch(() => undefined);
-    updateSettings({ recapMedia: { blobId, kind: file.type.startsWith("video/") ? "video" : "image", dim: media?.dim ?? 0.45, blur: media?.blur ?? 0 } });
+    updateSettings({ recapMedia: { blobId, kind: file.type.startsWith("video/") ? "video" : "image", dim: media?.dim ?? 0.4, blur: media?.blur ?? 0, fit: media?.fit } });
     if (fileRef.current) fileRef.current.value = "";
   };
   const removeMedia = async () => { if (media) await deleteBlob(media.blobId).catch(() => undefined); updateSettings({ recapMedia: null }); };
 
-  const fileName = start ? `ledgr-${kind === "week" ? "week" : "month"}-${start}${format === "story" ? "-story" : ""}` : "ledgr-recap";
+  const fileName = start ? `ledgr-${kind === "week" ? "week" : "month"}-${start}-${format === "wide" ? "16x9" : format === "story" ? "9x16" : "square"}` : "ledgr-recap";
   const exportCard = async () => {
     const node = ref.current;
     if (!node) return;
@@ -96,7 +96,7 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
     abortRef.current = ctrl;
     setRecording({ at: 0, total: Math.min(v.duration, MAX_EXPORT_SECONDS) });
     try {
-      const { blob, ext } = await exportCardVideo({ card: node, videoUrl: v.src, dim: media.dim, blur: media.blur, sound, countUp: (q) => recapValue(recap.total, { amounts, currency }, q), signal: ctrl.signal, onProgress: (at, total) => setRecording({ at, total }) });
+      const { blob, ext } = await exportCardVideo({ card: node, videoUrl: v.src, dim: media.dim, blur: media.blur, fit: media.fit ?? "contain", shade: "even", sound, countUp: (q) => recapValue(recap.total, { amounts, currency }, q), signal: ctrl.signal, onProgress: (at, total) => setRecording({ at, total }) });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = `${fileName}.${ext}`; a.click();
@@ -128,8 +128,8 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
               {periods.map((p) => <option key={p} value={p}>{periodLabel(kind, p)}</option>)}
             </Select>
           </Field>
-          <Field label="Format" hint={format === "story" ? "9:16, fills a TikTok or Instagram story" : kind === "week" ? "Wide, for posts and X" : "Square, for posts"}>
-            <Segmented value={format} onChange={setFormat} options={[{ value: "post", label: kind === "week" ? "Post (wide)" : "Post (square)" }, { value: "story", label: "Story (9:16)" }]} ariaLabel="Card format" />
+          <Field label="Size" hint={RECAP_FORMATS.find((f) => f.value === format)?.hint}>
+            <Segmented value={format} onChange={setFormat} options={RECAP_FORMATS.map((f) => ({ value: f.value, label: f.label }))} ariaLabel="Card size" />
           </Field>
           {accounts.length > 1 && (
             <Field label="Account">
@@ -147,6 +147,11 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
             </div>
             {uploadError && <p className="mt-2 text-xs text-neg">{uploadError}</p>}
           </Field>
+          {media && (
+            <Field label="Picture" hint={(media.fit ?? "contain") === "contain" ? "Shows your whole picture, with a blurred copy filling the space around it" : "Zooms the picture to fill the card (the edges get cut off)"}>
+              <Segmented value={media.fit ?? "contain"} onChange={(v) => updateSettings({ recapMedia: { ...media, fit: v } })} options={[{ value: "contain", label: "Fit (whole picture)" }, { value: "cover", label: "Fill" }]} ariaLabel="Background picture" />
+            </Field>
+          )}
           {media && (
             <div className="grid grid-cols-2 gap-4">
               <label className="text-xs text-text-2">Darkness<input type="range" min={0.1} max={0.85} step={0.05} value={media.dim} onChange={(e) => updateSettings({ recapMedia: { ...media, dim: Number(e.target.value) } })} className="mt-2 w-full accent-[var(--accent)]" /></label>

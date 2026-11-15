@@ -1,4 +1,5 @@
 "use client";
+import { SymbolIcon } from "./SymbolIcon";
 import { ImagePlus, Plus, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { deleteTrade, newTradeDraft, saveTrade, ValidationError } from "@/lib/actions";
@@ -110,7 +111,10 @@ function TradeTab({ t, set, missing }: TabProps & { missing: string[] }) {
     <div className="grid gap-5">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Field label="Symbol" htmlFor="te-symbol" error={missing.includes("Symbol") ? "Required" : null}>
-          <Input id="te-symbol" value={t.symbol} maxLength={24} onChange={(e) => set({ symbol: e.target.value.toUpperCase() })} placeholder="e.g. ES" />
+          <div className="relative">
+            <Input id="te-symbol" value={t.symbol} maxLength={24} onChange={(e) => set({ symbol: e.target.value.toUpperCase() })} placeholder="e.g. ES" style={t.symbol.trim() ? { paddingLeft: 40 } : undefined} />
+            <SymbolIcon symbol={t.symbol} market={t.market} size={22} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" />
+          </div>
         </Field>
         <Field label="Market">
           <Select value={t.market ?? ""} onChange={(e) => set({ market: (e.target.value || null) as Trade["market"] })}>

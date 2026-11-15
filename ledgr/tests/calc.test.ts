@@ -153,3 +153,15 @@ describe("csv", () => {
     expect(toCSV([["=SUM(A1)", 'a"b', -5]])).toBe(`'=SUM(A1),"a""b",-5`);
   });
 });
+
+describe("symbol pictures", async () => {
+  const { symbolImage } = await import("@/lib/instrument");
+  it("finds pictures for micro and mini futures, with or without a market or contract month", () => {
+    expect(symbolImage("MNQ", "Futures")).toEqual({ kind: "single", src: "/api/logo?s=NDAQ" });
+    expect(symbolImage("MNQZ5", null)).toEqual({ kind: "single", src: "/api/logo?s=NDAQ" });
+    expect(symbolImage("MES", null)).toEqual({ kind: "single", src: "/api/logo?s=SPGI" });
+    expect(symbolImage("MGC", null)).toEqual({ kind: "single", src: "/symbols/metals/xau.svg" });
+    expect(symbolImage("MGCQ6", "Futures")).toEqual({ kind: "single", src: "/symbols/metals/xau.svg" });
+    expect(symbolImage("MCL", "Futures")).toBeNull();
+  });
+});

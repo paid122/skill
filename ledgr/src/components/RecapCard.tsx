@@ -7,20 +7,26 @@ import { LogoMark } from "./Logo";
 import { Media, useCountUp } from "./PosterCard";
 import { themeColors } from "./ShareCard";
 
-export type RecapFormat = "post" | "story";
+export type RecapFormat = "wide" | "square" | "story";
 
 export interface RecapOptions {
   amounts: boolean;
   currency: string;
   handle: string;
   avatar?: string | null;
-  media?: { blobId: string; kind: "image" | "video"; dim: number; blur: number } | null;
+  media?: { blobId: string; kind: "image" | "video"; dim: number; blur: number; fit?: "cover" | "contain" } | null;
 }
 
-/** Post: wide for weeks, square for months. Story: 9:16 for either. */
-export function recapSize(kind: Recap["kind"], format: RecapFormat) {
+/** 16:9, square or 9:16 (story). */
+export const RECAP_FORMATS: { value: RecapFormat; label: string; hint: string }[] = [
+  { value: "wide", label: "16:9", hint: "Wide, for YouTube, X and landscape posts" },
+  { value: "square", label: "Square", hint: "1:1, for Instagram and feed posts" },
+  { value: "story", label: "9:16", hint: "Tall, fills a TikTok, Reel or story" },
+];
+export function recapSize(_kind: Recap["kind"], format: RecapFormat) {
   if (format === "story") return { width: 540, height: 960 };
-  return kind === "week" ? { width: 960, height: 504 } : { width: 720, height: 720 };
+  if (format === "square") return { width: 720, height: 720 };
+  return { width: 960, height: 540 };
 }
 
 const FONT = "'Inter Variable', Inter, system-ui, sans-serif";
@@ -84,9 +90,9 @@ function Brand({ o, size = 16 }: { o: RecapOptions; size?: number }) {
 }
 
 /** Label / value rows, like a receipt. */
-function Rows({ rows, labelWidth, size }: { rows: [string, string][]; labelWidth: number; size: number }) {
+function Rows({ rows, labelWidth, size, gap = 6 }: { rows: [string, string][]; labelWidth: number; size: number; gap?: number }) {
   return (
-    <dl className="grid gap-y-1.5" style={{ gridTemplateColumns: `${labelWidth}px auto`, fontSize: size }}>
+    <dl className="grid" style={{ gridTemplateColumns: `${labelWidth}px auto`, fontSize: size, rowGap: gap }}>
       {rows.map(([k, v]) => (
         <div key={k} className="contents">
           <dt style={{ color: SUB }}>{k}</dt>
@@ -97,13 +103,14 @@ function Rows({ rows, labelWidth, size }: { rows: [string, string][]; labelWidth
   );
 }
 
-export const RecapCard = forwardRef<HTMLDivElement, { recap: Recap; opts: RecapOptions; format?: RecapFormat }>(function RecapCard({ recap: r, opts: o, format = "post" }, ref) {
+export const RecapCard = forwardRef<HTMLDivElement, { recap: Recap; opts: RecapOptions; format?: RecapFormat }>(function RecapCard({ recap: r, opts: o, format = "wide" }, ref) {
   const theme = themeColors("ledger");
   const big = r.trades ? recapValue(r.total, o) : "—";
   const week = r.kind === "week";
   const story = format === "story";
   const { width, height } = recapSize(r.kind, format);
-  const fit = useFit(big, story ? 84 : week ? 92 : 92, story ? 452 : week ? 560 : 620);
+  const wide = format === "wide";
+  const fit = useFit(big, story ? 84 : 92, story ? 452 : wide ? 540 : 620);
   const countRef = useRef<HTMLSpanElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   useCountUp(countRef, chartRef, big, (q) => recapValue(r.total, o, q), `${r.kind}:${r.start}:${o.amounts}:${format}`);
@@ -125,16 +132,28 @@ export const RecapCard = forwardRef<HTMLDivElement, { recap: Recap; opts: RecapO
       </span>
     </p>
   );
-  const heading = (center: boolean) => (
+  const heading = (center: boolean, big = false) => (
     <div className={center ? "text-center" : ""}>
-      <p className="text-[12px] font-semibold uppercase tracking-[0.22em]" style={{ color: SUB }}>{week ? "Weekly" : "Monthly"}</p>
-      <p className="mt-1 text-[24px] font-semibold tracking-tight">{title}</p>
+      <p className={`${big ? "text-[14px]" : "text-[12px]"} font-semibold uppercase tracking-[0.22em]`} style={{ color: SUB }}>{week ? "Weekly" : "Monthly"}</p>
+      <p className={`mt-1.5 ${big ? "text-[32px]" : "text-[24px]"} font-semibold tracking-tight`}>{title}</p>
     </div>
   );
 
+  const dayListOf = (size: number, gap: number, full = true) => (
+    <dl className={`grid ${full ? "" : "gap-x-8"}`} style={{ gridTemplateColumns: full ? "150px 1fr" : "auto auto", fontSize: size, rowGap: gap }}>
+      {days.map(([k, v]) => (
+        <div key={k} className="contents">
+          <dt style={{ color: SUB }}>{k}</dt>
+          <dd className={`${full ? "" : "text-right "}font-semibold tabular-nums`} style={{ color: v === "No trades" ? SUB : WHITE }}>{v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+  const dayList = dayListOf(15, 8, false);
+
   return (
     <div ref={ref} className="relative overflow-hidden rounded-[28px]" style={{ width, height, background: theme.bg, color: WHITE, fontFamily: FONT }}>
-      {o.media && <Media {...o.media} />}
+      {o.media && <Media {...o.media} fit={o.media.fit ?? "contain"} shade="even" />}
       {story ? (
         <div className="relative flex h-full flex-col items-center justify-center gap-9 px-11 text-center">
           {heading(true)}
@@ -144,20 +163,13 @@ export const RecapCard = forwardRef<HTMLDivElement, { recap: Recap; opts: RecapO
           {week && <div ref={chartRef} data-poster-chart className="text-left"><Rows rows={days} labelWidth={130} size={16} /></div>}
           <div className="flex flex-col items-center gap-2"><Brand o={o} /><span className="text-[12px]" style={{ color: SUB }}>{SITE_HOST}</span></div>
         </div>
-      ) : week ? (
+      ) : wide ? (
         <div className="relative h-full p-11">
           {heading(false)}
-          <div className="mt-9">{amount}</div>
-          <div className="mt-6"><Rows rows={stats} labelWidth={120} size={15} /></div>
+          <div className="mt-10">{amount}</div>
+          <div className="mt-7"><Rows rows={stats} labelWidth={120} size={15} /></div>
           <div ref={chartRef} data-poster-chart className="absolute right-11 top-1/2 -translate-y-1/2">
-            <dl className="grid gap-x-8 gap-y-2 text-[15px]" style={{ gridTemplateColumns: "auto auto" }}>
-              {days.map(([k, v]) => (
-                <div key={k} className="contents">
-                  <dt style={{ color: SUB }}>{k}</dt>
-                  <dd className="text-right font-semibold tabular-nums" style={{ color: v === "No trades" ? SUB : WHITE }}>{v}</dd>
-                </div>
-              ))}
-            </dl>
+            {week ? dayList : <MonthLine recap={r} o={o} width={330} height={170} />}
           </div>
           <div className="absolute bottom-10 left-11"><Brand o={o} /></div>
           <span className="absolute bottom-10 right-11 text-[13px]" style={{ color: SUB }}>{SITE_HOST}</span>
@@ -165,9 +177,14 @@ export const RecapCard = forwardRef<HTMLDivElement, { recap: Recap; opts: RecapO
       ) : (
         <div className="relative flex h-full flex-col items-center justify-between px-12 pb-9 pt-10 text-center">
           {heading(true)}
-          <div ref={chartRef} data-poster-chart><MonthLine recap={r} o={o} width={380} height={160} /></div>
+          {!week && <div ref={chartRef} data-poster-chart><MonthLine recap={r} o={o} width={380} height={160} /></div>}
           {amount}
-          <div className="text-left"><Rows rows={stats} labelWidth={130} size={16} /></div>
+          {week ? (
+            <div className="flex items-start gap-14 text-left">
+              <Rows rows={stats} labelWidth={110} size={16} />
+              <div ref={chartRef} data-poster-chart>{dayList}</div>
+            </div>
+          ) : <div className="text-left"><Rows rows={stats} labelWidth={130} size={16} /></div>}
           <div className="flex flex-col items-center gap-2"><Brand o={o} /><span className="text-[12px]" style={{ color: SUB }}>{SITE_HOST}</span></div>
         </div>
       )}
@@ -176,8 +193,8 @@ export const RecapCard = forwardRef<HTMLDivElement, { recap: Recap; opts: RecapO
 });
 
 /** Running total across the month's trading days: a thin white line from zero, end value and zero marked on the right. */
-function MonthLine({ recap, o, width: W, height: H }: { recap: Recap; o: RecapOptions; width: number; height: number }) {
-  const padR = 64, padB = 22, padT = 8;
+function MonthLine({ recap, o, width: W, height: H, labels = 11 }: { recap: Recap; o: RecapOptions; width: number; height: number; labels?: number }) {
+  const padR = labels > 11 ? 74 : 64, padB = labels + 11, padT = 8;
   const pts = recap.curve; // [period start at 0, then each trading day]
   const vals = pts.map((p) => p.value);
   const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
@@ -192,10 +209,10 @@ function MonthLine({ recap, o, width: W, height: H }: { recap: Recap; o: RecapOp
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block overflow-visible" aria-hidden>
       <line x1={0} x2={W - padR} y1={y(0)} y2={y(0)} stroke={WHITE} strokeOpacity={0.18} />
       <path d={line} fill="none" stroke={WHITE} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-      <text x={W - padR + 8} y={yEnd + 4} fontSize="11" fontWeight="600" fill={WHITE} fontFamily={FONT}>{roundValue(recap.total, o)}</text>
-      <text x={W - padR + 8} y={y(0) + 4} fontSize="11" fontWeight="500" fill={SUB} fontFamily={FONT}>{o.amounts ? roundValue(0, o) : "0R"}</text>
-      <text x={0} y={H - 4} fontSize="11" fontWeight="500" fill={SUB} fontFamily={FONT}>{shortDate(first)}</text>
-      <text x={W - padR} y={H - 4} fontSize="11" fontWeight="500" fill={SUB} fontFamily={FONT} textAnchor="end">{shortDate(end)}</text>
+      <text x={W - padR + 8} y={yEnd + 4} fontSize={labels} fontWeight="600" fill={WHITE} fontFamily={FONT}>{roundValue(recap.total, o)}</text>
+      <text x={W - padR + 8} y={y(0) + 4} fontSize={labels} fontWeight="500" fill={SUB} fontFamily={FONT}>{o.amounts ? roundValue(0, o) : "0R"}</text>
+      <text x={0} y={H - 4} fontSize={labels} fontWeight="500" fill={SUB} fontFamily={FONT}>{shortDate(first)}</text>
+      <text x={W - padR} y={H - 4} fontSize={labels} fontWeight="500" fill={SUB} fontFamily={FONT} textAnchor="end">{shortDate(end)}</text>
     </svg>
   );
 }

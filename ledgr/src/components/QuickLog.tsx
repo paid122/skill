@@ -1,4 +1,5 @@
 "use client";
+import { SymbolIcon } from "./SymbolIcon";
 import { useEffect, useState } from "react";
 import { newTradeDraft, saveTrade, ValidationError } from "@/lib/actions";
 import { missingFields, tradeMetrics } from "@/lib/calc";
@@ -78,7 +79,10 @@ export function QuickLog() {
       <div className="grid gap-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Field label="Symbol" htmlFor="ql-symbol" className="col-span-2 sm:col-span-1">
-            <Input id="ql-symbol" value={t.symbol} onChange={(e) => set({ symbol: e.target.value.toUpperCase() })} placeholder="ES, EURUSD…" maxLength={24} data-autofocus autoComplete="off" />
+            <div className="relative">
+              <Input id="ql-symbol" value={t.symbol} onChange={(e) => set({ symbol: e.target.value.toUpperCase() })} placeholder="ES, EURUSD…" maxLength={24} data-autofocus autoComplete="off" style={t.symbol.trim() ? { paddingLeft: 40 } : undefined} />
+              <SymbolIcon symbol={t.symbol} market={t.market} size={22} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" />
+            </div>
           </Field>
           <Field label="Direction">
             <Segmented value={t.direction ?? ("" as never)} onChange={(v) => set({ direction: v })} options={[{ value: "long", label: "Long" }, { value: "short", label: "Short" }]} className="w-full [&>button]:flex-1" ariaLabel="Direction" />
