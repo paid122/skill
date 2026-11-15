@@ -10,10 +10,12 @@ import { CARD_THEMES, ShareSurface, themeColors } from "@/components/ShareCard";
 import { Badge, Button, Card, EmptyState, Field, Input, Modal, SectionTitle, Segmented, Textarea, Toggle, useFeedback } from "@/components/ui";
 import { dayWindow, guessSource, pickWindow, timesUnknown, type Bar, type TradeChart } from "@/lib/candles";
 import { PageVerse } from "@/components/VerseCard";
+import { RecapEditor } from "@/components/RecapEditor";
 import { patchTrade } from "@/lib/actions";
 import { fillTimes } from "@/lib/autoTimes";
 import type { EnrichedTrade } from "@/lib/calc";
 import { exportPng } from "@/lib/exporter";
+import { freezeVideosForExport } from "@/lib/freezeVideo";
 import { exportCardVideo, MAX_EXPORT_SECONDS, recordingFormat } from "@/lib/videoExport";
 import { useEnriched } from "@/lib/hooks";
 import { deleteBlob, getState, putBlob, useLedgr, validateUpload } from "@/lib/store";
@@ -27,6 +29,7 @@ export default function ShowcasePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [q, setQ] = useState("");
+  const [mode, setMode] = useState<"trade" | "week" | "month">("trade");
   const selected = pinned.find((x) => x.trade.id === selectedId) ?? pinned[0] ?? null;
   const candidates = useMemo(() => all.filter((x) => x.m.status === "closed" && !x.trade.showcase?.pinned && (!q || x.trade.symbol.toLowerCase().includes(q.toLowerCase()) || x.trade.setup.toLowerCase().includes(q.toLowerCase()))).slice(-60).reverse(), [all, q]);
 
@@ -41,7 +44,9 @@ export default function ShowcasePage() {
       <PageIntro title="Showcase" sub="A gallery of trades worth remembering — for the process, not just the result. Create a shareable card from any of them." actions={<Button variant="accent" icon={<Plus size={15} />} onClick={() => setAdding(true)}>Add a trade</Button>} />
       <PageVerse page="showcase" compact />
 
-      {pinned.length === 0 ? (
+      <Segmented value={mode} onChange={setMode} options={[{ value: "trade", label: "Trade card" }, { value: "week", label: "Weekly recap" }, { value: "month", label: "Monthly recap" }]} ariaLabel="Card type" className="self-start" />
+
+      {mode !== "trade" ? <RecapEditor kind={mode} key={mode} /> : pinned.length === 0 ? (
         <EmptyState icon={<Trophy size={18} />} title="No trades in your showcase yet" body="Pin a closed trade to describe what made it a good example of your process." action={<Button variant="accent" onClick={() => setAdding(true)}>Choose a trade</Button>} />
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -215,25 +220,10 @@ function Editor({ x }: { x: EnrichedTrade }) {
     if (!node) return;
     finishCountUp(node);
     setBusy(true);
-    // Videos can't be captured directly: freeze the current frame as an image for the export.
-    const swaps: (() => void)[] = [];
-    node.querySelectorAll<HTMLVideoElement>("video[data-poster-video]").forEach((v) => {
-      try {
-        if (!v.videoWidth) return; // no decoded frame yet; export falls back to the dark overlay
-        const cv = document.createElement("canvas");
-        cv.width = v.videoWidth; cv.height = v.videoHeight;
-        cv.getContext("2d")!.drawImage(v, 0, 0);
-        const img = document.createElement("img");
-        img.src = cv.toDataURL("image/jpeg", 0.92);
-        img.className = v.className;
-        img.setAttribute("style", v.getAttribute("style") ?? "");
-        v.after(img);
-        swaps.push(() => img.remove());
-      } catch { /* leave it; videos are excluded from the export itself */ }
-    });
+    const unfreeze = freezeVideosForExport(node);
     try { await new Promise((r) => setTimeout(r, 60)); await exportPng(node, `ledgr-${t.symbol}-${t.number}`); toast("Card exported"); }
     catch { toast("Could not export the card", "error"); }
-    swaps.forEach((f) => f());
+    unfreeze();
     setBusy(false);
   };
 

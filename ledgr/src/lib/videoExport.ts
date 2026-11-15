@@ -19,7 +19,7 @@ import { COUNT_POP_SECONDS, COUNT_UP_SECONDS, countUpPop, countUpProgress } from
 export const MAX_EXPORT_SECONDS = 60;
 
 export interface VideoExportOptions {
-  card: HTMLElement; // the PosterCard root (960 × 504)
+  card: HTMLElement; // the card root at its real size (e.g. 960 × 504); exported at 2×
   videoUrl: string;
   dim: number;
   blur: number;
@@ -88,7 +88,8 @@ function loadVideo(url: string): Promise<HTMLVideoElement> {
 export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Blob; ext: string; seconds: number }> {
   const fmt = recordingFormat();
   if (!fmt) throw new Error("Your browser can't record video. Try Chrome, Edge or Safari.");
-  const W = 1920, H = 1008;
+  const cardW = o.card.offsetWidth || 960, cardH = o.card.offsetHeight || 504;
+  const W = cardW * 2, H = cardH * 2;
   const amountEl = o.countUp ? o.card.querySelector<HTMLElement>("[data-poster-amount]") : null;
   const chartEl = o.card.querySelector<HTMLElement>("[data-poster-chart]");
   const counting = !!(o.countUp && amountEl);
@@ -102,8 +103,8 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
   if (counting && amountEl) {
     const at = placeOf(o.card, amountEl, W);
     const cs = getComputedStyle(amountEl);
-    // Font size is in card pixels (960 wide); positions above already account for on-screen scaling.
-    const size = parseFloat(cs.fontSize) * (W / 960);
+    // Font size is in card pixels; positions above already account for on-screen scaling.
+    const size = parseFloat(cs.fontSize) * (W / cardW);
     amount = { x: at.x, y: at.y, size, font: `${cs.fontWeight} ${size}px ${cs.fontFamily}`, color: cs.color, spacing: -0.04 * size, shadow: cs.textShadow !== "none" };
   }
   const chartAt = counting && chartEl ? placeOf(o.card, chartEl, W) : null;
@@ -116,7 +117,7 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
   const canvas = document.createElement("canvas");
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext("2d")!;
-  const K = W / 960;
+  const K = W / cardW;
   const softCanvas = document.createElement("canvas");
   softCanvas.width = W; softCanvas.height = H;
   const soft = softCanvas.getContext("2d")!;
@@ -169,7 +170,7 @@ export async function exportCardVideo(o: VideoExportOptions): Promise<{ blob: Bl
     const pop = countUpPop(sec);
     ctx.translate(a.x, baseline - a.size * 0.35);
     ctx.scale(pop, pop);
-    if (a.shadow) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowOffsetY = 8 * (W / 960); ctx.shadowBlur = 40 * (W / 960); }
+    if (a.shadow) { ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowOffsetY = 8 * K; ctx.shadowBlur = 40 * K; }
     if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = "0px";
     let x = 0;
     for (const ch of text) {

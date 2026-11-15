@@ -339,6 +339,8 @@ export interface Settings {
   displayName: string;
   /** Profile photo: a small square JPEG as a data URL (synced with the rest of the settings). */
   avatar?: string | null;
+  /** Background (the user's own image or video) for weekly and monthly recap cards. */
+  recapMedia?: { blobId: string; kind: "image" | "video"; dim: number; blur: number } | null;
   baseCurrency: string;
   breakevenThreshold: number; // |net| <= threshold counts as break-even
   translation: "KJV";

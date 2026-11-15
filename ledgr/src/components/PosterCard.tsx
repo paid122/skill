@@ -55,16 +55,46 @@ export function finishCountUp(card: HTMLElement) {
 }
 
 /** Reveal the chart from left to right up to `q` (0 → 1), with a soft fading edge. */
-function setReveal(el: HTMLElement, q: number) {
+export function setReveal(el: HTMLElement, q: number) {
   const m = q >= 1 ? "" : `linear-gradient(90deg, #000 calc(${q * 100}% - 10px), transparent calc(${q * 100}% + 30px))`;
   el.style.maskImage = m;
   el.style.setProperty("-webkit-mask-image", m);
 }
 
+/**
+ * Count-up for a card: writes `final` into `countRef`, then (on mount and whenever `replayKey` changes)
+ * counts it up from zero while `chartRef` is revealed on the same curve, ending with a small pop.
+ * Updated straight in the DOM, so nothing re-renders per frame. Skipped for reduced-motion users.
+ */
+export function useCountUp(countRef: React.RefObject<HTMLElement | null>, chartRef: React.RefObject<HTMLElement | null>, final: string, at: (q: number) => string, replayKey: unknown) {
+  useLayoutEffect(() => { if (countRef.current) countRef.current.textContent = final; }, [countRef, final]);
+  const atRef = useRef(at);
+  atRef.current = at;
+  useEffect(() => {
+    const el = countRef.current, ch = chartRef.current;
+    if (!el || final === "—") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    const t0 = performance.now();
+    const frame = (now: number) => {
+      const sec = (now - t0) / 1000;
+      const q = countUpProgress(sec);
+      el.textContent = q >= 1 ? (el.dataset.final ?? "") : atRef.current(q);
+      el.style.transform = `scale(${countUpPop(sec)})`;
+      if (ch) setReveal(ch, q);
+      if (sec < COUNT_UP_SECONDS + COUNT_POP_SECONDS) raf = requestAnimationFrame(frame);
+      else { el.style.transform = ""; if (ch) setReveal(ch, 1); }
+    };
+    raf = requestAnimationFrame(frame);
+    return () => { cancelAnimationFrame(raf); el.textContent = el.dataset.final ?? el.textContent; el.style.transform = ""; if (ch) setReveal(ch, 1); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replayKey]);
+}
+
 export interface PosterOptions { amounts: boolean; account: string | null; handle: string; currency: string; /** profile photo (data URL) */ avatar?: string | null }
 
 /** Background media (the user's own image or video), dimmed and optionally blurred for legibility. */
-function Media({ blobId, kind, dim, blur }: { blobId: string; kind: "image" | "video"; dim: number; blur: number }) {
+export function Media({ blobId, kind, dim, blur }: { blobId: string; kind: "image" | "video"; dim: number; blur: number }) {
   const { url } = useBlobUrl(blobId);
   const style = { filter: blur ? `blur(${blur}px)` : undefined, transform: blur ? "scale(1.06)" : undefined };
   return (
@@ -243,32 +273,7 @@ export const PosterCard = forwardRef<HTMLDivElement, { trade: Trade; m: TradeMet
 
   const countRef = useRef<HTMLSpanElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
-  // The visible amount is written directly (the count-up below rewrites it every frame).
-  useLayoutEffect(() => { if (countRef.current) countRef.current.textContent = big; }, [big]);
-
-  // Count-up: the amount counts from zero to the result while the chart draws in, then lands with a small pop.
-  // Updated straight in the DOM (no re-render per frame). Plays when the card opens or shows another trade.
-  const amountAt = useRef((q: number) => posterAmount(t, m, opts, q));
-  amountAt.current = (q: number) => posterAmount(t, m, opts, q);
-  useEffect(() => {
-    const el = countRef.current, ch = chartRef.current;
-    if (!el || big === "—") return;
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    let raf = 0;
-    const t0 = performance.now();
-    const frame = (now: number) => {
-      const sec = (now - t0) / 1000;
-      const q = countUpProgress(sec);
-      el.textContent = q >= 1 ? (el.dataset.final ?? "") : amountAt.current(q);
-      el.style.transform = `scale(${countUpPop(sec)})`;
-      if (ch) setReveal(ch, q);
-      if (sec < COUNT_UP_SECONDS + COUNT_POP_SECONDS) raf = requestAnimationFrame(frame);
-      else { el.style.transform = ""; if (ch) setReveal(ch, 1); }
-    };
-    raf = requestAnimationFrame(frame);
-    return () => { cancelAnimationFrame(raf); el.textContent = el.dataset.final ?? el.textContent; el.style.transform = ""; if (ch) setReveal(ch, 1); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t.id]);
+  useCountUp(countRef, chartRef, big, (q) => posterAmount(t, m, opts, q), t.id);
 
   return (
     <div ref={ref} className="relative overflow-hidden rounded-[28px]" style={{ width: 960, height: 504, background: theme.gradient ? `${theme.gradient}, ${theme.bg}` : theme.bg, color: fg, fontFamily: "'Inter Variable', Inter, system-ui, sans-serif" }}>
