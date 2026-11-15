@@ -104,7 +104,7 @@ export function StudyPlan() {
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 text-[15px] font-semibold text-text"><Sparkles size={15} className="text-accent" /> Your study plan</p>
-          <p className="mt-1 text-[13px] text-text-2">{plan.focus.length ? `Built from your last ${plan.sample} closed trades — what to work on next, with videos for each.` : "Close at least 5 trades and LEDGR will suggest what to study, with videos."}</p>
+          <p className="mt-1 text-[13px] text-text-2">{plan.starter ? "Starter videos while your journal fills up. After 5 closed trades, this plan is built from your own trades." : `Built from your last ${plan.sample} closed trades — what to work on next, with videos for each.`}</p>
         </div>
       </div>
       {plan.focus.length > 0 && (

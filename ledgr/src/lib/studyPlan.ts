@@ -38,10 +38,20 @@ function mistakeTopic(m: string): Omit<StudyFocus, "why" | "score" | "key"> {
   return { title: `"${m}"`, watchFor: "What causes it and one rule that prevents it.", queries: [`${m} trading mistake how to fix`, "common trading mistakes discipline"] };
 }
 
-export function buildStudyPlan(all: EnrichedTrade[], max = 4): { focus: StudyFocus[]; sample: number } {
+/** For new journals (under 5 closed trades): the basics, until there's enough to read. */
+function starterPlan(n: number): StudyFocus[] {
+  const so = n === 0 ? "You haven't closed a trade yet" : `You have ${n} closed trade${n === 1 ? "" : "s"} so far`;
+  return [
+    { key: "start:risk", title: "Risk per trade", why: `${so}. Start with the basics; once you've logged ${MIN_TRADES}, this plan reads your own trades.`, watchFor: "Risking a fixed, small amount per trade and sizing from your stop.", queries: ["risk management position sizing for beginners trading", "how much to risk per trade explained"], score: 3 },
+    { key: "start:plan", title: "Writing a trading plan", why: "A written plan gives every journal entry something to compare against.", watchFor: "What goes in a plan: setups, entry and exit rules, daily limits.", queries: ["how to write a trading plan", "trading plan template explained"], score: 2 },
+    { key: "start:journal", title: "Journaling and reviewing trades", why: "The habit that makes everything else in LEDGR useful.", watchFor: "What to record on every trade and how to review it weekly.", queries: ["how to journal your trades", "how to review your trades trading journal"], score: 1 },
+  ];
+}
+
+export function buildStudyPlan(all: EnrichedTrade[], max = 4): { focus: StudyFocus[]; sample: number; starter?: boolean } {
   const closed = chronological(closedOnly(all)).slice(-RECENT);
   const n = closed.length;
-  if (n < MIN_TRADES) return { focus: [], sample: n };
+  if (n < MIN_TRADES) return { focus: starterPlan(n), sample: n, starter: true };
   const out: StudyFocus[] = [];
   const st = computeStats(closed);
 

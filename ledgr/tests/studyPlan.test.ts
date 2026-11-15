@@ -9,8 +9,11 @@ const t = (o: { net: number; r: number; mistakes?: string[]; followed?: "yes" | 
 }) as unknown as EnrichedTrade;
 
 describe("study plan", () => {
-  it("needs at least 5 closed trades", () => {
-    expect(buildStudyPlan([t({ net: 10, r: 0.1 })]).focus).toEqual([]);
+  it("gives starter topics until there are 5 closed trades", () => {
+    const plan = buildStudyPlan([t({ net: 10, r: 0.1 })]);
+    expect(plan.starter).toBe(true);
+    expect(plan.focus.map((f) => f.key)).toEqual(["start:risk", "start:plan", "start:journal"]);
+    expect(plan.focus[0].why).toContain("1 closed trade so far");
   });
   it("puts the most documented mistake first, with evidence and searches", () => {
     const list = [
