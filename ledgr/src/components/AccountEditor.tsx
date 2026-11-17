@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { saveAccount, ValidationError } from "@/lib/actions";
 import { firmSizes, presetRules, PROP_FIRM_RULES, PROP_RULES_CHECKED, type PropStage } from "@/lib/propRules";
 import { ACCOUNT_TYPES, PROP_FIRMS, type Account, type AccountType } from "@/lib/types";
@@ -31,6 +31,15 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
   const setType = (type: AccountType) => (type === "Funded"
     ? applyPreset({ type, propFirm: a.propFirm ?? PROP_FIRMS[1], accountSize: a.accountSize ?? 50000, propStage: a.propStage ?? "evaluation", propDailyLimit: a.propDailyLimit ?? true })
     : set({ type }));
+  // Funded accounts made before presets existed (or with no rules yet) fill in as soon as they're opened.
+  useEffect(() => {
+    if (initial.type !== "Funded") return;
+    const r = initial.rules;
+    if (!initial.propPlan || (r.profitTarget === null && r.maxDrawdown === null && r.dailyLossLimit === null)) {
+      applyPreset({ propFirm: initial.propFirm ?? PROP_FIRMS[1], accountSize: initial.accountSize ?? 50000, propStage: initial.propStage ?? "evaluation", propDailyLimit: initial.propDailyLimit ?? true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const plans = funded ? PROP_FIRM_RULES[a.propFirm ?? ""] : undefined;
   const plan = plans?.find((p) => p.name === a.propPlan) ?? plans?.[0];
   const preset = funded ? presetRules(a.propFirm, a.propPlan, a.accountSize, (a.propStage ?? "evaluation") as PropStage, a.propDailyLimit ?? true) : null;
@@ -77,7 +86,10 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
         </Field>
         <Field label="Personal goals" className="md:col-span-2"><Textarea value={a.goals} onChange={(e) => set({ goals: e.target.value })} placeholder="What do you want to practise with this account?" /></Field>
         <div className="md:col-span-2">
-          <p className="label mb-1">{funded ? "Your account's rules" : real ? "Your risk rules" : "Practice rules"}</p>
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <p className="label">{funded ? "Your account's rules" : real ? "Your risk rules" : "Practice rules"}</p>
+            {funded && plans && <Button size="sm" variant="ghost" onClick={() => applyPreset({})}>Fill in {a.propFirm?.split(" ")[0]} rules</Button>}
+          </div>
           <p className="mb-3 text-xs text-muted">{funded
             ? preset
               ? `Filled in for a ${a.propFirm} ${(a.accountSize ?? 0) / 1000}K ${plan?.name ?? ""} account (max ${preset.maxContracts}), from rules checked ${PROP_RULES_CHECKED}. Firms change their rules, so check these against your dashboard and edit anything that's different.`
