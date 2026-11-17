@@ -17,7 +17,8 @@ const find = (href: string) => ALL_NAV.find((i) => i.href === href)!;
 
 /**
  * Flat sections either side of the centred wordmark. Each has a "tier": tier-2 items show from
- * 1280px, tier-3 from 1536px; below that they move into the "More" menu so the bar always fits.
+ * 1360px, tier-3 from 1760px; below that they move into the "More" menu so the bar always fits
+ * beside the buttons on the right (checked at common screen widths).
  */
 type Entry = { label: string; item: NavItem; tier: 1 | 2 | 3 };
 const LEFT: Entry[] = [
@@ -35,8 +36,8 @@ const RIGHT: Entry[] = [
   { label: "AI", item: find("/ai"), tier: 1 },
   { label: "Reports", item: find("/reports"), tier: 3 },
 ];
-const SHOW = { 1: "flex", 2: "hidden xl:flex", 3: "hidden 2xl:flex" } as const;
-const IN_MORE = { 1: "hidden", 2: "flex xl:hidden", 3: "flex 2xl:hidden" } as const;
+const SHOW = { 1: "flex", 2: "hidden min-[1360px]:flex", 3: "hidden min-[1760px]:flex" } as const;
+const IN_MORE = { 1: "hidden", 2: "flex min-[1360px]:hidden", 3: "flex min-[1760px]:hidden" } as const;
 const MORE: { item: NavItem; className: string }[] = [
   ...[...LEFT, ...RIGHT].filter((e) => e.tier > 1).map((e) => ({ item: e.item, className: IN_MORE[e.tier] })),
   ...[find("/weekly-review"), find("/performance-score"), find("/account-history"), find("/verses"), find("/plus")].map((item) => ({ item, className: "flex" })),
@@ -65,10 +66,10 @@ export function TopNav() {
           </IconButton>
           <NotificationsButton />
           {!prefs.rail && <IconButton label="Show today's session panel" className="hidden xl:grid" onClick={() => setUI({ rail: true })}><PanelRightOpen size={17} /></IconButton>}
-          <Button size="sm" icon={<Upload size={15} />} onClick={openImport} className="ml-1 h-9 rounded-full" aria-label="Import CSV trades"><span className="hidden 2xl:inline">Import CSV</span></Button>
+          <Button size="sm" icon={<Upload size={15} />} onClick={openImport} className="ml-1 h-9 rounded-full" aria-label="Import CSV trades"><span className="hidden min-[2100px]:inline">Import CSV</span></Button>
           <Button variant="accent" size="sm" icon={<Plus size={15} />} onClick={openQuickLog} className="ml-1 h-9 rounded-full" aria-keyshortcuts="n" aria-label="Quick Log"><span className="hidden xl:inline">Quick Log</span></Button>
           <Link href="/settings" aria-label="Settings and profile" className="ml-1 flex items-center gap-2.5 rounded-full py-1 pl-2 pr-1 transition-colors hover:bg-card-2">
-            <span className="hidden max-w-[120px] truncate text-[13.5px] font-medium text-text 2xl:inline">{name || "Your profile"}</span>
+            <span className="hidden max-w-[120px] truncate text-[13.5px] font-medium text-text min-[2100px]:inline">{name || "Your profile"}</span>
             <Avatar size={32} active={pathname.startsWith("/settings")} />
           </Link>
         </div>
