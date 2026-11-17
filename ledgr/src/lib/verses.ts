@@ -128,7 +128,7 @@ export const VERSE_BY_ID = new Map(VERSES.map((v) => [v.id, v]));
 
 export type PageKey =
   | "dashboard" | "journal" | "analytics" | "accounts" | "psychology" | "strategies"
-  | "daily" | "study" | "ai" | "reports" | "settings" | "weekly" | "showcase" | "score" | "history" | "verses" | "markets";
+  | "daily" | "study" | "ai" | "reports" | "settings" | "weekly" | "showcase" | "score" | "history" | "verses";
 
 /** Page verses, fixed by the product brief. */
 export const PAGE_VERSES: Record<PageKey, { verseId: string; theme: string }> = {
@@ -148,7 +148,6 @@ export const PAGE_VERSES: Record<PageKey, { verseId: string; theme: string }> = 
   score: { verseId: "HEB.12.11", theme: "The fruit of discipline" },
   history: { verseId: "PRO.27.23", theme: "Knowing the state of things" },
   verses: { verseId: "PRO.4.7", theme: "Getting understanding" },
-  markets: { verseId: "ECC.3.1", theme: "A time for everything" },
 };
 
 export interface VerseContext {
