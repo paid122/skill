@@ -111,8 +111,11 @@ export interface Trade {
   updatedAt: ISODateTime;
 }
 
-export type AccountType = "Personal simulation" | "Hypothetical evaluation" | "Demo" | "Backtest";
-export const ACCOUNT_TYPES: AccountType[] = ["Personal simulation", "Hypothetical evaluation", "Demo", "Backtest"];
+export type AccountType = "Live" | "Funded" | "Personal simulation" | "Hypothetical evaluation" | "Demo" | "Backtest";
+export const ACCOUNT_TYPES: AccountType[] = ["Live", "Funded", "Personal simulation", "Hypothetical evaluation", "Demo", "Backtest"];
+/** Prop firms offered for funded accounts (names only; LEDGR doesn't connect to them). */
+export const PROP_FIRMS = ["Lucid Trading", "Apex Trader Funding", "Other"] as const;
+export const FUNDED_SIZES = [25000, 50000, 100000, 150000, 250000, 300000] as const;
 export type AccountStatus = "active" | "paused" | "archived";
 
 export interface AccountRules {
@@ -132,6 +135,9 @@ export interface Account {
   color: string;
   goals: string;
   rules: AccountRules;
+  /** Funded accounts: the prop firm and the account size (e.g. 50000 for a 50K account). */
+  propFirm?: string | null;
+  accountSize?: number | null;
   createdAt: ISODateTime;
 }
 

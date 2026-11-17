@@ -22,7 +22,7 @@ export default function AccountsPage() {
   const [view, setView] = useState<"active" | "archived">("active");
   const summaries = useMemo(() => accounts.map((a) => ({ a, s: accountSummary(a, all, adjustments) })), [accounts, all, adjustments]);
   const shown = summaries.filter((x) => (view === "archived" ? x.a.status === "archived" : x.a.status !== "archived"));
-  const evals = summaries.filter((x) => x.a.status !== "archived" && x.a.type === "Hypothetical evaluation");
+  const evals = summaries.filter((x) => x.a.status !== "archived" && (x.a.type === "Hypothetical evaluation" || x.a.type === "Funded"));
 
   const compare = useMemo(() => {
     const act = summaries.filter((x) => x.a.status !== "archived" && x.s.closedCount > 0 && x.a.startingBalance > 0).slice(0, 5);
@@ -43,7 +43,7 @@ export default function AccountsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageIntro title="Account desk" sub="Separate virtual accounts keep your records organised. Balances are calculated from your journal — nothing here is connected to a broker." actions={<Button variant="accent" icon={<Plus size={15} />} onClick={() => setEditing(newAccount())}>New account</Button>} />
+      <PageIntro title="Account desk" sub="Keep each account separate: live, funded (Lucid, Apex…) or practice. Balances are calculated from your journal — nothing here is connected to a broker or a prop firm." actions={<Button variant="accent" icon={<Plus size={15} />} onClick={() => setEditing(newAccount())}>New account</Button>} />
       <PageVerse page="accounts" compact />
 
       {accounts.length === 0 ? (
@@ -66,7 +66,7 @@ export default function AccountsPage() {
 
           {evals.length > 0 && (
             <Card>
-              <SectionTitle title="Evaluation practice tracker" sub="Educational progress against the rules you set. Simulated records do not represent a verified or funded status." />
+              <SectionTitle title="Rules tracker" sub="Your journal against the rules you entered for each funded or evaluation account. LEDGR doesn't connect to prop firms, so your firm's dashboard is the official record." />
               <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
                 {evals.map(({ a, s }) => {
                   const r = a.rules;
@@ -89,7 +89,7 @@ export default function AccountsPage() {
                             </li>
                           ))}
                         </ul>
-                      ) : <p className="text-[13px] text-muted">No practice rules set. Edit the account to add them.</p>}
+                      ) : <p className="text-[13px] text-muted">No rules set yet. Edit the account to add them.</p>}
                     </div>
                   );
                 })}
@@ -103,6 +103,13 @@ export default function AccountsPage() {
   );
 }
 
+/** Under the name: "Apex Trader Funding · 50K" for funded, "Live account", or the practice type. (The badge says Live/Funded.) */
+function accountLabel(a: Account) {
+  if (a.type === "Live") return "Live account";
+  if (a.type !== "Funded") return a.type;
+  return [a.propFirm ?? "Funded", a.accountSize ? `${a.accountSize / 1000}K` : null].filter(Boolean).join(" · ");
+}
+
 function AccountCard({ a, s, onEdit }: { a: Account; s: ReturnType<typeof accountSummary>; onEdit: () => void }) {
   const [menu, setMenu] = useState(false);
   const { confirm, toast } = useFeedback();
@@ -114,10 +121,11 @@ function AccountCard({ a, s, onEdit }: { a: Account; s: ReturnType<typeof accoun
           <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: a.color }} />
           <div className="min-w-0">
             <p className="truncate text-[15px] font-semibold">{a.name}</p>
-            <p className="text-xs text-muted">{a.type} · {a.currency}</p>
+            <p className="text-xs text-muted">{accountLabel(a)} · {a.currency}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {(a.type === "Live" || a.type === "Funded") && <Badge tone="neutral">{a.type}</Badge>}
           {a.status !== "active" && <Badge tone="muted">{a.status === "paused" ? "Paused" : "Archived"}</Badge>}
           <div className="relative">
             <IconButton label="Account actions" onClick={() => setMenu((m) => !m)} aria-expanded={menu}><MoreHorizontal size={16} /></IconButton>

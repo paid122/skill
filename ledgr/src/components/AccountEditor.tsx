@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { saveAccount, ValidationError } from "@/lib/actions";
-import { ACCOUNT_TYPES, type Account, type AccountType } from "@/lib/types";
+import { ACCOUNT_TYPES, FUNDED_SIZES, PROP_FIRMS, type Account, type AccountType } from "@/lib/types";
 import { Button, Field, Input, Modal, NumberInput, Select, Textarea } from "./ui";
 
 const COLORS = ["#F5F5F5", "#A3A3A3", "#525252", "#3987e5", "#199e70", "#d95926", "#d55181"];
@@ -11,16 +11,31 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
   const [error, setError] = useState<string | null>(null);
   const set = (p: Partial<Account>) => setA((x) => ({ ...x, ...p }));
   const setRule = (p: Partial<Account["rules"]>) => setA((x) => ({ ...x, rules: { ...x.rules, ...p } }));
+  const real = a.type === "Live" || a.type === "Funded";
+  const funded = a.type === "Funded";
+  const setType = (type: AccountType) => set(type === "Funded"
+    ? { type, propFirm: a.propFirm ?? PROP_FIRMS[0], accountSize: a.accountSize ?? 50000, startingBalance: a.accountSize ?? 50000 }
+    : { type });
   const save = () => {
     try { saveAccount({ ...a, name: a.name.trim(), currency: a.currency.toUpperCase() }); onClose(); }
     catch (e) { setError(e instanceof ValidationError ? e.message : "Could not save the account."); }
   };
   return (
-    <Modal open onClose={onClose} size="lg" title={initial.name ? `Edit ${initial.name}` : "New account"} description="Simulated and historical records only. Ledgr never connects to a broker." footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="accent" onClick={save}>Save account</Button></>}>
+    <Modal open onClose={onClose} size="lg" title={initial.name ? `Edit ${initial.name}` : "New account"} description={real ? "Log this account's trades yourself or import a CSV. LEDGR never connects to a broker or a prop firm." : "Simulated and historical records only. LEDGR never connects to a broker."} footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="accent" onClick={save}>Save account</Button></>}>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
         <Field label="Account name"><Input value={a.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} /></Field>
-        <Field label="Type"><Select value={a.type} onChange={(e) => set({ type: e.target.value as AccountType })}>{ACCOUNT_TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
-        <Field label="Virtual starting balance"><NumberInput value={a.startingBalance} allowEmpty={false} onChange={(n) => set({ startingBalance: n ?? 0 })} /></Field>
+        <Field label="Type"><Select value={a.type} onChange={(e) => setType(e.target.value as AccountType)}>{ACCOUNT_TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        {funded && (
+          <>
+            <Field label="Prop firm"><Select value={a.propFirm ?? PROP_FIRMS[0]} onChange={(e) => set({ propFirm: e.target.value })}>{PROP_FIRMS.map((f) => <option key={f}>{f}</option>)}</Select></Field>
+            <Field label="Account size" hint="Sets the starting balance">
+              <Select value={String(a.accountSize ?? 50000)} onChange={(e) => { const n = Number(e.target.value); set({ accountSize: n, startingBalance: n }); }}>
+                {FUNDED_SIZES.map((n) => <option key={n} value={n}>{n / 1000}K</option>)}
+              </Select>
+            </Field>
+          </>
+        )}
+        <Field label={real ? "Starting balance" : "Virtual starting balance"}><NumberInput value={a.startingBalance} allowEmpty={false} onChange={(n) => set({ startingBalance: n ?? 0 })} /></Field>
         <Field label="Currency" hint="Three-letter code"><Input value={a.currency} maxLength={3} onChange={(e) => set({ currency: e.target.value.toUpperCase() })} /></Field>
         <Field label="Status"><Select value={a.status} onChange={(e) => set({ status: e.target.value as Account["status"] })}><option value="active">Active</option><option value="paused">Paused</option><option value="archived">Archived</option></Select></Field>
         <Field label="Colour">
@@ -28,8 +43,11 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
         </Field>
         <Field label="Personal goals" className="md:col-span-2"><Textarea value={a.goals} onChange={(e) => set({ goals: e.target.value })} placeholder="What do you want to practise with this account?" /></Field>
         <div className="md:col-span-2">
-          <p className="label mb-1">Practice rules</p>
-          <p className="mb-3 text-xs text-muted">Optional limits used by the progress tracker. For hypothetical evaluation practice only — they do not represent any firm's rules or a verified status.</p>
+          <p className="label mb-1">{funded ? "Your account's rules" : real ? "Your risk rules" : "Practice rules"}</p>
+          <p className="mb-3 text-xs text-muted">{funded
+            ? `Copy the current rules for your ${a.propFirm && a.propFirm !== "Other" ? `${a.propFirm} ` : ""}account from your firm's dashboard. Firms change their rules, so check them there. LEDGR only tracks your journal against what you enter.`
+            : real ? "Optional limits you set for yourself. LEDGR tracks your journal against them."
+            : "Optional limits used by the progress tracker. For hypothetical evaluation practice only — they do not represent any firm's rules or a verified status."}</p>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Field label="Profit target"><NumberInput value={a.rules.profitTarget} onChange={(n) => setRule({ profitTarget: n && n > 0 ? n : null })} /></Field>
             <Field label="Max drawdown"><NumberInput value={a.rules.maxDrawdown} onChange={(n) => setRule({ maxDrawdown: n && n > 0 ? n : null })} /></Field>
