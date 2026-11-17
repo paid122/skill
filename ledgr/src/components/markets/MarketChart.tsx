@@ -9,7 +9,24 @@ export interface ChartMark { time: number; price: number; kind: "entry" | "exit"
 
 /** Lightweight Charts plots in UTC; shift each bar so the axis reads in the trader's own time. */
 const local = (ms: number) => Math.floor((ms - new Date(ms).getTimezoneOffset() * 60_000) / 1000) as UTCTimestamp;
-const toCandle = (b: Bar) => ({ time: local(b.t), open: b.o, high: b.h, low: b.l, close: b.c });
+/** Each bar on its candle's start (Yahoo stamps the forming candle with the last trade's time, e.g. 16:07 on a 5m chart). */
+const toCandle = (b: Bar, iv: CandleInterval) => ({ time: local(Math.floor(b.t / INTERVAL_MS[iv]) * INTERVAL_MS[iv]), open: b.o, high: b.h, low: b.l, close: b.c });
+/** Merge bars that land on the same candle (keeps the first open, the last close). */
+function aligned(bars: Bar[], iv: CandleInterval) {
+  const out: ReturnType<typeof toCandle>[] = [];
+  for (const b of bars) {
+    const c = toCandle(b, iv), last = out[out.length - 1];
+    if (last && last.time === c.time) { last.high = Math.max(last.high, c.high); last.low = Math.min(last.low, c.low); last.close = c.close; }
+    else if (!last || (c.time as number) > (last.time as number)) out.push(c);
+  }
+  return out;
+}
+/** Latest crypto candles straight from Binance's public REST API (used when the live socket can't connect). */
+async function binanceRecent(symbol: string, iv: CandleInterval): Promise<Bar[]> {
+  const r = await fetch(`https://data-api.binance.vision/api/v3/klines?symbol=${symbol}&interval=${iv}&limit=2`);
+  const rows = (await r.json()) as [number, string, string, string, string][];
+  return rows.map((k) => ({ t: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4] }));
+}
 const BARS = 300;
 
 async function loadBars(m: MarketSymbol, interval: CandleInterval, bars = BARS): Promise<Bar[]> {
@@ -25,13 +42,15 @@ async function loadBars(m: MarketSymbol, interval: CandleInterval, bars = BARS):
  * LEDGR's market chart (TradingView Lightweight Charts). Crypto streams live from Binance's public
  * websocket; other markets refresh every 30 s from delayed data. Journal entries and exits are marked.
  */
-export function MarketChart({ market, interval, marks, onPrice }: { market: MarketSymbol; interval: CandleInterval; marks: ChartMark[]; onPrice?: (price: number, at: number) => void }) {
+export function MarketChart({ market, interval, marks, onPrice, onUpdate }: { market: MarketSymbol; interval: CandleInterval; marks: ChartMark[]; onPrice?: (price: number, at: number) => void; onUpdate?: (how: "live" | "polling" | "delayed", at: number) => void }) {
   const box = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
   const series = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const markers = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const priceCb = useRef(onPrice);
   priceCb.current = onPrice;
+  const updCb = useRef(onUpdate);
+  updCb.current = onUpdate;
   const c = useThemeColors();
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
@@ -57,38 +76,54 @@ export function MarketChart({ market, interval, marks, onPrice }: { market: Mark
     series.current?.applyOptions({ upColor: c.pos, downColor: c.neg, wickUpColor: c.pos, wickDownColor: c.neg });
   }, [c]);
 
-  // Load history, then keep it fresh: a live stream for crypto, a 30 s refresh for everything else.
+  // Load history, then keep it fresh: crypto streams live (or polls every 2 s if the stream can't connect),
+  // everything else refreshes every 15 s from delayed data.
   useEffect(() => {
-    let live = true, ws: WebSocket | null = null, timer: ReturnType<typeof setInterval> | null = null;
+    let live = true, ws: WebSocket | null = null, timer: ReturnType<typeof setInterval> | null = null, watchdog: ReturnType<typeof setTimeout> | null = null;
+    const push = (bars: Bar[], how: "live" | "polling" | "delayed") => {
+      if (!live || !series.current) return;
+      for (const c of aligned(bars, interval)) { try { series.current.update(c); } catch { /* older than the last candle */ } }
+      const l = bars[bars.length - 1];
+      if (l) priceCb.current?.(l.c, Date.now());
+      updCb.current?.(how, Date.now());
+    };
+    const poll = (how: "polling" | "delayed", ms: number, get: () => Promise<Bar[]>) => {
+      if (timer) return;
+      timer = setInterval(() => { get().then((b) => push(b, how)).catch(() => undefined); }, ms);
+    };
     setState("loading");
     loadBars(market, interval).then((bars) => {
       if (!live || !series.current) return;
-      series.current.setData(bars.map(toCandle));
+      series.current.setData(aligned(bars, interval));
       chart.current?.timeScale().scrollToRealTime();
       const last = bars[bars.length - 1];
       if (last) priceCb.current?.(last.c, last.t);
       setState("ready");
       if (market.live) {
-        ws = new WebSocket(`wss://data-stream.binance.vision/ws/${market.dataSymbol.toLowerCase()}@kline_${interval}`);
-        ws.onmessage = (e) => {
-          const k = JSON.parse(e.data)?.k;
-          if (!k || !series.current) return;
-          const b = { t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c };
-          series.current.update(toCandle(b));
-          priceCb.current?.(b.c, Date.now());
-        };
+        const fallback = () => { if (live) poll("polling", 2000, () => binanceRecent(market.dataSymbol, interval)); };
+        try {
+          ws = new WebSocket(`wss://data-stream.binance.vision/ws/${market.dataSymbol.toLowerCase()}@kline_${interval}`);
+          ws.onmessage = (e) => {
+            const k = JSON.parse(e.data)?.k;
+            if (!k) return;
+            if (watchdog) { clearTimeout(watchdog); watchdog = null; }
+            push([{ t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c }], "live");
+          };
+          ws.onerror = fallback;
+          ws.onclose = fallback;
+        } catch { fallback(); }
+        // No message within 5 s (blocked network, firewall): switch to polling.
+        watchdog = setTimeout(fallback, 5000);
       } else {
-        timer = setInterval(() => {
-          loadBars(market, interval, 4).then((recent) => {
-            if (!live || !series.current) return;
-            recent.forEach((b) => { try { series.current!.update(toCandle(b)); } catch { /* older than the last bar */ } });
-            const l = recent[recent.length - 1];
-            if (l) priceCb.current?.(l.c, l.t);
-          }).catch(() => undefined);
-        }, 30_000);
+        poll("delayed", 15_000, () => loadBars(market, interval, 4));
       }
     }).catch((e) => { if (live) { setError(e instanceof Error ? e.message : "Couldn't load prices."); setState("error"); } });
-    return () => { live = false; ws?.close(); if (timer) clearInterval(timer); };
+    return () => {
+      live = false;
+      if (ws) { ws.onclose = null; ws.onerror = null; ws.close(); }
+      if (timer) clearInterval(timer);
+      if (watchdog) clearTimeout(watchdog);
+    };
   }, [market, interval]);
 
   // Your journal's entries and exits on this market.

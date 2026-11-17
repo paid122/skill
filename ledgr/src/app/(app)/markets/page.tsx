@@ -59,6 +59,7 @@ export default function MarketsPage() {
   const [interval, setInterval_] = useState<CandleInterval>("5m");
   const [search, setSearch] = useState("");
   const [livePrice, setLivePrice] = useState<{ price: number; at: number } | null>(null);
+  const [upd, setUpd] = useState<{ how: "live" | "polling" | "delayed"; at: number } | null>(null);
   const quotes = useQuotes();
   const all = useEnriched();
 
@@ -71,7 +72,7 @@ export default function MarketsPage() {
     } catch { /* first visit */ }
   }, []);
   useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify({ symbol: market.symbol, interval })); } catch { /* ignore */ } }, [market, interval]);
-  useEffect(() => setLivePrice(null), [market]);
+  useEffect(() => { setLivePrice(null); setUpd(null); }, [market]);
 
   // This market's entries and exits from your journal.
   const { marks, tradeCount } = useMemo(() => {
@@ -151,11 +152,14 @@ export default function MarketsPage() {
             </div>
           </div>
           <div className="h-[440px] px-2 pb-2 pt-3 sm:h-[560px]">
-            <MarketChart key={`${market.dataSymbol}`} market={market} interval={interval} marks={marks} onPrice={(p, at) => setLivePrice({ price: p, at })} />
+            <MarketChart key={`${market.dataSymbol}`} market={market} interval={interval} marks={marks} onPrice={(p, at) => setLivePrice({ price: p, at })} onUpdate={(how, at) => setUpd({ how, at })} />
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-line-soft px-5 py-3 text-[12px] text-muted">
             <span>{tradeCount ? `${tradeCount} of your trades on ${market.symbol} are marked (↑ buy, ↓ sell)` : `No journal trades on ${market.symbol} yet`}</span>
-            <span className="ml-auto">{market.live ? "Live from Binance" : "Delayed data from Yahoo Finance (futures about 10 min)"} · Charts by TradingView Lightweight Charts</span>
+            <span className="ml-auto">
+              {market.live ? (upd?.how === "polling" ? "Live from Binance (updating every 2 s)" : "Live from Binance") : "Delayed data from Yahoo Finance (futures about 10 min), refreshed every 15 s"}
+              {upd && <> · updated <span className="num">{new Date(upd.at).toLocaleTimeString()}</span></>} · Charts by TradingView Lightweight Charts
+            </span>
           </div>
         </Card>
       </div>
