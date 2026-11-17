@@ -2,7 +2,7 @@
 import { ChevronDown, Eye, EyeOff, PanelRightOpen, Plus, Search, Upload } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { setUI, useUI } from "@/lib/hooks";
 import { openImport, openQuickLog, setPalette } from "@/lib/overlays";
 import { useLedgr } from "@/lib/store";
@@ -16,9 +16,9 @@ import { Avatar } from "./Avatar";
 const find = (href: string) => ALL_NAV.find((i) => i.href === href)!;
 
 /**
- * Flat sections either side of the centred wordmark. Each has a "tier": tier-2 items show from
- * 1360px, tier-3 from 1760px; below that they move into the "More" menu so the bar always fits
- * beside the buttons on the right (checked at common screen widths).
+ * Flat sections either side of the centred wordmark. The bar measures the space it really has
+ * (screen width, display scaling and the buttons on the right) and shows as many pages as fit,
+ * in priority order (tier 1 first); the rest move into "More". Nothing overlaps at any width.
  */
 type Entry = { label: string; item: NavItem; tier: 1 | 2 | 3 };
 const LEFT: Entry[] = [
@@ -36,40 +36,85 @@ const RIGHT: Entry[] = [
   { label: "AI", item: find("/ai"), tier: 1 },
   { label: "Reports", item: find("/reports"), tier: 3 },
 ];
-const SHOW = { 1: "flex", 2: "hidden min-[1360px]:flex", 3: "hidden min-[1760px]:flex" } as const;
-const IN_MORE = { 1: "hidden", 2: "flex min-[1360px]:hidden", 3: "flex min-[1760px]:hidden" } as const;
-const MORE: { item: NavItem; className: string }[] = [
-  ...[...LEFT, ...RIGHT].filter((e) => e.tier > 1).map((e) => ({ item: e.item, className: IN_MORE[e.tier] })),
-  ...[find("/weekly-review"), find("/performance-score"), find("/account-history"), find("/verses"), find("/plus")].map((item) => ({ item, className: "flex" })),
-];
+const ALL = [...LEFT, ...RIGHT];
+/** Most important first: tier, then position in the bar. */
+const PRIORITY = [...ALL].sort((a, b) => a.tier - b.tier || ALL.indexOf(a) - ALL.indexOf(b));
+const ALWAYS_MORE = [find("/weekly-review"), find("/performance-score"), find("/account-history"), find("/verses"), find("/plus")];
+
+/** Which pages fit in the bar. Starts with all of them (to measure), then keeps only what fits. */
+function useFit() {
+  const row = useRef<HTMLDivElement>(null);
+  const widths = useRef<Map<string, number>>(new Map());
+  const [shown, setShown] = useState<Set<string> | null>(null);
+  useLayoutEffect(() => {
+    const el = row.current;
+    if (!el) return;
+    const fit = () => {
+      const nav = el.querySelector<HTMLElement>("nav[aria-label='Primary']");
+      const logo = el.querySelector<HTMLElement>("[data-bar='logo']");
+      const right = el.querySelector<HTMLElement>("[data-bar='right']");
+      const fixed = el.querySelectorAll<HTMLElement>("[data-bar='fixed']");
+      if (!nav || !logo || !right) return;
+      // Remember each page link's natural width (measured while it's shown).
+      nav.querySelectorAll<HTMLElement>("[data-href]").forEach((a) => { if (a.offsetWidth) widths.current.set(a.dataset.href!, a.offsetWidth); });
+      if (widths.current.size < ALL.length) { setShown(null); return; }
+      const cs = getComputedStyle(el);
+      const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+        - logo.offsetWidth - right.offsetWidth - 2 * parseFloat(cs.columnGap || "16")
+        - Array.from(fixed).reduce((n, f) => n + f.offsetWidth + 6, 0) - 16 /* nav padding, border and breathing room */;
+      let used = 0;
+      const next = new Set<string>();
+      for (const e of PRIORITY) {
+        const w = (widths.current.get(e.item.href) ?? 120) + 2;
+        if (used + w > room) break;
+        used += w;
+        next.add(e.item.href);
+      }
+      setShown((prev) => (prev && prev.size === next.size && [...next].every((h) => prev.has(h)) ? prev : next));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    const right = el.querySelector<HTMLElement>("[data-bar='right']");
+    if (right) ro.observe(right);
+    const nav = el.querySelector<HTMLElement>("nav[aria-label='Primary']");
+    if (nav) ro.observe(nav);
+    document.fonts?.ready.then(fit);
+    return () => ro.disconnect();
+  }, []);
+  return { row, shown };
+}
 
 export function TopNav() {
   const pathname = usePathname();
   const prefs = useUI();
   const name = useLedgr((s) => s.settings.displayName);
+  const { row, shown } = useFit();
+  const isShown = (e: Entry) => !shown || shown.has(e.item.href);
+  const more = [...ALL.filter((e) => !isShown(e)).map((e) => e.item), ...ALWAYS_MORE];
   return (
     <header className="sticky top-0 z-30 border-b border-line-soft bg-bg/85 backdrop-blur-xl">
-      <div className="flex h-16 items-center gap-4 px-5">
-        <Link href="/dashboard" className="shrink-0 text-text" aria-label="Ledgr home"><LogoMark size={28} /></Link>
+      <div ref={row} className="flex h-16 items-center gap-4 px-5">
+        <Link href="/dashboard" data-bar="logo" className="shrink-0 text-text" aria-label="Ledgr home"><LogoMark size={28} /></Link>
 
         <nav aria-label="Primary" className="mx-auto flex min-w-0 items-center gap-0.5 rounded-full border border-line-soft bg-card/80 p-1 shadow-[0_8px_30px_-18px_rgba(0,0,0,0.6)]">
-          {LEFT.map((e) => <TopLink key={e.item.href} item={e.item} label={e.label} active={isActive(pathname, e.item)} className={SHOW[e.tier]} />)}
-          <Link href="/dashboard" aria-label="Ledgr" className="mx-1.5 whitespace-nowrap px-1 text-[15px] font-semibold tracking-[0.2em] text-text xl:mx-2.5 xl:text-[16px]">LEDGR</Link>
-          {RIGHT.map((e) => <TopLink key={e.item.href} item={e.item} label={e.label} active={isActive(pathname, e.item)} className={SHOW[e.tier]} />)}
-          <TopMenu label="More" entries={MORE} pathname={pathname} />
+          {LEFT.map((e) => <TopLink key={e.item.href} item={e.item} label={e.label} active={isActive(pathname, e.item)} className={isShown(e) ? "flex" : "hidden"} />)}
+          <Link href="/dashboard" aria-label="Ledgr" data-bar="fixed" className="mx-1.5 whitespace-nowrap px-1 text-[15px] font-semibold tracking-[0.2em] text-text xl:mx-2.5 xl:text-[16px]">LEDGR</Link>
+          {RIGHT.map((e) => <TopLink key={e.item.href} item={e.item} label={e.label} active={isActive(pathname, e.item)} className={isShown(e) ? "flex" : "hidden"} />)}
+          <div data-bar="fixed"><TopMenu label="More" entries={more.map((item) => ({ item, className: "flex" }))} pathname={pathname} /></div>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div data-bar="right" className="flex shrink-0 items-center gap-1">
           <IconButton label="Search (Ctrl K)" onClick={() => setPalette(true)}><Search size={17} /></IconButton>
           <IconButton label={prefs.hideMoney ? "Show amounts" : "Hide amounts (R stays visible)"} aria-pressed={prefs.hideMoney} onClick={() => setUI({ hideMoney: !prefs.hideMoney })}>
             {prefs.hideMoney ? <EyeOff size={17} /> : <Eye size={17} />}
           </IconButton>
           <NotificationsButton />
           {!prefs.rail && <IconButton label="Show today's session panel" className="hidden xl:grid" onClick={() => setUI({ rail: true })}><PanelRightOpen size={17} /></IconButton>}
-          <Button size="sm" icon={<Upload size={15} />} onClick={openImport} className="ml-1 h-9 rounded-full" aria-label="Import CSV trades"><span className="hidden min-[2100px]:inline">Import CSV</span></Button>
+          <Button size="sm" icon={<Upload size={15} />} onClick={openImport} className="ml-1 h-9 rounded-full" aria-label="Import CSV trades"><span className="hidden min-[1800px]:inline">Import CSV</span></Button>
           <Button variant="accent" size="sm" icon={<Plus size={15} />} onClick={openQuickLog} className="ml-1 h-9 rounded-full" aria-keyshortcuts="n" aria-label="Quick Log"><span className="hidden xl:inline">Quick Log</span></Button>
           <Link href="/settings" aria-label="Settings and profile" className="ml-1 flex items-center gap-2.5 rounded-full py-1 pl-2 pr-1 transition-colors hover:bg-card-2">
-            <span className="hidden max-w-[120px] truncate text-[13.5px] font-medium text-text min-[2100px]:inline">{name || "Your profile"}</span>
+            <span className="hidden max-w-[120px] truncate text-[13.5px] font-medium text-text min-[1800px]:inline">{name || "Your profile"}</span>
             <Avatar size={32} active={pathname.startsWith("/settings")} />
           </Link>
         </div>
@@ -81,7 +126,7 @@ export function TopNav() {
 function TopLink({ item, label, active, className }: { item: NavItem; label: string; active: boolean; className?: string }) {
   const Icon = item.icon;
   return (
-    <Link href={item.href} aria-current={active ? "page" : undefined} data-active={active || undefined}
+    <Link href={item.href} data-href={item.href} aria-current={active ? "page" : undefined} data-active={active || undefined}
       className={cx(className ?? "flex", "h-9 items-center gap-2 whitespace-nowrap rounded-full px-3 text-[13.5px] transition-colors", active ? "bg-card-2 text-text shadow-sm" : "text-text-2 hover:text-text")}>
       <Icon size={15} strokeWidth={1.75} className={cx("hidden min-[1800px]:block", active ? "text-text" : "text-muted")} />
       {label}
