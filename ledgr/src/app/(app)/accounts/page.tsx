@@ -107,7 +107,7 @@ export default function AccountsPage() {
 function accountLabel(a: Account) {
   if (a.type === "Live") return "Live account";
   if (a.type !== "Funded") return a.type;
-  return [a.propFirm ?? "Funded", a.accountSize ? `${a.accountSize / 1000}K` : null].filter(Boolean).join(" · ");
+  return [a.propFirm ?? "Funded", a.accountSize ? `${a.accountSize / 1000}K` : null, a.propPlan, a.propStage === "funded" ? "Funded stage" : a.propStage === "evaluation" ? "Evaluation" : null].filter(Boolean).join(" · ");
 }
 
 function AccountCard({ a, s, onEdit }: { a: Account; s: ReturnType<typeof accountSummary>; onEdit: () => void }) {
