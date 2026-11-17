@@ -30,6 +30,7 @@ const LEFT: Entry[] = [
   { label: "Study", item: find("/study"), tier: 2 },
 ];
 const RIGHT: Entry[] = [
+  { label: "Markets", item: find("/markets"), tier: 2 },
   { label: "Analytics", item: find("/analytics"), tier: 1 },
   { label: "Psychology", item: find("/psychology"), tier: 3 },
   { label: "Accounts", item: find("/accounts"), tier: 2 },
