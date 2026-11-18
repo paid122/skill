@@ -114,7 +114,7 @@ export interface Trade {
 export type AccountType = "Live" | "Funded" | "Personal simulation" | "Hypothetical evaluation" | "Demo" | "Backtest";
 export const ACCOUNT_TYPES: AccountType[] = ["Live", "Funded", "Personal simulation", "Hypothetical evaluation", "Demo", "Backtest"];
 /** Prop firms offered for funded accounts (names only; LEDGR doesn't connect to them). */
-export const PROP_FIRMS = ["Lucid Trading", "Apex Trader Funding", "Other"] as const;
+export const PROP_FIRMS = ["Apex Trader Funding", "Lucid Trading", "Topstep", "Take Profit Trader", "Tradeify", "TradeDay", "MyFundedFutures", "Other"] as const;
 export type AccountStatus = "active" | "paused" | "archived";
 
 export interface AccountRules {

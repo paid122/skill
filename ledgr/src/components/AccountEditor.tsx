@@ -21,7 +21,8 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
       const firm = next.propFirm ?? PROP_FIRMS[0];
       const plans = PROP_FIRM_RULES[firm];
       if (plans && !plans.some((pl) => pl.name === next.propPlan)) next.propPlan = plans[0].name;
-      if (plans && next.accountSize && !firmSizes(firm).includes(next.accountSize)) next.accountSize = 50000;
+      const okSizes = firmSizes(firm, next.propPlan);
+      if (plans && next.accountSize && !okSizes.includes(next.accountSize)) next.accountSize = okSizes.includes(50000) ? 50000 : okSizes[0];
       if (next.accountSize) next.startingBalance = next.accountSize;
       const pre = presetRules(firm, next.propPlan, next.accountSize, (next.propStage ?? "evaluation") as PropStage, next.propDailyLimit ?? false);
       if (pre) next.rules = { ...next.rules, ...pre.rules };
@@ -29,14 +30,14 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
     });
   };
   const setType = (type: AccountType) => (type === "Funded"
-    ? applyPreset({ type, propFirm: a.propFirm ?? PROP_FIRMS[1], accountSize: a.accountSize ?? 50000, propStage: a.propStage ?? "evaluation", propDailyLimit: a.propDailyLimit ?? false })
+    ? applyPreset({ type, propFirm: a.propFirm ?? PROP_FIRMS[0], accountSize: a.accountSize ?? 50000, propStage: a.propStage ?? "evaluation", propDailyLimit: a.propDailyLimit ?? false })
     : set({ type }));
   // Funded accounts made before presets existed (or with no rules yet) fill in as soon as they're opened.
   useEffect(() => {
     if (initial.type !== "Funded") return;
     const r = initial.rules;
     if (!initial.propPlan || (r.profitTarget === null && r.maxDrawdown === null && r.dailyLossLimit === null)) {
-      applyPreset({ propFirm: initial.propFirm ?? PROP_FIRMS[1], accountSize: initial.accountSize ?? 50000, propStage: initial.propStage ?? "evaluation", propDailyLimit: initial.propDailyLimit ?? false });
+      applyPreset({ propFirm: initial.propFirm ?? PROP_FIRMS[0], accountSize: initial.accountSize ?? 50000, propStage: initial.propStage ?? "evaluation", propDailyLimit: initial.propDailyLimit ?? false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -57,7 +58,7 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
             <Field label="Prop firm"><Select value={a.propFirm ?? PROP_FIRMS[0]} onChange={(e) => applyPreset({ propFirm: e.target.value })}>{PROP_FIRMS.map((f) => <option key={f}>{f}</option>)}</Select></Field>
             <Field label="Account size" hint="Sets the starting balance">
               <Select value={String(a.accountSize ?? 50000)} onChange={(e) => applyPreset({ accountSize: Number(e.target.value) })}>
-                {firmSizes(a.propFirm).map((n) => <option key={n} value={n}>{n / 1000}K</option>)}
+                {firmSizes(a.propFirm, a.propPlan).map((n) => <option key={n} value={n}>{n / 1000}K</option>)}
               </Select>
             </Field>
             {plans && (

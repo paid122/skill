@@ -1,5 +1,7 @@
 /**
- * Built-in rules for funded futures accounts, so a new Apex or Lucid account fills itself in.
+ * Built-in rules for funded futures accounts (Apex, Lucid, Topstep, Take Profit Trader, Tradeify,
+ * TradeDay, MyFundedFutures), so a new account fills itself in. Only numbers the sources agreed on
+ * are included; plans or sizes they disagreed on are left out rather than guessed.
  *
  * Source: public rule summaries checked November 2026 (third-party guides; the firms change their
  * rules often). They're presets only: every number stays editable, and the account editor tells the
@@ -20,6 +22,10 @@ export interface PropPlan {
   /** How the max loss trails. */
   trailing: "EOD trailing" | "Intraday trailing";
   consistency: string;
+  /** Minimum trading days to pass the evaluation, when the firm has one. */
+  minDays?: number;
+  /** The max-loss floor stops rising at start + this (Apex, Lucid: $100; Topstep, Take Profit Trader: $0). */
+  floorLock?: number;
   sizes: Record<number, { profitTarget: number; maxDrawdown: number; dailyLossLimit: number | null; maxContracts: string }>;
 }
 
@@ -84,12 +90,101 @@ export const PROP_FIRM_RULES: Record<string, PropPlan[]> = {
   ],
 };
 
+// More firms. Contract limits are shown as minis / micros.
+const sz = (rows: [number, number, number, number | null, string][]) =>
+  Object.fromEntries(rows.map(([size, profitTarget, maxDrawdown, dailyLossLimit, maxContracts]) => [size, { profitTarget, maxDrawdown, dailyLossLimit, maxContracts }]));
+
+Object.assign(PROP_FIRM_RULES, {
+  Topstep: [
+    {
+      name: "Trading Combine",
+      tagline: "Optional daily loss limit",
+      trailing: "EOD trailing",
+      consistency: "Best day < 55%",
+      optionalDailyLimit: true,
+      floorLock: 0,
+      note: "Maximum loss limit trails your end-of-day balance and stops at your starting balance. The daily loss limit is chosen at checkout and pauses trading for the day. If your best day is over 55% of your profit, the target rises instead of failing you.",
+      sizes: sz([[50000, 3000, 2000, 1000, "5 minis / 50 micros"], [100000, 6000, 3000, 2000, "10 minis / 100 micros"], [150000, 9000, 4500, 3000, "15 minis / 150 micros"]]),
+    },
+  ],
+  "Take Profit Trader": [
+    {
+      name: "Test",
+      tagline: "No daily loss limit",
+      trailing: "EOD trailing",
+      consistency: "Best day < 50%",
+      floorLock: 0,
+      note: "End-of-day trailing drawdown (updates at 5 PM ET) that stops at your starting balance. No daily loss limit. Minimum trading days are 3 or 5 depending on when you bought, so check yours. If your best day is over 50% of your profit, the target rises instead of failing you.",
+      sizes: sz([[25000, 1500, 1500, null, "3 minis / 30 micros"], [50000, 3000, 2000, null, "6 minis / 60 micros"], [75000, 4500, 2500, null, "9 minis / 90 micros"], [100000, 6000, 3000, null, "12 minis / 120 micros"], [150000, 9000, 4500, null, "15 minis / 150 micros"]]),
+    },
+  ],
+  Tradeify: [
+    {
+      name: "Select",
+      tagline: "No daily loss limit",
+      trailing: "EOD trailing",
+      consistency: "Check your dashboard",
+      note: "End-of-day trailing max drawdown, but touching it during the day still fails the account. No daily loss limit in the evaluation.",
+      sizes: sz([[50000, 3000, 2000, null, "4 minis / 40 micros"], [100000, 6000, 3000, null, "8 minis / 80 micros"], [150000, 9000, 4500, null, "12 minis / 120 micros"]]),
+    },
+    {
+      name: "Growth",
+      tagline: "Soft daily loss limit",
+      trailing: "EOD trailing",
+      consistency: "Check your dashboard",
+      note: "End-of-day trailing max drawdown with a soft daily loss limit (pauses, doesn't fail). Only the 50K is listed: sources disagree on the bigger sizes.",
+      sizes: sz([[50000, 3000, 2000, 1250, "4 minis / 40 micros"]]),
+    },
+  ],
+  TradeDay: [
+    {
+      name: "Quick Pay",
+      tagline: "30% consistency · 5 days",
+      trailing: "EOD trailing",
+      consistency: "30%",
+      minDays: 5,
+      note: "Trailing drawdown, set to end-of-day or intraday when you buy (edit the plan if yours is intraday). No daily loss limit.",
+      sizes: sz([[50000, 3000, 2000, null, "5 minis / 50 micros"], [100000, 6000, 3000, null, "10 minis / 100 micros"], [150000, 9000, 4500, null, "15 minis / 150 micros"]]),
+    },
+    {
+      name: "Fast Pass",
+      tagline: "45% consistency · 3 days",
+      trailing: "EOD trailing",
+      consistency: "45%",
+      minDays: 3,
+      note: "Trailing drawdown, set to end-of-day or intraday when you buy. No daily loss limit.",
+      sizes: sz([[50000, 3000, 2000, null, "5 minis / 50 micros"], [100000, 6000, 3000, null, "10 minis / 100 micros"], [150000, 9000, 4500, null, "15 minis / 150 micros"]]),
+    },
+  ],
+  MyFundedFutures: [
+    {
+      name: "Rapid",
+      tagline: "Daily payouts",
+      trailing: "EOD trailing",
+      consistency: "Check your dashboard",
+      note: "End-of-day drawdown in the evaluation (sources say it can switch to intraday once funded). No daily loss limit. Only the 50K is listed: sources disagree on the bigger sizes.",
+      sizes: sz([[50000, 3000, 2000, null, "5 minis / 50 micros"]]),
+    },
+    {
+      name: "Pro",
+      tagline: "No daily loss limit",
+      trailing: "EOD trailing",
+      consistency: "Check your dashboard",
+      note: "End-of-day trailing max loss. No daily loss limit.",
+      sizes: sz([[50000, 3000, 2000, null, "See your dashboard"], [100000, 6000, 3000, null, "See your dashboard"], [150000, 9000, 4500, null, "See your dashboard"]]),
+    },
+  ],
+} satisfies Record<string, PropPlan[]>);
+
 export type PropStage = "evaluation" | "funded";
 
 /** Sizes a firm sells (falls back to the common futures sizes). */
-export function firmSizes(firm: string | null | undefined): number[] {
+export function firmSizes(firm: string | null | undefined, plan?: string | null): number[] {
   const plans = firm ? PROP_FIRM_RULES[firm] : undefined;
-  return plans ? Object.keys(plans[0].sizes).map(Number) : [25000, 50000, 100000, 150000];
+  if (!plans) return [25000, 50000, 100000, 150000];
+  const p = plans.find((x) => x.name === plan);
+  const list = p ? [p] : plans;
+  return [...new Set(list.flatMap((x) => Object.keys(x.sizes).map(Number)))].sort((a, b) => a - b);
 }
 
 /** The rules for a firm/plan/size/stage, or null when LEDGR has no preset (e.g. "Other"). */
@@ -105,7 +200,7 @@ export function presetRules(firm: string | null | undefined, plan: string | null
       profitTarget: stage === "evaluation" ? s.profitTarget : null,
       maxDrawdown: s.maxDrawdown,
       dailyLossLimit: p.optionalDailyLimit && !dailyLimit ? null : s.dailyLossLimit,
-      minTradingDays: null,
+      minTradingDays: stage === "evaluation" ? p.minDays ?? null : null,
     },
     maxContracts: s.maxContracts,
     note: p.note,

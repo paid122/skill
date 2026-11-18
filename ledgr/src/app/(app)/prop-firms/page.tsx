@@ -27,7 +27,7 @@ export default function PropFirmsPage() {
   const [tab, setTab] = useState<"accounts" | "add">("accounts");
   return (
     <div className="flex flex-col gap-6">
-      <PageIntro title="Prop firms" sub="Your Apex and Lucid accounts against their rules: room left before the max loss, today's loss against the daily limit, and progress to target. Estimated from your journal — your firm's dashboard is the official record."
+      <PageIntro title="Prop firms" sub="Your prop firm accounts (Apex, Lucid, Topstep, Take Profit Trader, Tradeify, TradeDay, MyFundedFutures) against their rules: room left before the max loss, today's loss against the daily limit, and progress to target. Estimated from your journal — your firm's dashboard is the official record."
         actions={<Segmented ariaLabel="Prop firms view" value={tab} onChange={setTab} options={[{ value: "accounts", label: "Accounts" }, { value: "add", label: "Add account" }]} />} />
       <PageVerse page="prop" compact />
       <div key={tab}>{tab === "accounts" ? <Accounts onAdd={() => setTab("add")} /> : <AddAccount onDone={() => setTab("accounts")} />}</div>
@@ -148,6 +148,11 @@ function FirmBadge({ firm, size = 40 }: { firm: string; size?: number }) {
 const FIRM_TONE: Record<string, { from: string; to: string; accent: string; button: string }> = {
   "Apex Trader Funding": { from: "#3a2410", to: "#120c07", accent: "#f2a65a", button: "#f2a65a" },
   "Lucid Trading": { from: "#10243f", to: "#070c14", accent: "#7cb7ff", button: "#7cb7ff" },
+  Topstep: { from: "#0f2e22", to: "#06100c", accent: "#5fd6a0", button: "#5fd6a0" },
+  "Take Profit Trader": { from: "#2b1440", to: "#0d0714", accent: "#c79bff", button: "#c79bff" },
+  Tradeify: { from: "#0e2a33", to: "#060f12", accent: "#5ed1e6", button: "#5ed1e6" },
+  TradeDay: { from: "#33280c", to: "#110d05", accent: "#f2d061", button: "#f2d061" },
+  MyFundedFutures: { from: "#251a40", to: "#0b0814", accent: "#9b8cff", button: "#9b8cff" },
 };
 const tone = (f: string) => FIRM_TONE[f] ?? { from: "#222", to: "#0c0c0c", accent: "#ddd", button: "#fff" };
 
@@ -161,7 +166,7 @@ function AddAccount({ onDone }: { onDone: () => void }) {
         <p className="mt-5 text-[24px] font-semibold tracking-tight text-text">Track your prop firm challenges</p>
         <p className="mt-2 max-w-md text-[14.5px] leading-relaxed text-text-2">Pick a firm below to add your account. LEDGR fills in its rules and tracks it from your journal.</p>
       </div>
-      <div className="grid w-full max-w-[880px] grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
+      <div className="grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 xl:grid-cols-3">
         {FIRMS.map((f, i) => {
           const plans = PROP_FIRM_RULES[f], sizes = firmSizes(f), t = tone(f);
           return (
@@ -173,7 +178,7 @@ function AddAccount({ onDone }: { onDone: () => void }) {
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: t.accent }}>Futures</p>
                   <p className="text-[20px] font-semibold text-white">{f}</p>
-                  <p className="text-[13px] text-white/60">{plans.length} plans · {k(sizes[0])} to {k(sizes[sizes.length - 1])}</p>
+                  <p className="text-[13px] text-white/60">{plans.length} plan{plans.length === 1 ? "" : "s"} · {k(sizes[0])} to {k(sizes[sizes.length - 1])}</p>
                 </div>
               </div>
               <div className="relative mt-5 flex flex-wrap gap-2">{plans.map((p) => <span key={p.name} className="rounded-full bg-white/10 px-3 py-1 text-[12px] text-white/80">{p.name}</span>)}</div>
@@ -184,7 +189,7 @@ function AddAccount({ onDone }: { onDone: () => void }) {
           );
         })}
       </div>
-      <p className="prop-rise mt-6 text-center text-[12px] text-muted" style={{ "--i": 3 } as React.CSSProperties}>More firms are coming. Using another firm? Add a Funded account on the Account desk and enter its rules yourself.</p>
+      <p className="prop-rise mt-6 max-w-2xl text-center text-[12px] text-muted" style={{ "--i": FIRMS.length + 1 } as React.CSSProperties}>Only rules that public sources agree on are filled in; where they disagree we leave it for you to enter. Using another firm, like Alpha Futures or Elite Trader Funding? Add a Funded account on the Account desk and enter its rules yourself.</p>
       {firm && <FirmPicker firm={firm} onClose={() => setFirm(null)} onAdded={(name) => { toast(`${name} added`); setFirm(null); onDone(); }} />}
     </div>
   );
@@ -202,7 +207,7 @@ function FirmPicker({ firm, onClose, onAdded }: { firm: string; onClose: () => v
   const row = useRef<HTMLDivElement>(null);
   const accounts = useLedgr((s) => s.accounts);
   const plan = plans.find((p) => p.name === planName) ?? plans[0];
-  const sizes = firmSizes(firm);
+  const sizes = firmSizes(firm, plan.name);
   const t = tone(firm);
 
   useEffect(() => {
@@ -219,6 +224,8 @@ function FirmPicker({ firm, onClose, onAdded }: { firm: string; onClose: () => v
     const el = row.current?.children[i] as HTMLElement | undefined;
     if (el && row.current) row.current.scrollTo({ left: el.offsetLeft - (row.current.clientWidth - el.clientWidth) / 2, behavior: smooth ? "smooth" : "auto" });
   };
+  // A plan with fewer sizes: keep the selection in range (prefer 50K).
+  useEffect(() => { setActive((i) => (i < sizes.length ? i : Math.max(0, sizes.indexOf(50000)))); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [planName]);
   useEffect(() => { if (mounted) requestAnimationFrame(() => centre(active, false)); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [mounted, planName, stage, daily]);
   const onScroll = () => {
     const r = row.current;
@@ -320,7 +327,7 @@ function FirmPicker({ firm, onClose, onAdded }: { firm: string; onClose: () => v
                       ["Max loss", <span key="m">{money(pre.rules.maxDrawdown, size)} <span className="text-[12px] text-white/45">{plan.trailing.replace("trailing", "Trailing")}</span></span>],
                       ["Daily loss", money(pre.rules.dailyLossLimit, size)],
                       ["Contracts", s.maxContracts.replace("/", "OR")],
-                      ["Min days", "None"],
+                      ["Min days", pre.rules.minTradingDays ? `${pre.rules.minTradingDays} days` : "None"],
                       ["Consistency", plan.consistency],
                     ].map(([l, v]) => (
                       <div key={l as string} className="flex items-baseline justify-between gap-3 py-2.5"><dt className="text-white/55">{l}</dt><dd className="text-right font-semibold text-white">{v}</dd></div>

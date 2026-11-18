@@ -3,8 +3,8 @@
  * the trailing max-loss floor, room left, today's loss against the daily limit, and progress to target.
  *
  * Estimates only: the floor trails the highest end-of-day balance (or the highest balance, for
- * intraday trailing plans) and stops rising at the starting balance + $100, as Apex and Lucid
- * describe it. The firm's dashboard is the official number.
+ * intraday trailing plans) and stops rising at the starting balance plus the firm's lock
+ * ($100 for Apex and Lucid, $0 for Topstep and Take Profit Trader). The firm's dashboard is the official number.
  */
 import type { EnrichedTrade } from "./calc";
 import { dailyPnl } from "./calc";
@@ -43,7 +43,7 @@ export function propStatus(a: Account, trades: EnrichedTrade[], ledger: { date: 
     for (const e of ledger) if (e.date < t) eod.set(e.date, e.balance);
     for (const b of eod.values()) peak = Math.max(peak, b);
   }
-  const floor = dd ? Math.min(peak - dd, start + 100) : null;
+  const floor = dd ? Math.min(peak - dd, start + (plan?.floorLock ?? 100)) : null;
   const target = a.rules.profitTarget ? start + a.rules.profitTarget : null;
   const own = trades.filter((x) => x.trade.accountId === a.id);
   const days = dailyPnl(own);

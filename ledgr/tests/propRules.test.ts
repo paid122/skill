@@ -21,4 +21,14 @@ describe("prop firm presets", () => {
     expect(presetRules("Other", null, 50000, "evaluation")).toBeNull();
     expect(firmSizes("Apex Trader Funding")).toEqual([25000, 50000, 100000, 150000]);
   });
+  it("has the other futures firms", () => {
+    expect(presetRules("Topstep", "Trading Combine", 100000, "evaluation")!.rules).toEqual({ profitTarget: 6000, maxDrawdown: 3000, dailyLossLimit: null, minTradingDays: null });
+    expect(presetRules("Topstep", "Trading Combine", 100000, "evaluation", true)!.rules.dailyLossLimit).toBe(2000);
+    expect(firmSizes("Take Profit Trader")).toEqual([25000, 50000, 75000, 100000, 150000]);
+    expect(presetRules("Take Profit Trader", "Test", 75000, "evaluation")!.rules.maxDrawdown).toBe(2500);
+    expect(presetRules("TradeDay", "Fast Pass", 50000, "evaluation")!.rules.minTradingDays).toBe(3);
+    expect(presetRules("TradeDay", "Fast Pass", 50000, "funded")!.rules.minTradingDays).toBeNull();
+    expect(firmSizes("Tradeify", "Growth")).toEqual([50000]);
+    expect(presetRules("MyFundedFutures", "Rapid", 100000, "evaluation")).toBeNull(); // sources disagree: not guessed
+  });
 });
