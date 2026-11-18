@@ -11,7 +11,8 @@ export async function createBackup(includeImages: boolean): Promise<string> {
   const backup: Backup = { app: "ledgr", exportedAt: new Date().toISOString(), state: getState() };
   if (includeImages) {
     backup.blobs = {};
-    for (const k of await allBlobKeys()) { const b = await getBlob(k); if (b) backup.blobs[k] = await blobToDataUrl(b); }
+    // Wallpapers (often big videos) stay out of backups.
+    for (const k of await allBlobKeys()) { if (k.startsWith("wp_")) continue; const b = await getBlob(k); if (b) backup.blobs[k] = await blobToDataUrl(b); }
   }
   return JSON.stringify(backup);
 }

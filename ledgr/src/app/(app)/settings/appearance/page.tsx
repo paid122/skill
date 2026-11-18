@@ -1,5 +1,8 @@
 "use client";
-import { Check, ImagePlus, RotateCcw, Save, Trash2 } from "lucide-react";
+import { Check, Film, ImagePlus, RotateCcw, Save, Trash2 } from "lucide-react";
+import { useBlobUrl } from "@/components/BlobImage";
+import { Live, LIVE_WALLPAPERS } from "@/components/Wallpaper";
+import { ALLOWED_VIDEO_TYPES, deleteBlob, MAX_VIDEO_BYTES, putBlob } from "@/lib/store";
 import { useRef, useState } from "react";
 import { PageIntro } from "@/components/blocks";
 import { SettingsNav } from "@/components/SettingsNav";
@@ -7,7 +10,7 @@ import { Button, Card, Field, IconButton, Input, SectionTitle, Segmented, Select
 import { updateAppearance } from "@/lib/actions";
 import { defaultAppearance } from "@/lib/defaults";
 import { useLedgr } from "@/lib/store";
-import type { Appearance, ThemeName } from "@/lib/types";
+import type { Appearance, ThemeName, Wallpaper } from "@/lib/types";
 import { contrast, cx, fmtMoney, isHex, uid } from "@/lib/util";
 
 const THEMES: { value: ThemeName; name: string; bg: string; card: string; text: string; sub: string }[] = [
@@ -123,6 +126,8 @@ export default function AppearancePage() {
         </Card>
       </div>
 
+      <WallpaperCard />
+
       <Card>
         <SectionTitle title="Saved themes" sub="Save the current combination to switch back to it later." />
         <div className="flex flex-wrap gap-2">
@@ -155,5 +160,76 @@ function ColorField({ label, value, onCommit }: { label: string; value: string; 
         <Input value={v} onChange={(e) => setV(e.target.value)} onBlur={() => onCommit(v)} className="h-8 font-mono text-xs" aria-label={`${label} hex`} />
       </div>
     </Field>
+  );
+}
+
+const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+/** Live wallpapers, or the trader's own video or image, behind the whole app. */
+function WallpaperCard() {
+  const w = useLedgr((s) => s.settings.appearance.wallpaper) ?? defaultAppearance.wallpaper!;
+  const file = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const { url } = useBlobUrl(w.blobId);
+  const set = (patch: Partial<Wallpaper>) => updateAppearance({ wallpaper: { ...w, ...patch } });
+
+  const upload = async (f: File | undefined) => {
+    if (!f) return;
+    const video = ALLOWED_VIDEO_TYPES.includes(f.type), image = IMAGE_TYPES.includes(f.type);
+    if (!video && !image) { setErr("Use an MP4, WebM or MOV video, or a PNG, JPEG, WebP or GIF image."); return; }
+    if (f.size > (video ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) { setErr(video ? `Videos must be under ${MAX_VIDEO_BYTES / 1024 / 1024} MB. Trim it or export at 1080p.` : "Images must be under 10 MB."); return; }
+    setBusy(true); setErr(null);
+    try {
+      const id = uid("wp");
+      await putBlob(id, f);
+      const old = w.blobId;
+      set({ kind: video ? "video" : "image", blobId: id, blobKind: video ? "video" : "image" });
+      if (old) deleteBlob(old).catch(() => undefined);
+    } catch { setErr("Couldn't save that file on this device. Try a smaller one."); }
+    setBusy(false);
+  };
+
+  const Tile = ({ on, onClick, label, sub, children }: { on: boolean; onClick: () => void; label: string; sub: string; children: React.ReactNode }) => (
+    <button type="button" onClick={onClick} aria-pressed={on} className={cx("group overflow-hidden rounded-xl border-2 text-left transition-all duration-200", on ? "border-accent" : "border-line-soft hover:-translate-y-0.5 hover:border-line")}>
+      <div className="relative aspect-video overflow-hidden bg-bg-2">{children}</div>
+      <div className="flex items-start justify-between gap-2 px-3 py-2">
+        <span className="min-w-0"><span className="block truncate text-[13px] text-text">{label}</span><span className="block truncate text-[11.5px] text-muted">{sub}</span></span>
+        {on && <Check size={14} className="mt-0.5 shrink-0 text-accent" />}
+      </div>
+    </button>
+  );
+
+  return (
+    <Card>
+      <SectionTitle title="Wallpaper" sub="A live wallpaper or your own video behind LEDGR. Dim and blur keep your numbers readable." />
+      {err && <p role="alert" className="mb-3 rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-[13px] text-neg">{err}</p>}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Tile on={w.kind === "none"} onClick={() => set({ kind: "none" })} label="None" sub="Plain theme background"><div className="absolute inset-0 bg-bg" /></Tile>
+        {LIVE_WALLPAPERS.map((l) => (
+          <Tile key={l.value} on={w.kind === "live" && w.live === l.value} onClick={() => set({ kind: "live", live: l.value })} label={l.name} sub={`Live · ${l.sub}`}><Live kind={l.value} /></Tile>
+        ))}
+        <Tile on={w.kind === "video" || w.kind === "image"} onClick={() => (w.blobId && url ? set({ kind: w.blobKind ?? "video" }) : file.current?.click())}
+          label={w.blobId ? "Your wallpaper" : "Your own video or image"} sub={busy ? "Saving…" : w.blobId ? "Tap Replace to change it" : "MP4, MOV, WebM, PNG, JPEG, GIF"}>
+          {url && w.blobId
+            ? (w.blobKind === "image" ? <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" /> /* eslint-disable-line @next/next/no-img-element */
+              : <video src={url} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" />)
+            : <span className="absolute inset-0 grid place-items-center text-text-2"><span className="flex flex-col items-center gap-1.5 text-[12px]"><Film size={20} />Upload</span></span>}
+        </Tile>
+      </div>
+      <input ref={file} type="file" hidden accept={[...ALLOWED_VIDEO_TYPES, ...IMAGE_TYPES].join(",")} onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} />
+
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)] items-end gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <Field label={`Dim · ${Math.round(w.dim * 100)}%`}><input type="range" min={0} max={0.9} step={0.05} value={w.dim} onChange={(e) => set({ dim: Number(e.target.value) })} className="w-full accent-[var(--accent)]" aria-label="Dim" /></Field>
+        <Field label={`Blur · ${w.blur}px`}><input type="range" min={0} max={24} step={1} value={w.blur} onChange={(e) => set({ blur: Number(e.target.value) })} className="w-full accent-[var(--accent)]" aria-label="Blur" /></Field>
+        <Field label="Cards" hint="Glass lets the wallpaper show through."><Segmented value={w.glass ? "glass" : "solid"} onChange={(v) => set({ glass: v === "glass" })} options={[{ value: "glass", label: "Glass" }, { value: "solid", label: "Solid" }]} /></Field>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" icon={<ImagePlus size={14} />} disabled={busy} onClick={() => file.current?.click()}>{w.blobId ? "Replace video / image" : "Upload video / image"}</Button>
+          {w.blobId && <Button size="sm" variant="ghost" onClick={() => { const id = w.blobId!; set({ blobId: null, blobKind: undefined, kind: w.kind === "video" || w.kind === "image" ? "none" : w.kind }); deleteBlob(id).catch(() => undefined); }}>Remove</Button>}
+        </div>
+      </div>
+      <p className="mt-3 text-[12px] text-muted">Live wallpapers pause when LEDGR isn&apos;t on screen, and stay still if your device is set to reduce motion. Your video stays muted.</p>
+    </Card>
   );
 }

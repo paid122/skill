@@ -23,6 +23,7 @@ export const defaultAppearance: Appearance = {
   nav: "top",
   cursor: "system",
   savedThemes: [],
+  wallpaper: { kind: "none", live: "aurora", blobId: null, dim: 0.35, blur: 0, glass: true },
 };
 
 export function defaultSettings(): Settings {
@@ -119,6 +120,7 @@ export function migrate(raw: Partial<LedgrState>): LedgrState {
   const s = { ...base, ...raw } as LedgrState;
   s.settings = { ...base.settings, ...(raw.settings ?? {}) };
   s.settings.appearance = { ...defaultAppearance, ...(raw.settings?.appearance ?? {}) };
+  s.settings.appearance.wallpaper = { ...defaultAppearance.wallpaper!, ...(raw.settings?.appearance?.wallpaper ?? {}) };
   // v2 monochrome rebrand: move the old gold defaults to the new black-and-white ones.
   const ap = s.settings.appearance;
   if (ap.accent.toUpperCase() === "#C5A66D") ap.accent = ap.theme === "light" ? "#0A0A0A" : defaultAppearance.accent;

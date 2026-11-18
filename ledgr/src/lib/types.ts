@@ -337,6 +337,23 @@ export interface Appearance {
   nav: "top" | "side"; // main navigation position
   cursor: "system" | "ring"; // optional trailing ring cursor
   savedThemes: { id: ID; name: string; values: Omit<Appearance, "savedThemes"> }[];
+  /** Live wallpaper or the user's own video/image behind the app. */
+  wallpaper?: Wallpaper;
+}
+
+export type LiveWallpaper = "aurora" | "candles" | "rays" | "particles" | "grid";
+export interface Wallpaper {
+  kind: "none" | "live" | "image" | "video";
+  live: LiveWallpaper;
+  /** The user's upload, stored as a blob on this device (and synced like attachments). */
+  blobId: string | null;
+  blobKind?: "image" | "video";
+  /** 0–0.9: darkens the wallpaper so text stays readable. */
+  dim: number;
+  /** Blur in px. */
+  blur: number;
+  /** See-through cards and bars, so the wallpaper shows behind them. */
+  glass: boolean;
 }
 
 export interface InsightConfig {

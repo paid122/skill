@@ -17,6 +17,7 @@ import { Onboarding } from "./Onboarding";
 import { ImportCsv } from "./ImportCsv";
 import { QuickLog } from "./QuickLog";
 import { CursorRing } from "./CursorRing";
+import { Wallpaper } from "./Wallpaper";
 import { SessionRail } from "./SessionRail";
 import { TopNav } from "./TopNav";
 import { SyncManager } from "./SyncManager";
@@ -40,6 +41,8 @@ function useApplyAppearance() {
     if (a.negativeColor.toLowerCase() === defaultAppearance.negativeColor.toLowerCase()) el.style.removeProperty("--neg");
     else el.style.setProperty("--neg", a.negativeColor);
     setNumberLocale(a.numberFormat);
+    const w = a.wallpaper;
+    if (w && w.kind !== "none" && w.glass) el.dataset.glass = ""; else delete el.dataset.glass;
   }, [a]);
   return a;
 }
@@ -84,7 +87,8 @@ function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-bg text-text">
-      {appearance.backgroundImage && (
+      {appearance.wallpaper && appearance.wallpaper.kind !== "none" && <Wallpaper w={appearance.wallpaper} />}
+      {appearance.backgroundImage && appearance.wallpaper?.kind !== "none" ? null : appearance.backgroundImage && (
         <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center" style={{ backgroundImage: `url(${appearance.backgroundImage})`, opacity: appearance.backgroundOpacity }} />
       )}
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[300] focus:rounded-lg focus:bg-card focus:px-3 focus:py-2">Skip to content</a>
