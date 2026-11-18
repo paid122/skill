@@ -1,7 +1,8 @@
 "use client";
-import { ArrowLeft, Check, Plus, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Plus, ShieldCheck, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { PageIntro } from "@/components/blocks";
 import { CountUp } from "@/components/CountUp";
 import { Badge, Button, Card, EmptyState, Segmented, useFeedback } from "@/components/ui";
@@ -143,43 +144,91 @@ function FirmBadge({ firm, size = 40 }: { firm: string; size?: number }) {
 
 /* ------------------------------------------------------------------ add account */
 
+/** Each firm's card colour (our own palette, not the firms' branding). */
+const FIRM_TONE: Record<string, { from: string; to: string; accent: string; button: string }> = {
+  "Apex Trader Funding": { from: "#3a2410", to: "#120c07", accent: "#f2a65a", button: "#f2a65a" },
+  "Lucid Trading": { from: "#10243f", to: "#070c14", accent: "#7cb7ff", button: "#7cb7ff" },
+};
+const tone = (f: string) => FIRM_TONE[f] ?? { from: "#222", to: "#0c0c0c", accent: "#ddd", button: "#fff" };
+
 function AddAccount({ onDone }: { onDone: () => void }) {
   const [firm, setFirm] = useState<string | null>(null);
   const { toast } = useFeedback();
-  if (!firm) {
-    return (
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
+  return (
+    <div className="flex flex-col items-center">
+      <div className="prop-rise mb-8 mt-2 flex flex-col items-center text-center">
+        <span className="grid h-14 w-14 place-items-center rounded-2xl border border-line bg-card-2 text-text-2"><ShieldCheck size={24} /></span>
+        <p className="mt-5 text-[24px] font-semibold tracking-tight text-text">Track your prop firm challenges</p>
+        <p className="mt-2 max-w-md text-[14.5px] leading-relaxed text-text-2">Pick a firm below to add your account. LEDGR fills in its rules and tracks it from your journal.</p>
+      </div>
+      <div className="grid w-full max-w-[880px] grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
         {FIRMS.map((f, i) => {
-          const plans = PROP_FIRM_RULES[f], sizes = firmSizes(f);
+          const plans = PROP_FIRM_RULES[f], sizes = firmSizes(f), t = tone(f);
           return (
-            <button key={f} type="button" onClick={() => setFirm(f)} style={{ "--i": i } as React.CSSProperties} className="prop-rise group flex flex-col gap-5 rounded-2xl border border-line bg-card p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-text-2 hover:shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)] active:scale-[0.99]">
-              <div className="flex items-center gap-4">
-                <span className="transition-transform duration-500 group-hover:rotate-[-6deg] group-hover:scale-110"><FirmBadge firm={f} size={52} /></span>
+            <div key={f} style={{ "--i": i + 1, background: `radial-gradient(120% 120% at 0% 0%, ${t.from}, ${t.to} 70%)` } as React.CSSProperties}
+              className="prop-rise group relative overflow-hidden rounded-[22px] border border-white/10 p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] transition-all duration-300 hover:-translate-y-1 hover:border-white/20">
+              <div aria-hidden className="absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-40 blur-3xl transition-opacity duration-500 group-hover:opacity-70" style={{ background: t.accent }} />
+              <div className="relative flex items-center gap-4">
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/40 text-[24px] font-bold text-white ring-1 ring-white/15 transition-transform duration-500 group-hover:rotate-[-6deg] group-hover:scale-110">{f.charAt(0)}</span>
                 <div>
-                  <p className="text-[18px] font-semibold text-text">{f}</p>
-                  <p className="text-[13px] text-muted">Futures · {plans.length} plans · {k(sizes[0])} to {k(sizes[sizes.length - 1])}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: t.accent }}>Futures</p>
+                  <p className="text-[20px] font-semibold text-white">{f}</p>
+                  <p className="text-[13px] text-white/60">{plans.length} plans · {k(sizes[0])} to {k(sizes[sizes.length - 1])}</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">{plans.map((p) => <span key={p.name} className="rounded-full border border-line-soft px-3 py-1 text-[12px] text-text-2">{p.name}</span>)}</div>
-              <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text">Log your account <span className="transition-transform group-hover:translate-x-0.5">→</span></span>
-            </button>
+              <div className="relative mt-5 flex flex-wrap gap-2">{plans.map((p) => <span key={p.name} className="rounded-full bg-white/10 px-3 py-1 text-[12px] text-white/80">{p.name}</span>)}</div>
+              <button type="button" onClick={() => setFirm(f)} className="relative mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-black transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]" style={{ background: t.button }}>
+                <Plus size={15} /> Log your account
+              </button>
+            </div>
           );
         })}
-        <p className="text-[12px] text-muted md:col-span-2">More firms are coming. Using another firm? Add a Funded account on the Account desk and enter its rules yourself.</p>
       </div>
-    );
-  }
-  return <FirmPicker firm={firm} onBack={() => setFirm(null)} onAdded={(name) => { toast(`${name} added`); onDone(); }} />;
+      <p className="prop-rise mt-6 text-center text-[12px] text-muted" style={{ "--i": 3 } as React.CSSProperties}>More firms are coming. Using another firm? Add a Funded account on the Account desk and enter its rules yourself.</p>
+      {firm && <FirmPicker firm={firm} onClose={() => setFirm(null)} onAdded={(name) => { toast(`${name} added`); setFirm(null); onDone(); }} />}
+    </div>
+  );
 }
 
-function FirmPicker({ firm, onBack, onAdded }: { firm: string; onBack: () => void; onAdded: (name: string) => void }) {
+/** Full-screen picker: plan tabs, daily-loss switch and a carousel of account sizes, like the firm's own checkout. */
+function FirmPicker({ firm, onClose, onAdded }: { firm: string; onClose: () => void; onAdded: (name: string) => void }) {
   const plans = PROP_FIRM_RULES[firm];
   const [planName, setPlanName] = useState(plans[0].name);
   const [daily, setDaily] = useState(false);
   const [stage, setStage] = useState<PropStage>("evaluation");
+  const [unit, setUnit] = useState<"$" | "%">("$");
+  const [active, setActive] = useState(1);
+  const [mounted, setMounted] = useState(false);
+  const row = useRef<HTMLDivElement>(null);
   const accounts = useLedgr((s) => s.accounts);
   const plan = plans.find((p) => p.name === planName) ?? plans[0];
   const sizes = firmSizes(firm);
+  const t = tone(firm);
+
+  useEffect(() => {
+    setMounted(true);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+  }, [onClose]);
+
+  // Keep the chosen card centred in the carousel.
+  const centre = (i: number, smooth = true) => {
+    const el = row.current?.children[i] as HTMLElement | undefined;
+    if (el && row.current) row.current.scrollTo({ left: el.offsetLeft - (row.current.clientWidth - el.clientWidth) / 2, behavior: smooth ? "smooth" : "auto" });
+  };
+  useEffect(() => { if (mounted) requestAnimationFrame(() => centre(active, false)); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [mounted, planName, stage, daily]);
+  const onScroll = () => {
+    const r = row.current;
+    if (!r) return;
+    const mid = r.scrollLeft + r.clientWidth / 2;
+    let best = 0, dist = Infinity;
+    Array.from(r.children).forEach((c, i) => { const el = c as HTMLElement; const d = Math.abs(el.offsetLeft + el.clientWidth / 2 - mid); if (d < dist) { dist = d; best = i; } });
+    if (best !== active) setActive(best);
+  };
+  const go = (d: number) => { const i = Math.max(0, Math.min(sizes.length - 1, active + d)); setActive(i); centre(i); };
 
   const add = (size: number) => {
     const pre = presetRules(firm, plan.name, size, stage, daily)!;
@@ -188,78 +237,116 @@ function FirmPicker({ firm, onBack, onAdded }: { firm: string; onBack: () => voi
     saveAccount({ ...newAccount(), name, type: "Funded", currency: "USD", startingBalance: size, propFirm: firm, accountSize: size, propPlan: plan.name, propStage: stage, propDailyLimit: daily, rules: pre.rules } as Account);
     onAdded(name);
   };
+  const money = (v: number | null, size: number) => (v === null ? "None" : unit === "%" ? `${+((v / size) * 100).toFixed(2)}%` : usd0(v));
 
-  return (
-    <div className="prop-rise flex flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button size="sm" variant="ghost" icon={<ArrowLeft size={14} />} onClick={onBack}>Firms</Button>
-        <FirmBadge firm={firm} size={34} />
-        <div><p className="text-[17px] font-semibold text-text">{firm}</p><p className="text-[12px] text-muted">Futures · pick the account you bought</p></div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {plans.map((p) => (
-          <button key={p.name} type="button" onClick={() => setPlanName(p.name)} aria-pressed={p.name === plan.name}
-            className={cx("min-w-[150px] rounded-2xl border px-5 py-3 text-left transition-all duration-300", p.name === plan.name ? "scale-[1.03] border-text-2 bg-card-2 shadow-[0_16px_40px_-24px_rgba(255,255,255,0.25)]" : "border-line bg-card hover:-translate-y-0.5 hover:border-text-2/60")}>
-            <span className="block text-[15px] font-semibold text-text">{p.name}</span>
-            <span className="block text-[12px] text-muted">{p.tagline}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <label className="flex items-center gap-2 text-[13px] text-text-2">Stage
-          <Segmented ariaLabel="Stage" size="sm" value={stage} onChange={setStage} options={[{ value: "evaluation", label: "Evaluation" }, { value: "funded", label: "Funded" }]} />
-        </label>
-        {plan.optionalDailyLimit && (
-          <label className="flex items-center gap-2 text-[13px] text-text-2">Daily loss limit
-            <Segmented ariaLabel="Daily loss limit" size="sm" value={daily ? "on" : "off"} onChange={(v) => setDaily(v === "on")} options={[{ value: "off", label: "Off" }, { value: "on", label: "On" }]} />
-          </label>
-        )}
-      </div>
-
-      <div key={`${plan.name}-${stage}-${daily}`} className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {sizes.map((size, i) => {
-          const pre = presetRules(firm, plan.name, size, stage, daily)!;
-          const s = plan.sizes[size];
-          const fail = size - pre.rules.maxDrawdown!, target = pre.rules.profitTarget ? size + pre.rules.profitTarget : null;
-          const hi = target ?? size + pre.rules.maxDrawdown!;
-          const at = (v: number) => `${((v - fail) / (hi - fail)) * 100}%`;
-          return (
-            <div key={size} style={{ "--i": i } as React.CSSProperties} className="prop-rise group flex flex-col rounded-2xl border border-line bg-gradient-to-b from-card-2 to-card p-5 transition-all duration-300 hover:-translate-y-1.5 hover:border-text-2/70 hover:shadow-[0_30px_70px_-35px_rgba(0,0,0,0.9)]">
-              <div className="flex items-start justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Account size</p>
-                <span className="rounded-full bg-card px-2.5 py-0.5 text-[11px] text-text-2">{stage === "evaluation" ? "Evaluation" : "Funded"}</span>
-              </div>
-              <p className="mt-1 origin-left text-[44px] font-bold leading-none tracking-tight text-text transition-transform duration-300 group-hover:scale-105">{k(size)}</p>
-              <p className="mt-1 text-[12.5px] text-muted">{short(firm)} · {plan.name}</p>
-              <div className="relative mt-5 h-1.5 rounded-full bg-card">
-                <div className="prop-grow absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-neg/40 via-text-2/40 to-pos/60" style={{ width: "100%", "--i": i } as React.CSSProperties} />
-                <span className="prop-pop absolute top-1/2 h-3 w-0.5 -translate-y-1/2 bg-text" style={{ left: at(size), "--i": i } as React.CSSProperties} />
-              </div>
-              <div className="mt-2 flex justify-between text-[11px]">
-                <span><span className="num block text-text">{usd0(fail)}</span><span className="text-muted">Fail below</span></span>
-                <span className="text-center"><span className="num block text-text">{usd0(size)}</span><span className="text-muted">Start</span></span>
-                <span className="text-right"><span className="num block text-text">{target === null ? "—" : usd0(target)}</span><span className="text-muted">{target === null ? "No target" : "Target"}</span></span>
-              </div>
-              <dl className="mt-4 divide-y divide-line-soft text-[13px]">
-                {[
-                  ["Profit target", target === null ? "None" : usd0(pre.rules.profitTarget)],
-                  ["Max loss", <span key="m">{usd0(pre.rules.maxDrawdown)} <span className="text-[11px] text-muted">{plan.trailing}</span></span>],
-                  ["Daily loss", pre.rules.dailyLossLimit === null ? "None" : usd0(pre.rules.dailyLossLimit)],
-                  ["Contracts", s.maxContracts],
-                  ["Min days", "None"],
-                  ["Consistency", plan.consistency],
-                ].map(([l, v]) => (
-                  <div key={l as string} className="flex items-baseline justify-between gap-3 py-2"><dt className="text-muted">{l}</dt><dd className="text-right font-medium text-text">{v}</dd></div>
-                ))}
-              </dl>
-              <Button variant="accent" className="mt-4" icon={<Check size={14} />} onClick={() => add(size)}>Add this account</Button>
+  if (!mounted) return null;
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label={`${firm} accounts`} className="animate-fade fixed inset-0 z-[1000] flex flex-col overflow-y-auto bg-black/80 backdrop-blur-xl">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col px-4 pb-10 pt-5 sm:px-8">
+        {/* Top bar */}
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={onClose} aria-label="Back to firms" className="grid h-10 w-10 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"><ArrowLeft size={18} /></button>
+            <div className="flex rounded-full bg-white/10 p-1" role="radiogroup" aria-label="Show values in">
+              {(["$", "%"] as const).map((u) => <button key={u} type="button" role="radio" aria-checked={unit === u} onClick={() => setUnit(u)} className={cx("h-8 w-9 rounded-full text-[14px] font-semibold transition-colors", unit === u ? "bg-black text-white" : "text-white/60 hover:text-white")}>{u}</button>)}
             </div>
-          );
-        })}
+          </div>
+          <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 text-center">
+            <p className="flex items-center justify-center gap-3 text-[24px] font-semibold text-white sm:text-[28px]">
+              <span className="grid h-9 w-9 place-items-center rounded-full text-[16px] font-bold text-black" style={{ background: t.accent }}>{firm.charAt(0)}</span>{firm}
+            </p>
+            <p className="mt-0.5 text-[13px] text-white/55">Futures · pick the account you bought</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"><X size={18} /></button>
+        </div>
+
+        {/* Plans */}
+        <div className="mt-16 flex flex-wrap justify-center gap-3">
+          {plans.map((p) => {
+            const on = p.name === plan.name;
+            return (
+              <button key={p.name} type="button" onClick={() => setPlanName(p.name)} aria-pressed={on}
+                className={cx("min-w-[170px] rounded-2xl px-6 py-3.5 text-center transition-all duration-300", on ? "scale-[1.04] bg-gradient-to-b from-white/25 to-white/10 shadow-[0_18px_40px_-20px_rgba(255,255,255,0.35)] ring-1 ring-white/30" : "bg-white/[0.06] ring-1 ring-white/10 hover:bg-white/10")}>
+                <span className="block text-[17px] font-semibold text-white">{p.name}</span>
+                <span className="block text-[12.5px] text-white/55">{p.tagline}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[14px] text-white/75">
+          {plan.optionalDailyLimit && (
+            <span className="flex items-center gap-3">Daily loss limit
+              <Pill options={["Off", "On"]} value={daily ? "On" : "Off"} onChange={(v) => setDaily(v === "On")} />
+            </span>
+          )}
+          <span className="flex items-center gap-3">Stage
+            <Pill options={["Evaluation", "Funded"]} value={stage === "evaluation" ? "Evaluation" : "Funded"} onChange={(v) => setStage(v === "Funded" ? "funded" : "evaluation")} />
+          </span>
+        </div>
+
+        {/* Carousel of sizes */}
+        <div className="relative mt-8">
+          <div ref={row} onScroll={onScroll} key={`${plan.name}-${stage}-${daily}`} className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-[calc(50%-190px)] pb-6 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {sizes.map((size, i) => {
+              const pre = presetRules(firm, plan.name, size, stage, daily)!;
+              const s = plan.sizes[size];
+              const fail = size - pre.rules.maxDrawdown!, target = pre.rules.profitTarget ? size + pre.rules.profitTarget : null;
+              const hi = target ?? size + pre.rules.maxDrawdown!;
+              const at = `${((size - fail) / (hi - fail)) * 100}%`;
+              const on = i === active;
+              return (
+                <div key={size} onClick={() => { if (!on) { setActive(i); centre(i); } }} style={{ "--i": i } as React.CSSProperties}
+                  className={cx("prop-rise relative w-[380px] shrink-0 snap-center overflow-hidden rounded-[26px] p-6 ring-1 transition-all duration-500",
+                    on ? "scale-[1.04] bg-gradient-to-b from-[#5a5a5a] via-[#2a2a2a] to-[#141414] ring-white/25 shadow-[0_40px_90px_-40px_rgba(0,0,0,1)]" : "cursor-pointer scale-95 bg-gradient-to-b from-[#3a3a3a] via-[#1d1d1d] to-[#121212] opacity-60 ring-white/10 hover:opacity-80")}>
+                  <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.18),rgba(255,255,255,0.02)_60%,transparent_70%)]" />
+                  <div className="relative flex items-start justify-between">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/50">Account size</p>
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-[12px] text-white/75">{stage === "evaluation" ? "Evaluation" : "Funded"}</span>
+                  </div>
+                  <p className="relative mt-1 text-[64px] font-bold leading-none tracking-[-0.04em] text-white">{k(size)}</p>
+                  <p className="relative mt-1 text-[14px] text-white/55">{firm} · {plan.name}</p>
+                  <div className="relative mt-6 h-2 rounded-full bg-black/40">
+                    <div className="prop-grow absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-black/30 via-white/40 to-white" style={{ width: "100%", "--i": i } as React.CSSProperties} />
+                    <span className="prop-pop absolute top-1/2 h-4 w-0.5 -translate-y-1/2 bg-white" style={{ left: at, "--i": i } as React.CSSProperties} />
+                  </div>
+                  <div className="relative mt-2.5 flex justify-between text-[12px]">
+                    <span><span className="num block font-semibold text-white">{usd0(fail)}</span><span className="text-white/50">Fail below</span></span>
+                    <span className="text-center"><span className="num block font-semibold text-white">{usd0(size)}</span><span className="text-white/50">Start</span></span>
+                    <span className="text-right"><span className="num block font-semibold text-white">{target === null ? "—" : usd0(target)}</span><span className="text-white/50">{target === null ? "No target" : "Target"}</span></span>
+                  </div>
+                  <dl className="relative mt-5 divide-y divide-white/10 text-[14px]">
+                    {[
+                      ["Profit target", money(pre.rules.profitTarget, size)],
+                      ["Max loss", <span key="m">{money(pre.rules.maxDrawdown, size)} <span className="text-[12px] text-white/45">{plan.trailing.replace("trailing", "Trailing")}</span></span>],
+                      ["Daily loss", money(pre.rules.dailyLossLimit, size)],
+                      ["Contracts", s.maxContracts.replace("/", "OR")],
+                      ["Min days", "None"],
+                      ["Consistency", plan.consistency],
+                    ].map(([l, v]) => (
+                      <div key={l as string} className="flex items-baseline justify-between gap-3 py-2.5"><dt className="text-white/55">{l}</dt><dd className="text-right font-semibold text-white">{v}</dd></div>
+                    ))}
+                  </dl>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); add(size); }} className={cx("relative mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-semibold transition-all duration-200", on ? "bg-white text-black hover:scale-[1.02] active:scale-[0.98]" : "bg-white/15 text-white")}>
+                    <Check size={15} /> Add this account
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <button type="button" onClick={() => go(-1)} disabled={active === 0} aria-label="Smaller account" className="absolute left-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white ring-1 ring-white/15 backdrop-blur transition-opacity hover:bg-black/80 disabled:opacity-0"><ChevronLeft size={20} /></button>
+          <button type="button" onClick={() => go(1)} disabled={active === sizes.length - 1} aria-label="Bigger account" className="absolute right-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white ring-1 ring-white/15 backdrop-blur transition-opacity hover:bg-black/80 disabled:opacity-0"><ChevronRight size={20} /></button>
+        </div>
+        <p className="mx-auto mt-2 max-w-2xl text-center text-[12px] text-white/45">{plan.note} Rules checked {PROP_RULES_CHECKED} from public summaries; firms change them, so compare with your dashboard. You can edit any rule on the Account desk.</p>
       </div>
-      <p className="text-[12px] text-muted">{plan.note} Rules checked {PROP_RULES_CHECKED} from public summaries; firms change them, so compare with your dashboard. You can edit any rule on the Account desk.</p>
-    </div>
+    </div>,
+    document.body,
+  );
+}
+
+function Pill({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <span className="flex rounded-full bg-white/10 p-1" role="radiogroup">
+      {options.map((o) => <button key={o} type="button" role="radio" aria-checked={value === o} onClick={() => onChange(o)} className={cx("rounded-full px-4 py-1.5 text-[13.5px] font-semibold transition-colors", value === o ? "bg-black text-white" : "text-white/60 hover:text-white")}>{o}</button>)}
+    </span>
   );
 }
