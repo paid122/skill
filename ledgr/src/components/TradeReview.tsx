@@ -1,5 +1,7 @@
 "use client";
 /** The trade review: a 1–10 rating and three prompts (went well, went wrong, to improve). */
+import { AlertTriangle, Pencil, Target, ThumbsUp } from "lucide-react";
+import type { Trade } from "@/lib/types";
 import { cx } from "@/lib/util";
 
 export const REVIEW_PROMPTS = [
@@ -47,5 +49,49 @@ export function RatingBadge({ value, size = 44 }: { value: number; size?: number
       </svg>
       <span className="num absolute text-[14px] font-semibold text-text" style={{ fontSize: size * 0.32 }}>{value}</span>
     </span>
+  );
+}
+
+const TONES = {
+  wentWell: { icon: ThumbsUp, color: "var(--pos)" },
+  wentWrong: { icon: AlertTriangle, color: "var(--neg)" },
+  improve: { icon: Target, color: "#e0a83a" },
+} as const;
+const PLAN = { yes: "Followed the plan", partial: "Partly followed the plan", no: "Didn't follow the plan" } as const;
+
+/** The review on the trade page: rating, then went well / went wrong / to improve as coloured cards. */
+export function TradeReviewCard({ t, onEdit }: { t: Trade; onEdit: () => void }) {
+  const r = t.reflection;
+  const empty = !r.rating && REVIEW_PROMPTS.every((q) => !(r[q.key] ?? "").trim());
+  return (
+    <div className="card card-pad flex flex-col gap-5">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {r.rating ? <RatingBadge value={r.rating} size={56} /> : <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-dashed border-line text-[13px] text-muted">–</span>}
+          <div>
+            <p className="text-[15px] font-semibold text-text">Trade review</p>
+            <p className="text-[13px] text-text-2">
+              {r.rating ? <><span style={{ color: ratingColor(r.rating) }}>{r.rating}/10 · {ratingWord(r.rating)}</span></> : "Not rated yet"}
+              {r.followedPlan && <span className="text-muted"> · {PLAN[r.followedPlan]}</span>}
+            </p>
+          </div>
+        </div>
+        <button type="button" onClick={onEdit} className="inline-flex items-center gap-1.5 rounded-full bg-card-2 px-3 py-1.5 text-[12.5px] font-medium text-text-2 transition-colors hover:text-text"><Pencil size={12} />{empty ? "Review this trade" : "Edit"}</button>
+      </div>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-3">
+        {REVIEW_PROMPTS.map((q) => {
+          const tone = TONES[q.key], Icon = tone.icon, text = (r[q.key] ?? "").trim();
+          return (
+            <div key={q.key} className="relative overflow-hidden rounded-xl p-4" style={{ background: `color-mix(in srgb, ${tone.color} 9%, transparent)`, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${tone.color} 22%, transparent)` }}>
+              <p className="flex items-center gap-2 text-[12.5px] font-semibold" style={{ color: tone.color }}><Icon size={14} />{q.label}</p>
+              {text
+                ? <ul className="mt-2.5 flex flex-col gap-1.5 text-[13.5px] leading-snug text-text">{text.split(/\n+|(?<=[.!?])\s+/).filter(Boolean).map((line, i) => <li key={i} className="flex gap-2"><span className="mt-[7px] h-1 w-1 shrink-0 rounded-full" style={{ background: tone.color }} />{line}</li>)}</ul>
+                : <p className="mt-2.5 text-[13px] text-muted">Nothing written yet</p>}
+            </div>
+          );
+        })}
+      </div>
+      {r.learned.trim() && <p className="border-t border-line-soft pt-4 text-[13.5px] text-text-2"><span className="text-muted">Lesson · </span>{r.learned}</p>}
+    </div>
   );
 }

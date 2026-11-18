@@ -1,7 +1,7 @@
 "use client";
 import { SymbolIcon } from "./SymbolIcon";
-import { ImagePlus, Plus, Trash2 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { ImagePlus, Plus, Sparkles, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { deleteTrade, newTradeDraft, saveTrade, ValidationError } from "@/lib/actions";
 import { tradeMetrics } from "@/lib/calc";
 import { closeEditor, useOverlays } from "@/lib/overlays";
@@ -10,6 +10,7 @@ import { EMOTIONS, GRADES, MARKETS, SESSIONS, STRAINED_EMOTIONS, type Emotion, t
 import { cx, fmtMoney, fmtNum, fmtR, nowISO, uid } from "@/lib/util";
 import { BlobImage } from "./BlobImage";
 import { RatingPicker, REVIEW_PROMPTS } from "./TradeReview";
+import { suggestReview, type ReviewSuggestion } from "@/lib/review";
 import { Badge, Button, Chips, Field, IconButton, Input, Modal, NumberInput, Segmented, Select, Tabs, Textarea, useFeedback } from "./ui";
 
 type Tab = "trade" | "execution" | "psychology" | "reflection" | "attachments";
@@ -294,21 +295,49 @@ function PsychologyTab({ t, set }: TabProps) {
 function ReflectionTab({ t, set }: TabProps) {
   const r = t.reflection;
   const setR = (p: Partial<Trade["reflection"]>) => set({ reflection: { ...r, ...p } });
+  // Autofill from the trade: fill boxes that are empty or still hold the last suggestion, never your own words.
+  const last = useRef<ReviewSuggestion | null>(null);
+  const [filled, setFilled] = useState(false);
+  const autofill = () => {
+    const s = suggestReview(t, tradeMetrics(t));
+    const patch: Partial<Trade["reflection"]> = {};
+    for (const q of REVIEW_PROMPTS) {
+      const cur = (r[q.key] ?? "").trim();
+      if ((!cur || cur === last.current?.[q.key]) && s[q.key]) patch[q.key] = s[q.key];
+    }
+    last.current = s;
+    if (Object.keys(patch).length) { setR(patch); setFilled(true); }
+  };
+  useEffect(() => {
+    if (REVIEW_PROMPTS.every((q) => !(r[q.key] ?? "").trim())) autofill();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-6">
       <RatingPicker value={r.rating} onChange={(rating) => setR({ rating })} />
-      <div className="grid gap-3">
-        {REVIEW_PROMPTS.map((q) => (
-          <label key={q.key} className="block rounded-xl border border-line-soft bg-bg-2/40 p-3 focus-within:border-line">
-            <span className="mb-1.5 flex items-center gap-2 text-[13px] font-medium text-text"><span className={cx("h-2 w-2 rounded-full", q.dot)} />{q.label}</span>
-            <Textarea value={r[q.key] ?? ""} onChange={(e) => setR({ [q.key]: e.target.value })} placeholder={q.placeholder} rows={2} style={{ background: "transparent", border: 0, padding: 0, boxShadow: "none" }} />
-          </label>
-        ))}
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-[12.5px] text-muted">{filled ? "Filled in from your trade. Edit anything." : "Write it yourself or fill it in from the trade."}</p>
+          <button type="button" onClick={autofill} className="inline-flex items-center gap-1.5 rounded-full bg-card-2 px-3 py-1 text-[12.5px] font-medium text-text-2 transition-colors hover:text-text"><Sparkles size={13} />Autofill</button>
+        </div>
+        <div className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line-soft">
+          {REVIEW_PROMPTS.map((q) => (
+            <label key={q.key} className="flex gap-3 px-4 py-3 transition-colors focus-within:bg-bg-2/50">
+              <span className={cx("mt-1.5 h-2 w-2 shrink-0 rounded-full", q.dot)} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12.5px] font-medium text-text-2">{q.label}</span>
+                <Textarea value={r[q.key] ?? ""} onChange={(e) => setR({ [q.key]: e.target.value })} placeholder={q.placeholder} rows={Math.max(2, (r[q.key] ?? "").split("\n").length)} style={{ background: "transparent", border: 0, padding: "2px 0 0", boxShadow: "none", resize: "none" }} />
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
-      <Field label="Did I follow my written plan?">
-        <Segmented value={r.followedPlan ?? ("" as never)} onChange={(v) => setR({ followedPlan: v })} options={[{ value: "yes", label: "Yes" }, { value: "partial", label: "Partly" }, { value: "no", label: "No" }]} ariaLabel="Followed plan" />
-      </Field>
-      <Field label="What did I learn?"><Textarea value={r.learned} onChange={(e) => setR({ learned: e.target.value })} /></Field>
+      <div className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
+        <Field label="Followed my plan?">
+          <Segmented value={r.followedPlan ?? ("" as never)} onChange={(v) => setR({ followedPlan: v })} options={[{ value: "yes", label: "Yes" }, { value: "partial", label: "Partly" }, { value: "no", label: "No" }]} ariaLabel="Followed plan" />
+        </Field>
+        <Field label="What did I learn?"><Textarea value={r.learned} onChange={(e) => setR({ learned: e.target.value })} rows={2} /></Field>
+      </div>
     </div>
   );
 }

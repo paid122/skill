@@ -1,5 +1,5 @@
 "use client";
-import { RatingBadge, ratingWord, REVIEW_PROMPTS } from "@/components/TradeReview";
+import { TradeReviewCard } from "@/components/TradeReview";
 import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -153,6 +153,8 @@ export default function TradeDetailPage() {
             </details>
           </Card>
 
+          <TradeReviewCard t={t} onEdit={() => openEditor(t.id, "reflection")} />
+
           <Card>
             <SectionTitle title="Execution notes" />
             <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
@@ -190,26 +192,6 @@ export default function TradeDetailPage() {
             <div className="flex flex-wrap gap-1.5">{t.mistakes.length ? t.mistakes.map((e) => <Badge key={e} tone="neutral">{e}</Badge>) : <span className="text-[13px] text-muted">None documented</span>}</div>
           </Card>
 
-          <Card>
-            <SectionTitle title="Trade review" action={<Button size="sm" variant="ghost" onClick={() => openEditor(t.id, "reflection")}>Edit</Button>} />
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 rounded-xl bg-bg-2/60 p-3">
-                {t.reflection.rating ? <RatingBadge value={t.reflection.rating} /> : <span className="grid h-11 w-11 place-items-center rounded-full border border-dashed border-line text-[12px] text-muted">–</span>}
-                <div><p className="text-xs text-muted">Trade rating</p><p className="text-[14px] text-text">{t.reflection.rating ? `${t.reflection.rating}/10 · ${ratingWord(t.reflection.rating)}` : "Not rated yet"}</p></div>
-              </div>
-              {REVIEW_PROMPTS.map((q) => (
-                <div key={q.key}>
-                  <p className="flex items-center gap-2 text-xs text-muted"><span className={cx("h-1.5 w-1.5 rounded-full", q.dot)} />{q.label}</p>
-                  <p className={cx("mt-1 whitespace-pre-wrap text-[13.5px] leading-relaxed", t.reflection[q.key] ? "text-text" : "text-muted")}>{t.reflection[q.key] || "Not written yet"}</p>
-                </div>
-              ))}
-              <div>
-                <p className="text-xs text-muted">Did I follow my written plan?</p>
-                <p className={cx("mt-1 text-[13.5px]", t.reflection.followedPlan === "yes" ? "pos" : t.reflection.followedPlan === "no" ? "neg" : t.reflection.followedPlan ? "neu" : "text-muted")}>{t.reflection.followedPlan === "yes" ? "Yes" : t.reflection.followedPlan === "partial" ? "Partly" : t.reflection.followedPlan === "no" ? "No" : "Not answered"}</p>
-              </div>
-              <TextBlock label="What did I learn?" text={t.reflection.learned} />
-            </div>
-          </Card>
 
           <Card>
             <SectionTitle title="History" />
