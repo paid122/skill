@@ -102,16 +102,20 @@ async function check(name, fn) {
     assert.ok(await main().getByText("+2.00R").first().isVisible(), "R +2.00");
   });
 
-  await check("Trade editing persists (grade and reflection)", async () => {
+  await check("Trade editing persists (grade and review)", async () => {
     await page.goto(tradeUrl);
     await main().getByRole("button", { name: "Edit trade" }).click();
     await dialog().getByRole("tab", { name: "Execution" }).click();
     await dialog().getByRole("radio", { name: "A+" }).click();
-    await dialog().getByRole("tab", { name: "Reflection" }).click();
+    await dialog().getByRole("tab", { name: /^Review/ }).click();
+    await dialog().getByRole("radio", { name: "8 out of 10" }).click();
+    await dialog().getByPlaceholder(/Chased the entry/).fill("Entered a tick early.");
     await dialog().getByLabel("What did I learn?").fill("Waited for the close.");
     await dialog().getByRole("button", { name: "Save changes" }).click();
     await page.reload(); await page.waitForTimeout(800);
     assert.ok(await main().getByText("Waited for the close.").isVisible());
+    assert.ok(await main().getByText("Entered a tick early.").isVisible());
+    assert.ok(await main().getByText("8/10 · Great").isVisible());
     assert.ok(await main().getByText("A+", { exact: true }).first().isVisible());
   });
 
