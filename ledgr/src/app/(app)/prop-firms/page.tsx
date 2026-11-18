@@ -152,9 +152,9 @@ function FirmLogo({ firm, size = 40, round = false, fallback, fallbackStyle }: {
     return <span className={cx("grid shrink-0 place-items-center font-bold", shape, fallback ?? "border border-line bg-card-2 text-text")} style={{ width: size, height: size, fontSize: size * 0.42, ...fallbackStyle }}>{firm.charAt(0) || "?"}</span>;
   }
   return (
-    <span className={cx("grid shrink-0 place-items-center overflow-hidden bg-white", shape)} style={{ width: size, height: size, padding: size * 0.14 }}>
+    <span className={cx("grid shrink-0 place-items-center overflow-hidden bg-white ring-1 ring-white/10", shape)} style={{ width: size, height: size }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/api/firm-logo?f=${key}`} alt={`${firm} logo`} onError={() => setFailed(true)} className="h-full w-full object-contain" />
+      <img src={`/api/firm-logo?f=${key}`} alt={`${firm} logo`} onError={() => setFailed(true)} className="h-full w-full object-cover" />
     </span>
   );
 }

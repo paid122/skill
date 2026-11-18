@@ -22,6 +22,10 @@ async function fetchIcon(domain: string) {
     `https://www.google.com/s2/favicons?domain=${domain}&sz=256`,
     `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=256`,
     `https://${domain}/apple-touch-icon.png`,
+    `https://www.${domain}/apple-touch-icon.png`,
+    `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+    `https://www.${domain}/favicon.ico`,
+    `https://${domain}/favicon.ico`,
   ];
   for (const u of sources) {
     try {
@@ -30,7 +34,7 @@ async function fetchIcon(domain: string) {
       if (!r.ok || !type.startsWith("image/")) continue;
       const body = await r.arrayBuffer();
       // Google's generic globe for unknown sites is tiny; skip anything that small.
-      if (body.byteLength < 600) continue;
+      if (body.byteLength < (u.includes("google.com") || u.includes("gstatic") ? 600 : 200)) continue;
       return { at: Date.now(), body, type };
     } catch { /* try the next source */ }
   }
