@@ -10,7 +10,7 @@ import { PageVerse } from "@/components/VerseCard";
 import { accountSummary } from "@/lib/accounts";
 import { newAccount, saveAccount } from "@/lib/actions";
 import { useEnriched } from "@/lib/hooks";
-import { firmSizes, PROP_FIRM_RULES, PROP_RULES_CHECKED, presetRules, type PropStage } from "@/lib/propRules";
+import { firmSizes, PROP_FIRM_RULES, PROP_RULES_CHECKED, presetRules, type PropPlan, type PropStage } from "@/lib/propRules";
 import { propStatus, type PropStatus } from "@/lib/propStatus";
 import { useLedgr } from "@/lib/store";
 import type { Account } from "@/lib/types";
@@ -47,16 +47,45 @@ function Accounts({ onAdd }: { onAdd: () => void }) {
   }), [accounts, all, adjustments]);
 
   if (!funded.length) {
-    return <EmptyState icon={<ShieldCheck size={18} />} title="No prop firm accounts yet" body="Add your Apex or Lucid account and LEDGR tracks it against the firm's rules from your journal." action={<Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>Add account</Button>} />;
+    return <EmptyState icon={<ShieldCheck size={18} />} title="No prop firm accounts yet" body="Add your Apex, Lucid, Topstep or other prop account and LEDGR tracks it against the firm's rules from your journal." action={<Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>Add account</Button>} />;
   }
+  const usdOnly = funded.every(({ a }) => a.currency === "USD");
+  const total = funded.reduce((n, { st }) => n + st.balance, 0);
+  const pnl = funded.reduce((n, { st }) => n + st.balance - st.start, 0);
+  const room = funded.reduce((n, { st }) => n + Math.max(0, st.roomLeft ?? 0), 0);
+  const atRisk = funded.filter(({ a, st }) => risk(a, st) !== "ok").length;
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2">
-      {funded.map(({ a, st }, i) => <AccountCard key={a.id} a={a} st={st} i={i} />)}
-      <button type="button" onClick={onAdd} style={{ "--i": funded.length } as React.CSSProperties} className="prop-rise grid min-h-[200px] place-items-center rounded-2xl border border-dashed border-line text-[14px] text-text-2 transition-colors hover:border-text-2 hover:text-text">
-        <span className="inline-flex items-center gap-2"><Plus size={16} /> Add another account</span>
-      </button>
+    <div className="flex flex-col gap-4">
+      <div className="prop-rise grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-4">
+        <Summary label="Accounts" value={<span className="num">{funded.length}</span>} sub={`${funded.filter(({ a }) => a.propStage === "funded").length} funded · ${funded.filter(({ a }) => a.propStage !== "funded").length} in evaluation`} />
+        <Summary label="Combined balance" value={usdOnly ? <CountUp className="num" value={total} format={(v) => usd0(v)} /> : "Mixed currencies"} sub={usdOnly ? <span className={pnl >= 0 ? "pos" : "neg"}>{fmtMoney(pnl, "USD", { sign: true })} since start</span> : ""} />
+        <Summary label="Room left, all accounts" value={usdOnly ? <CountUp className="num" value={room} format={(v) => usd0(v)} /> : "—"} sub="Before each max loss" />
+        <Summary label="Need attention" value={<span className={cx("num", atRisk ? "neg" : "pos")}>{atRisk}</span>} sub={atRisk ? "Close to a limit or hit one" : "All inside the rules"} />
+      </div>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2">
+        {funded.map(({ a, st }, i) => <AccountCard key={a.id} a={a} st={st} i={i + 1} />)}
+        <button type="button" onClick={onAdd} style={{ "--i": funded.length + 1 } as React.CSSProperties} className="prop-rise group grid min-h-[200px] place-items-center rounded-2xl border border-dashed border-line text-[14px] text-text-2 transition-colors hover:border-text-2 hover:text-text">
+          <span className="flex flex-col items-center gap-4">
+            <LogoStack size={34} />
+            <span className="inline-flex items-center gap-2"><Plus size={16} className="transition-transform duration-300 group-hover:rotate-90" /> Add another account</span>
+          </span>
+        </button>
+      </div>
     </div>
   );
+}
+
+function Summary({ label, value, sub }: { label: string; value: React.ReactNode; sub: React.ReactNode }) {
+  return <div className="min-w-0 bg-card px-5 py-4"><p className="text-[11.5px] text-muted">{label}</p><p className="mt-1 truncate text-[22px] font-semibold tracking-tight text-text">{value}</p><p className="mt-0.5 truncate text-[12px] text-muted">{sub}</p></div>;
+}
+
+/** How close an account is to failing: breached or daily limit hit, under a quarter of the max loss left, or fine. */
+function risk(a: Account, st: PropStatus): "hit" | "close" | "ok" {
+  if (st.state === "breached" || st.state === "daily-limit") return "hit";
+  const dd = a.rules.maxDrawdown;
+  if (dd && st.roomLeft !== null && st.roomLeft <= dd * 0.25) return "close";
+  if ((st.dailyUsed ?? 0) >= 0.75) return "close";
+  return "ok";
 }
 
 const STATE: Record<PropStatus["state"], { label: string; tone: "pos" | "neg" | "neutral" }> = {
@@ -73,8 +102,10 @@ function AccountCard({ a, st, i }: { a: Account; st: PropStatus; i: number }) {
   const pos = (v: number) => `${Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100))}%`;
   const room = st.roomLeft ?? 0;
   const roomTone = st.roomLeft === null ? "" : room <= (a.rules.maxDrawdown ?? 1) * 0.25 ? "neg" : room <= (a.rules.maxDrawdown ?? 1) * 0.5 ? "text-[#e0a83a]" : "pos";
+  const r = risk(a, st);
   return (
-    <Card className="prop-rise flex flex-col gap-5 transition-transform duration-300 hover:-translate-y-0.5" style={{ "--i": i } as React.CSSProperties}>
+    <Card className={cx("prop-rise relative flex flex-col gap-5 overflow-hidden transition-transform duration-300 hover:-translate-y-0.5", r === "hit" ? "ring-1 ring-neg/50" : r === "close" ? "ring-1 ring-[#e0a83a]/40" : "")} style={{ "--i": i } as React.CSSProperties}>
+      {r !== "ok" && <div aria-hidden className={cx("pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full opacity-25 blur-3xl", r === "hit" ? "bg-neg" : "bg-[#e0a83a]")} />}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <FirmBadge firm={a.propFirm ?? ""} />
@@ -103,11 +134,13 @@ function AccountCard({ a, st, i }: { a: Account; st: PropStatus; i: number }) {
         </div>
       </div>
 
+      <Sparkline path={st.path} floor={st.floor} target={st.target} start={st.start} i={i} />
+
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
         <Stat label="Balance" value={<CountUp className="num" value={st.balance} format={(v) => usd(v, cur)} />} />
         <Stat label="Room left" value={st.roomLeft === null ? "Set max loss" : <CountUp className={cx("num", roomTone)} value={st.roomLeft} format={(v) => usd(v, cur)} />} />
         <Stat label="To target" value={st.target === null ? "—" : st.balance >= st.target ? "Reached" : <CountUp className="num" value={st.target - st.balance} format={(v) => usd(v, cur)} />} />
-        <Stat label="Trading days" value={<span className="num">{st.tradingDays}</span>} />
+        <Stat label="Trading days" value={<span className="num">{st.tradingDays}{st.minDays ? <span className="text-[13px] font-normal text-muted"> / {st.minDays} min</span> : null}</span>} />
       </div>
 
       {st.dailyLimit !== null && (
@@ -125,6 +158,23 @@ function AccountCard({ a, st, i }: { a: Account; st: PropStatus; i: number }) {
           <div className="h-1.5 overflow-hidden rounded-full bg-card-2"><div className="prop-grow h-full rounded-full bg-pos" style={{ width: `${st.progress * 100}%`, "--i": i } as React.CSSProperties} /></div>
         </div>
       )}
+      {st.consistencyLimit !== null && (
+        <div>
+          <div className="mb-1.5 flex justify-between gap-3 text-[12px]">
+            <span className="text-text-2">Consistency · best day vs total profit</span>
+            <span className={cx("num", st.consistencyShare !== null && st.consistencyShare > st.consistencyLimit ? "neg" : "text-text-2")}>
+              {st.consistencyShare === null ? "No profit yet" : `${Math.round(st.consistencyShare * 100)}%`} <span className="text-muted">/ {Math.round(st.consistencyLimit * 100)}% max</span>
+            </span>
+          </div>
+          <div className="relative h-1.5 rounded-full bg-card-2">
+            <div className={cx("prop-grow h-full rounded-full", st.consistencyShare !== null && st.consistencyShare > st.consistencyLimit ? "bg-neg" : "bg-text-2")} style={{ width: `${(st.consistencyShare ?? 0) * 100}%`, "--i": i } as React.CSSProperties} />
+            <span className="absolute -top-1 h-3.5 w-0.5 rounded bg-text" style={{ left: `${st.consistencyLimit * 100}%` }} title={`Cap ${Math.round(st.consistencyLimit * 100)}%`} />
+          </div>
+          {st.consistencyShare !== null && st.consistencyShare > st.consistencyLimit && st.bestDay !== null && (
+            <p className="mt-1.5 text-[12px] text-muted">Your best day ({usd(st.bestDay, cur)}) is over the cap. Smaller, steadier days bring it down: you need about {usd0(Math.max(0, st.bestDay / st.consistencyLimit - (st.balance - st.start)), cur)} more profit without a bigger day.</p>
+          )}
+        </div>
+      )}
       <div className="flex items-center justify-between border-t border-line-soft pt-3 text-[12px] text-muted">
         <span>Estimated from your journal · check your firm&apos;s dashboard</span>
         <Link href="/accounts" className="text-text-2 hover:text-text">Edit rules</Link>
@@ -135,6 +185,42 @@ function AccountCard({ a, st, i }: { a: Account; st: PropStatus; i: number }) {
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return <div className="min-w-0"><p className="text-[11.5px] text-muted">{label}</p><p className="mt-1 truncate text-[16px] font-semibold text-text">{value}</p></div>;
+}
+
+/** End-of-day balance since the start, with the fail line (red) and target (green). */
+function Sparkline({ path, floor, target, start, i }: { path: number[]; floor: number | null; target: number | null; start: number; i: number }) {
+  if (path.length < 2) return <div className="grid h-[72px] place-items-center rounded-xl border border-dashed border-line-soft text-[12px] text-muted">Your balance line shows up after your first trade</div>;
+  const W = 600, H = 72, pad = 6;
+  const vals = [...path, start, ...(floor !== null ? [floor] : []), ...(target !== null ? [target] : [])];
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
+  const x = (j: number) => (j / (path.length - 1)) * W;
+  const y = (v: number) => pad + (1 - (v - lo) / span) * (H - pad * 2);
+  const d = path.map((v, j) => `${j ? "L" : "M"}${x(j).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  const up = path[path.length - 1] >= start;
+  const id = `spark-${i}`;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-[72px] w-full overflow-visible" aria-label="Balance since start">
+      <defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={up ? "var(--pos)" : "var(--neg)"} stopOpacity="0.28" /><stop offset="1" stopColor={up ? "var(--pos)" : "var(--neg)"} stopOpacity="0" /></linearGradient></defs>
+      {floor !== null && <line x1="0" x2={W} y1={y(floor)} y2={y(floor)} stroke="var(--neg)" strokeOpacity="0.6" strokeDasharray="4 5" vectorEffect="non-scaling-stroke" />}
+      {target !== null && <line x1="0" x2={W} y1={y(target)} y2={y(target)} stroke="var(--pos)" strokeOpacity="0.6" strokeDasharray="4 5" vectorEffect="non-scaling-stroke" />}
+      <line x1="0" x2={W} y1={y(start)} y2={y(start)} stroke="currentColor" className="text-line" vectorEffect="non-scaling-stroke" />
+      <path d={`${d}L${W},${H}L0,${H}Z`} fill={`url(#${id})`} className="prop-fade" style={{ "--i": i } as React.CSSProperties} />
+      <path d={d} fill="none" stroke={up ? "var(--pos)" : "var(--neg)"} strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" pathLength={1} className="prop-draw" style={{ "--i": i } as React.CSSProperties} />
+    </svg>
+  );
+}
+
+/** The firms' logos fanned out (hero and "add another"). */
+function LogoStack({ size = 44 }: { size?: number }) {
+  return (
+    <span className="flex">
+      {FIRMS.map((f, j) => (
+        <span key={f} className="prop-pop -ml-1 rounded-xl ring-[3px] ring-bg transition-transform duration-300 first:ml-0 hover:z-10 hover:-translate-y-1.5" style={{ "--i": j } as React.CSSProperties}>
+          <FirmLogo firm={f} size={size} />
+        </span>
+      ))}
+    </span>
+  );
 }
 
 /** A drawn monogram for the firm (no third-party logos). */
@@ -174,49 +260,151 @@ const FIRM_TONE: Record<string, { from: string; to: string; accent: string; butt
 };
 const tone = (f: string) => FIRM_TONE[f] ?? { from: "#222", to: "#0c0c0c", accent: "#ddd", button: "#fff" };
 
+type Filter = "all" | "small" | "eod" | "intraday" | "noConsistency";
+const FILTERS: { value: Filter; label: string; test: (plans: PropPlan[]) => boolean }[] = [
+  { value: "all", label: "All firms", test: () => true },
+  { value: "small", label: "25K accounts", test: (ps) => ps.some((p) => p.sizes[25000]) },
+  { value: "eod", label: "End-of-day drawdown", test: (ps) => ps.some((p) => p.trailing === "EOD trailing") },
+  { value: "intraday", label: "Intraday drawdown", test: (ps) => ps.some((p) => p.trailing === "Intraday trailing") },
+  { value: "noConsistency", label: "No consistency to pass", test: (ps) => ps.some((p) => /none to pass/i.test(p.consistency)) },
+];
+
+/** A firm's 50K (or smallest) evaluation, for the at-a-glance row. */
+function glance(f: string) {
+  const p = PROP_FIRM_RULES[f][0];
+  const size = p.sizes[50000] ? 50000 : firmSizes(f, p.name)[0];
+  return { size, ...p.sizes[size] };
+}
+
 function AddAccount({ onDone }: { onDone: () => void }) {
   const [firm, setFirm] = useState<string | null>(null);
+  const [startPlan, setStartPlan] = useState<string | null>(null);
+  const [view, setView] = useState<"cards" | "compare">("cards");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [q, setQ] = useState("");
+  const accounts = useLedgr((s) => s.accounts);
   const { toast } = useFeedback();
+  const test = FILTERS.find((x) => x.value === filter)!.test;
+  const shown = FIRMS.filter((f) => test(PROP_FIRM_RULES[f]) && f.toLowerCase().includes(q.trim().toLowerCase()));
+  const spot = (e: React.MouseEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
+    e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
+  };
   return (
     <div className="flex flex-col items-center">
       <div className="prop-rise mb-8 mt-2 flex flex-col items-center text-center">
-        <span className="grid h-14 w-14 place-items-center rounded-2xl border border-line bg-card-2 text-text-2"><ShieldCheck size={24} /></span>
-        <p className="mt-5 text-[24px] font-semibold tracking-tight text-text">Track your prop firm challenges</p>
-        <p className="mt-2 max-w-md text-[14.5px] leading-relaxed text-text-2">Pick a firm below to add your account. LEDGR fills in its rules and tracks it from your journal.</p>
+        <LogoStack />
+        <p className="mt-6 text-[26px] font-semibold tracking-tight text-text">Track your prop firm challenges</p>
+        <p className="mt-2 max-w-md text-[14.5px] leading-relaxed text-text-2">Pick your firm. LEDGR fills in its rules and watches your max loss, daily limit, consistency and target from your journal.</p>
       </div>
-      <div className="grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {FIRMS.map((f, i) => {
-          const plans = PROP_FIRM_RULES[f], sizes = firmSizes(f), t = tone(f);
-          return (
-            <div key={f} style={{ "--i": i + 1, background: `radial-gradient(120% 120% at 0% 0%, ${t.from}, ${t.to} 70%)` } as React.CSSProperties}
-              className="prop-rise group relative overflow-hidden rounded-[22px] border border-white/10 p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] transition-all duration-300 hover:-translate-y-1 hover:border-white/20">
-              <div aria-hidden className="absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-40 blur-3xl transition-opacity duration-500 group-hover:opacity-70" style={{ background: t.accent }} />
-              <div className="relative flex items-center gap-4">
-                <span className="shrink-0 transition-transform duration-500 group-hover:rotate-[-6deg] group-hover:scale-110"><FirmLogo firm={f} size={56} fallback="bg-black/40 text-white ring-1 ring-white/15" /></span>
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: t.accent }}>Futures</p>
-                  <p className="text-[20px] font-semibold text-white">{f}</p>
-                  <p className="text-[13px] text-white/60">{plans.length} plan{plans.length === 1 ? "" : "s"} · {k(sizes[0])} to {k(sizes[sizes.length - 1])}</p>
+
+      <div className="prop-rise mb-5 flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-3" style={{ "--i": 1 } as React.CSSProperties}>
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((x) => (
+            <button key={x.value} type="button" onClick={() => setFilter(x.value)} aria-pressed={filter === x.value}
+              className={cx("rounded-full px-3.5 py-1.5 text-[13px] transition-colors", filter === x.value ? "bg-text font-semibold text-bg" : "bg-card-2 text-text-2 hover:text-text")}>{x.label}</button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search firms" aria-label="Search firms" className="input h-9 w-44" />
+          <Segmented ariaLabel="Layout" value={view} onChange={setView} options={[{ value: "cards", label: "Cards" }, { value: "compare", label: "Compare" }]} />
+        </div>
+      </div>
+
+      {!shown.length ? (
+        <p className="py-16 text-[14px] text-muted">No firm matches. Try another filter.</p>
+      ) : view === "compare" ? (
+        <Compare firms={shown} onPick={(f, plan) => { setFirm(f); setStartPlan(plan ?? null); }} />
+      ) : (
+        <div className="grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {shown.map((f, i) => {
+            const plans = PROP_FIRM_RULES[f], sizes = firmSizes(f), t = tone(f), g = glance(f);
+            const mine = accounts.filter((a) => a.propFirm === f && a.status !== "archived").length;
+            return (
+              <div key={f} onMouseMove={spot} style={{ "--i": i + 2, background: `radial-gradient(120% 120% at 0% 0%, ${t.from}, ${t.to} 70%)` } as React.CSSProperties}
+                className="prop-rise prop-spot group relative flex flex-col overflow-hidden rounded-[22px] border border-white/10 p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] transition-all duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_40px_90px_-40px_rgba(0,0,0,1)]">
+                <div aria-hidden className="absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-40 blur-3xl transition-all duration-700 group-hover:scale-125 group-hover:opacity-70" style={{ background: t.accent }} />
+                <div className="relative flex items-center gap-4">
+                  <span className="shrink-0 transition-transform duration-500 group-hover:rotate-[-6deg] group-hover:scale-110"><FirmLogo firm={f} size={56} fallback="bg-black/40 text-white ring-1 ring-white/15" /></span>
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: t.accent }}>
+                      Futures{mine ? <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] tracking-[0.08em] text-white">Tracking {mine}</span> : null}
+                    </p>
+                    <p className="truncate text-[20px] font-semibold text-white">{f}</p>
+                    <p className="text-[13px] text-white/60">{plans.length} plan{plans.length === 1 ? "" : "s"} · {k(sizes[0])} to {k(sizes[sizes.length - 1])}</p>
+                  </div>
+                </div>
+                <div className="relative mt-5 grid grid-cols-3 gap-2 rounded-2xl bg-black/25 p-3 ring-1 ring-white/5">
+                  {[["Target", usd0(g.profitTarget)], ["Max loss", usd0(g.maxDrawdown)], ["Daily loss", g.dailyLossLimit === null ? "None" : PROP_FIRM_RULES[f][0].optionalDailyLimit ? "Optional" : usd0(g.dailyLossLimit)]].map(([l, v]) => (
+                    <div key={l} className="min-w-0 text-center"><p className="num truncate text-[15px] font-semibold text-white">{v}</p><p className="text-[11px] text-white/50">{l}</p></div>
+                  ))}
+                  <p className="col-span-3 -mb-0.5 text-center text-[10.5px] uppercase tracking-[0.14em] text-white/35">{k(g.size)} · {PROP_FIRM_RULES[f][0].name}</p>
+                </div>
+                <div className="relative mt-4 flex flex-wrap gap-2">{plans.map((p) => <span key={p.name} className="rounded-full bg-white/10 px-3 py-1 text-[12px] text-white/80">{p.name}</span>)}</div>
+                <div className="relative mt-auto pt-6">
+                  <button type="button" onClick={() => { setFirm(f); setStartPlan(null); }} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-black transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]" style={{ background: t.button }}>
+                    <Plus size={15} className="transition-transform duration-300 group-hover:rotate-90" /> Log your account
+                  </button>
                 </div>
               </div>
-              <div className="relative mt-5 flex flex-wrap gap-2">{plans.map((p) => <span key={p.name} className="rounded-full bg-white/10 px-3 py-1 text-[12px] text-white/80">{p.name}</span>)}</div>
-              <button type="button" onClick={() => setFirm(f)} className="relative mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-black transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]" style={{ background: t.button }}>
-                <Plus size={15} /> Log your account
-              </button>
-            </div>
-          );
-        })}
+            );
+          })}
+          <Link href="/accounts" style={{ "--i": shown.length + 2 } as React.CSSProperties}
+            className="prop-rise group flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-[22px] border border-dashed border-line p-6 text-center transition-colors hover:border-text-2">
+            <span className="grid h-14 w-14 place-items-center rounded-2xl bg-card-2 text-text-2 transition-transform duration-300 group-hover:scale-110"><Plus size={22} /></span>
+            <p className="text-[17px] font-semibold text-text">Another firm</p>
+            <p className="max-w-[240px] text-[13px] text-text-2">Alpha Futures, Elite Trader Funding, Bulenox… add a Funded account and type its rules in.</p>
+          </Link>
+        </div>
+      )}
+      <p className="prop-rise mt-6 max-w-2xl text-center text-[12px] text-muted" style={{ "--i": shown.length + 3 } as React.CSSProperties}>Only rules that public sources agree on are filled in; where they disagree we leave it for you to enter. Checked {PROP_RULES_CHECKED}; firms change their rules, so compare with your dashboard.</p>
+      {firm && <FirmPicker firm={firm} initialPlan={startPlan} onClose={() => setFirm(null)} onAdded={(name) => { toast(`${name} added`); setFirm(null); onDone(); }} />}
+    </div>
+  );
+}
+
+/** Every firm and plan side by side at one account size. */
+function Compare({ firms, onPick }: { firms: string[]; onPick: (f: string, plan?: string) => void }) {
+  const [size, setSize] = useState(50000);
+  const rows = firms.flatMap((f) => PROP_FIRM_RULES[f].map((p) => ({ f, p, z: p.sizes[size] })));
+  const cols = ["Firm · plan", "Target", "Max loss", "Drawdown", "Daily loss", "Consistency", "Min days", ""];
+  return (
+    <div className="prop-rise w-full max-w-[1200px]" style={{ "--i": 2 } as React.CSSProperties}>
+      <div className="mb-3 flex justify-center">
+        <Segmented ariaLabel="Account size" value={String(size)} onChange={(v) => setSize(Number(v))} options={[25000, 50000, 100000, 150000].map((n) => ({ value: String(n), label: k(n) }))} />
       </div>
-      <p className="prop-rise mt-6 max-w-2xl text-center text-[12px] text-muted" style={{ "--i": FIRMS.length + 1 } as React.CSSProperties}>Only rules that public sources agree on are filled in; where they disagree we leave it for you to enter. Using another firm, like Alpha Futures or Elite Trader Funding? Add a Funded account on the Account desk and enter its rules yourself.</p>
-      {firm && <FirmPicker firm={firm} onClose={() => setFirm(null)} onAdded={(name) => { toast(`${name} added`); setFirm(null); onDone(); }} />}
+      <div className="overflow-x-auto rounded-2xl border border-line">
+        <table className="w-full min-w-[860px] text-left text-[13.5px]">
+          <thead className="bg-card-2 text-[11.5px] uppercase tracking-[0.08em] text-muted"><tr>{cols.map((c) => <th key={c} className="whitespace-nowrap px-4 py-3 font-medium">{c}</th>)}</tr></thead>
+          <tbody>
+            {rows.map(({ f, p, z }, j) => (
+              <tr key={f + p.name} className="prop-rise border-t border-line-soft transition-colors hover:bg-card-2/60" style={{ "--i": j } as React.CSSProperties}>
+                <td className="px-4 py-3"><span className="flex items-center gap-3"><FirmLogo firm={f} size={30} /><span><span className="block font-semibold text-text">{f}</span><span className="block text-[12.5px] text-text-2">{p.name}</span></span></span></td>
+                {z ? (
+                  <>
+                    <td className="num px-4 py-3 text-text">{usd0(z.profitTarget)}</td>
+                    <td className="num px-4 py-3 text-text">{usd0(z.maxDrawdown)}</td>
+                    <td className="px-4 py-3 text-text-2">{p.trailing === "EOD trailing" ? "End of day" : "Intraday"}</td>
+                    <td className="num px-4 py-3 text-text-2">{z.dailyLossLimit === null ? "None" : p.optionalDailyLimit ? `Optional (${usd0(z.dailyLossLimit)})` : usd0(z.dailyLossLimit)}</td>
+                    <td className="px-4 py-3 text-text-2">{p.consistency}</td>
+                    <td className="px-4 py-3 text-text-2">{p.minDays ?? "—"}</td>
+                    <td className="px-4 py-3 text-right"><button type="button" onClick={() => onPick(f, p.name)} className="rounded-lg bg-text px-3 py-1.5 text-[12.5px] font-semibold text-bg transition-transform hover:scale-105">Add</button></td>
+                  </>
+                ) : <td colSpan={7} className="px-4 py-3 text-[12.5px] text-muted">No {k(size)} preset for this plan</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
 /** Full-screen picker: plan tabs, daily-loss switch and a carousel of account sizes, like the firm's own checkout. */
-function FirmPicker({ firm, onClose, onAdded }: { firm: string; onClose: () => void; onAdded: (name: string) => void }) {
+function FirmPicker({ firm, initialPlan, onClose, onAdded }: { firm: string; initialPlan?: string | null; onClose: () => void; onAdded: (name: string) => void }) {
   const plans = PROP_FIRM_RULES[firm];
-  const [planName, setPlanName] = useState(plans[0].name);
+  const [planName, setPlanName] = useState(initialPlan ?? plans[0].name);
   const [daily, setDaily] = useState(false);
   const [stage, setStage] = useState<PropStage>("evaluation");
   const [unit, setUnit] = useState<"$" | "%">("$");
@@ -230,7 +418,10 @@ function FirmPicker({ firm, onClose, onAdded }: { firm: string; onClose: () => v
 
   useEffect(() => {
     setMounted(true);
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); goRef.current(e.key === "ArrowLeft" ? -1 : 1); }
+    };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -254,6 +445,8 @@ function FirmPicker({ firm, onClose, onAdded }: { firm: string; onClose: () => v
     if (best !== active) setActive(best);
   };
   const go = (d: number) => { const i = Math.max(0, Math.min(sizes.length - 1, active + d)); setActive(i); centre(i); };
+  const goRef = useRef(go);
+  goRef.current = go;
 
   const add = (size: number) => {
     const pre = presetRules(firm, plan.name, size, stage, daily)!;
@@ -361,6 +554,7 @@ function FirmPicker({ firm, onClose, onAdded }: { firm: string; onClose: () => v
           <button type="button" onClick={() => go(-1)} disabled={active === 0} aria-label="Smaller account" className="absolute left-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white ring-1 ring-white/15 backdrop-blur transition-opacity hover:bg-black/80 disabled:opacity-0"><ChevronLeft size={20} /></button>
           <button type="button" onClick={() => go(1)} disabled={active === sizes.length - 1} aria-label="Bigger account" className="absolute right-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white ring-1 ring-white/15 backdrop-blur transition-opacity hover:bg-black/80 disabled:opacity-0"><ChevronRight size={20} /></button>
         </div>
+        <div className="mx-auto mb-4 flex gap-2" aria-hidden>{sizes.map((z, j) => <span key={z} className={cx("h-1.5 rounded-full transition-all duration-300", j === active ? "w-6 bg-white" : "w-1.5 bg-white/25")} />)}</div>
         <p className="mx-auto mt-2 max-w-2xl text-center text-[12px] text-white/45">{plan.note} Rules checked {PROP_RULES_CHECKED} from public summaries; firms change them, so compare with your dashboard. You can edit any rule on the Account desk.</p>
       </div>
     </div>,

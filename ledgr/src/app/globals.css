@@ -283,6 +283,14 @@ select.input {
 .prop-grow { transform-origin: left center; animation: prop-grow 900ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; animation-delay: calc(220ms + var(--i, 0) * 70ms); }
 .prop-slide { animation: prop-slide 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; animation-delay: calc(260ms + var(--i, 0) * 70ms); }
 .prop-pop { animation: prop-pop 520ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; animation-delay: calc(380ms + var(--i, 0) * 70ms); }
+@keyframes prop-draw { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
+@keyframes prop-fade { from { opacity: 0; } }
+.prop-draw { animation: prop-draw 1400ms cubic-bezier(0.4, 0, 0.2, 1) backwards; animation-delay: calc(200ms + var(--i, 0) * 70ms); }
+.prop-fade { animation: prop-fade 900ms ease-out backwards; animation-delay: calc(700ms + var(--i, 0) * 70ms); }
+/* A soft light that follows the pointer across a firm card. */
+.prop-spot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 300ms;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,0.10), transparent 45%); }
+.prop-spot:hover::after { opacity: 1; }
 .skeleton {
   background: linear-gradient(90deg, var(--card) 0, var(--card-2) 50%, var(--card) 100%);
   background-size: 400px 100%;

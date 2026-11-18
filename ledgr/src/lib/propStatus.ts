@@ -26,6 +26,14 @@ export interface PropStatus {
   /** Today's loss as a share of the daily limit, 0–1. */
   dailyUsed: number | null;
   tradingDays: number;
+  /** Minimum trading days the rules ask for (evaluation), or null. */
+  minDays: number | null;
+  /** Biggest winning day, and its share of total profit (0–1) against the firm's consistency cap. */
+  bestDay: number | null;
+  consistencyShare: number | null;
+  consistencyLimit: number | null;
+  /** End-of-day balances, oldest first, starting with the starting balance (for the sparkline). */
+  path: number[];
   state: "passed" | "breached" | "daily-limit" | "active";
 }
 
@@ -49,6 +57,12 @@ export function propStatus(a: Account, trades: EnrichedTrade[], ledger: { date: 
   const days = dailyPnl(own);
   const todayNet = days.get(t)?.net ?? 0;
   const dl = a.rules.dailyLossLimit;
+  // Consistency: the best day's share of total profit, against the plan's cap (when it applies to this stage).
+  const best = [...days.values()].reduce((m, d) => Math.max(m, d.net), 0);
+  const profit = balance - start;
+  const limit = consistencyLimit(plan?.consistency, a.propStage ?? "evaluation");
+  const eodPath = new Map<string, number>();
+  for (const e of ledger) eodPath.set(e.date, e.balance);
   const state: PropStatus["state"] =
     floor !== null && balance <= floor ? "breached"
     : target !== null && balance >= target ? "passed"
@@ -63,6 +77,19 @@ export function propStatus(a: Account, trades: EnrichedTrade[], ledger: { date: 
     dailyLimit: dl,
     dailyUsed: dl ? Math.max(0, Math.min(1, -todayNet / dl)) : null,
     tradingDays: days.size,
+    minDays: a.rules.minTradingDays ?? null,
+    bestDay: best > 0 ? best : null,
+    consistencyShare: best > 0 && profit > 0 ? Math.min(1, best / profit) : null,
+    consistencyLimit: limit,
+    path: [start, ...eodPath.values()],
     state,
   };
+}
+
+/** The cap a plan's consistency text sets, as a fraction ("40% (50% option)" → 0.4), for this stage. */
+export function consistencyLimit(text: string | undefined, stage: string): number | null {
+  if (!text) return null;
+  if (stage === "evaluation" && /none to pass/i.test(text)) return null;
+  const m = text.match(/(\d+(?:\.\d+)?)%/);
+  return m ? Number(m[1]) / 100 : null;
 }

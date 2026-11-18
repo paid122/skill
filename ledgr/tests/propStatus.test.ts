@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { EnrichedTrade } from "@/lib/calc";
-import { propStatus } from "@/lib/propStatus";
+import { consistencyLimit, propStatus } from "@/lib/propStatus";
 import type { Account } from "@/lib/types";
 
 vi.mock("@/lib/util", async (orig) => ({ ...(await orig<typeof import("@/lib/util")>()), today: () => "2026-11-18" }));
@@ -34,5 +34,15 @@ describe("prop account status", () => {
   it("flags a breach", () => {
     const st = propStatus(acct(), [tr("2026-11-12", -2100)], [{ date: "2026-11-01", balance: 50000 }, { date: "2026-11-12", balance: 47900 }], 47900);
     expect(st.state).toBe("breached");
+  });
+});
+
+describe("consistencyLimit", () => {
+  it("reads the cap for the stage", () => {
+    expect(consistencyLimit("40% (50% option)", "evaluation")).toBe(0.4);
+    expect(consistencyLimit("None to pass · 50% for payouts", "evaluation")).toBeNull();
+    expect(consistencyLimit("None to pass · 50% for payouts", "funded")).toBe(0.5);
+    expect(consistencyLimit("Best day < 55%", "evaluation")).toBe(0.55);
+    expect(consistencyLimit("Check your dashboard", "evaluation")).toBeNull();
   });
 });
