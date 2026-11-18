@@ -23,26 +23,26 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
       if (plans && !plans.some((pl) => pl.name === next.propPlan)) next.propPlan = plans[0].name;
       if (plans && next.accountSize && !firmSizes(firm).includes(next.accountSize)) next.accountSize = 50000;
       if (next.accountSize) next.startingBalance = next.accountSize;
-      const pre = presetRules(firm, next.propPlan, next.accountSize, (next.propStage ?? "evaluation") as PropStage, next.propDailyLimit ?? true);
+      const pre = presetRules(firm, next.propPlan, next.accountSize, (next.propStage ?? "evaluation") as PropStage, next.propDailyLimit ?? false);
       if (pre) next.rules = { ...next.rules, ...pre.rules };
       return next;
     });
   };
   const setType = (type: AccountType) => (type === "Funded"
-    ? applyPreset({ type, propFirm: a.propFirm ?? PROP_FIRMS[1], accountSize: a.accountSize ?? 50000, propStage: a.propStage ?? "evaluation", propDailyLimit: a.propDailyLimit ?? true })
+    ? applyPreset({ type, propFirm: a.propFirm ?? PROP_FIRMS[1], accountSize: a.accountSize ?? 50000, propStage: a.propStage ?? "evaluation", propDailyLimit: a.propDailyLimit ?? false })
     : set({ type }));
   // Funded accounts made before presets existed (or with no rules yet) fill in as soon as they're opened.
   useEffect(() => {
     if (initial.type !== "Funded") return;
     const r = initial.rules;
     if (!initial.propPlan || (r.profitTarget === null && r.maxDrawdown === null && r.dailyLossLimit === null)) {
-      applyPreset({ propFirm: initial.propFirm ?? PROP_FIRMS[1], accountSize: initial.accountSize ?? 50000, propStage: initial.propStage ?? "evaluation", propDailyLimit: initial.propDailyLimit ?? true });
+      applyPreset({ propFirm: initial.propFirm ?? PROP_FIRMS[1], accountSize: initial.accountSize ?? 50000, propStage: initial.propStage ?? "evaluation", propDailyLimit: initial.propDailyLimit ?? false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const plans = funded ? PROP_FIRM_RULES[a.propFirm ?? ""] : undefined;
   const plan = plans?.find((p) => p.name === a.propPlan) ?? plans?.[0];
-  const preset = funded ? presetRules(a.propFirm, a.propPlan, a.accountSize, (a.propStage ?? "evaluation") as PropStage, a.propDailyLimit ?? true) : null;
+  const preset = funded ? presetRules(a.propFirm, a.propPlan, a.accountSize, (a.propStage ?? "evaluation") as PropStage, a.propDailyLimit ?? false) : null;
   const save = () => {
     try { saveAccount({ ...a, name: a.name.trim(), currency: a.currency.toUpperCase() }); onClose(); }
     catch (e) { setError(e instanceof ValidationError ? e.message : "Could not save the account."); }
@@ -72,7 +72,7 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
             </Field>
             {plan?.optionalDailyLimit && (
               <label className="flex items-center gap-2 text-[13px] text-text-2 md:col-span-2">
-                <input type="checkbox" checked={a.propDailyLimit ?? true} onChange={(e) => applyPreset({ propDailyLimit: e.target.checked })} className="accent-[var(--accent)]" />
+                <input type="checkbox" checked={a.propDailyLimit ?? false} onChange={(e) => applyPreset({ propDailyLimit: e.target.checked })} className="accent-[var(--accent)]" />
                 My account has the daily loss limit add-on
               </label>
             )}

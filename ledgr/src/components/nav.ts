@@ -1,5 +1,5 @@
 import {
-  BarChart3, BookMarked, BookOpen, Brain, CalendarDays, ClipboardList, FileText, Gauge, GraduationCap, History,
+  BarChart3, BookMarked, ShieldCheck, BookOpen, Brain, CalendarDays, ClipboardList, FileText, Gauge, GraduationCap, History,
   Gem, LayoutDashboard, type LucideIcon, NotebookPen, Settings, Sparkles, SquareLibrary, Trophy, Wallet,
 } from "lucide-react";
 
@@ -30,6 +30,7 @@ export const NAV: NavGroup[] = [
     label: "Accounts",
     items: [
       { href: "/accounts", label: "Account Desk", icon: Wallet, match: ["/accounts"] },
+      { href: "/prop-firms", label: "Prop firms", icon: ShieldCheck },
       { href: "/account-history", label: "Account History", icon: History },
     ],
   },

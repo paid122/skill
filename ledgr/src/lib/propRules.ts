@@ -13,8 +13,13 @@ export interface PropPlan {
   /** Shown in the plan picker. */
   name: string;
   note: string;
-  /** Has an optional daily loss limit the trader may or may not have bought. */
+  /** One line under the plan's tab. */
+  tagline: string;
+  /** Has an optional daily loss limit the trader may or may not have bought (off by default). */
   optionalDailyLimit?: boolean;
+  /** How the max loss trails. */
+  trailing: "EOD trailing" | "Intraday trailing";
+  consistency: string;
   sizes: Record<number, { profitTarget: number; maxDrawdown: number; dailyLossLimit: number | null; maxContracts: string }>;
 }
 
@@ -22,6 +27,9 @@ export const PROP_FIRM_RULES: Record<string, PropPlan[]> = {
   "Apex Trader Funding": [
     {
       name: "EOD drawdown",
+      tagline: "Trails at end of day",
+      trailing: "EOD trailing",
+      consistency: "None to pass · 50% for payouts",
       note: "Drawdown trails your end-of-day balance; daily loss limit pauses trading until the next session.",
       sizes: {
         25000: { profitTarget: 1500, maxDrawdown: 1000, dailyLossLimit: 500, maxContracts: "4 minis / 40 micros" },
@@ -32,6 +40,9 @@ export const PROP_FIRM_RULES: Record<string, PropPlan[]> = {
     },
     {
       name: "Intraday trailing",
+      tagline: "No daily loss limit",
+      trailing: "Intraday trailing",
+      consistency: "None to pass · 50% for payouts",
       note: "Drawdown trails your highest balance during the day; no daily loss limit.",
       sizes: {
         25000: { profitTarget: 1500, maxDrawdown: 1000, dailyLossLimit: null, maxContracts: "4 minis / 40 micros" },
@@ -43,18 +54,10 @@ export const PROP_FIRM_RULES: Record<string, PropPlan[]> = {
   ],
   "Lucid Trading": [
     {
-      name: "LucidPro",
-      note: "End-of-day trailing max loss. The daily loss limit is an optional add-on.",
-      optionalDailyLimit: true,
-      sizes: {
-        25000: { profitTarget: 1250, maxDrawdown: 1000, dailyLossLimit: 600, maxContracts: "2 minis / 20 micros" },
-        50000: { profitTarget: 3000, maxDrawdown: 2000, dailyLossLimit: 1200, maxContracts: "4 minis / 40 micros" },
-        100000: { profitTarget: 6000, maxDrawdown: 3000, dailyLossLimit: 1800, maxContracts: "6 minis / 60 micros" },
-        150000: { profitTarget: 9000, maxDrawdown: 4500, dailyLossLimit: 2700, maxContracts: "10 minis / 100 micros" },
-      },
-    },
-    {
       name: "LucidFlex",
+      tagline: "No daily loss limit",
+      trailing: "EOD trailing",
+      consistency: "40% (50% option)",
       note: "End-of-day trailing max loss; contracts scale up with profit. The daily loss limit is an optional add-on.",
       optionalDailyLimit: true,
       sizes: {
@@ -62,6 +65,20 @@ export const PROP_FIRM_RULES: Record<string, PropPlan[]> = {
         50000: { profitTarget: 3000, maxDrawdown: 2000, dailyLossLimit: 1200, maxContracts: "up to 4 minis / 40 micros" },
         100000: { profitTarget: 6000, maxDrawdown: 3000, dailyLossLimit: 1800, maxContracts: "up to 6 minis / 60 micros" },
         150000: { profitTarget: 9000, maxDrawdown: 4500, dailyLossLimit: 2700, maxContracts: "up to 10 minis / 100 micros" },
+      },
+    },
+    {
+      name: "LucidPro",
+      tagline: "No consistency to pass",
+      trailing: "EOD trailing",
+      consistency: "None to pass",
+      note: "End-of-day trailing max loss. The daily loss limit is an optional add-on.",
+      optionalDailyLimit: true,
+      sizes: {
+        25000: { profitTarget: 1250, maxDrawdown: 1000, dailyLossLimit: 600, maxContracts: "2 minis / 20 micros" },
+        50000: { profitTarget: 3000, maxDrawdown: 2000, dailyLossLimit: 1200, maxContracts: "4 minis / 40 micros" },
+        100000: { profitTarget: 6000, maxDrawdown: 3000, dailyLossLimit: 1800, maxContracts: "6 minis / 60 micros" },
+        150000: { profitTarget: 9000, maxDrawdown: 4500, dailyLossLimit: 2700, maxContracts: "10 minis / 100 micros" },
       },
     },
   ],
@@ -76,7 +93,7 @@ export function firmSizes(firm: string | null | undefined): number[] {
 }
 
 /** The rules for a firm/plan/size/stage, or null when LEDGR has no preset (e.g. "Other"). */
-export function presetRules(firm: string | null | undefined, plan: string | null | undefined, size: number | null | undefined, stage: PropStage, dailyLimit = true):
+export function presetRules(firm: string | null | undefined, plan: string | null | undefined, size: number | null | undefined, stage: PropStage, dailyLimit = false):
   { rules: AccountRules; maxContracts: string; note: string } | null {
   const plans = firm ? PROP_FIRM_RULES[firm] : undefined;
   const p = plans?.find((x) => x.name === plan) ?? plans?.[0];

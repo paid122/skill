@@ -15,6 +15,7 @@ describe("prop firm presets", () => {
     expect(presetRules("Lucid Trading", "LucidPro", 150000, "evaluation")!.rules.maxDrawdown).toBe(4500);
     expect(presetRules("Lucid Trading", "LucidFlex", 50000, "evaluation", false)!.rules.dailyLossLimit).toBeNull();
     expect(presetRules("Lucid Trading", "LucidFlex", 50000, "evaluation", true)!.rules.dailyLossLimit).toBe(1200);
+    expect(presetRules("Lucid Trading", "LucidFlex", 50000, "evaluation")!.rules.dailyLossLimit).toBeNull(); // off unless bought
   });
   it("has no preset for Other, and sells 25K-150K", () => {
     expect(presetRules("Other", null, 50000, "evaluation")).toBeNull();

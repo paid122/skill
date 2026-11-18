@@ -33,6 +33,7 @@ const RIGHT: Entry[] = [
   { label: "Analytics", item: find("/analytics"), tier: 1 },
   { label: "Psychology", item: find("/psychology"), tier: 3 },
   { label: "Accounts", item: find("/accounts"), tier: 2 },
+  { label: "Prop firms", item: find("/prop-firms"), tier: 2 },
   { label: "AI", item: find("/ai"), tier: 1 },
   { label: "Reports", item: find("/reports"), tier: 3 },
 ];
