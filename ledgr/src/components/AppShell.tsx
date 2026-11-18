@@ -213,7 +213,7 @@ function Sidebar({ collapsed, translucent }: { collapsed: boolean; translucent: 
 function Topbar({ title }: { title: string }) {
   const prefs = useUI();
   return (
-    <header className="sticky top-0 z-20 border-b border-line-soft bg-bg/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 border-b border-line-soft bg-bg/85 backdrop-blur-xl glass-panel">
       <div className="mx-auto flex h-14 w-full max-w-[1480px] items-center gap-3 px-4 sm:px-6 lg:h-16 lg:px-10">
         <Link href="/dashboard" className="text-text lg:hidden" aria-label="Ledgr home"><LogoMark size={26} /></Link>
         <h1 className="page-title min-w-0 truncate text-[15px] font-semibold tracking-tight text-text lg:text-base">{title}</h1>

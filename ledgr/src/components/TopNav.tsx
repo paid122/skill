@@ -94,7 +94,7 @@ export function TopNav() {
   const isShown = (e: Entry) => !shown || shown.has(e.item.href);
   const more = [...ALL.filter((e) => !isShown(e)).map((e) => e.item), ...ALWAYS_MORE];
   return (
-    <header className="sticky top-0 z-30 border-b border-line-soft bg-bg/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-line-soft bg-bg/85 backdrop-blur-xl glass-panel">
       <div ref={row} className="flex h-16 items-center gap-4 px-5">
         <Link href="/dashboard" data-bar="logo" className="shrink-0 text-text" aria-label="Ledgr home"><LogoMark size={28} /></Link>
 

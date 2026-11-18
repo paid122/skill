@@ -36,7 +36,7 @@ export function SessionRail({ belowTopNav = false }: { belowTopNav?: boolean }) 
   });
 
   return (
-    <aside aria-label="Session" className={cx("fixed bottom-0 right-0 z-20 hidden w-[300px] flex-col border-l border-line-soft bg-sidebar xl:flex", belowTopNav ? "top-16" : "top-0")}>
+    <aside aria-label="Session" className={cx("fixed bottom-0 right-0 z-20 hidden w-[300px] flex-col border-l border-line-soft bg-sidebar glass-panel xl:flex", belowTopNav ? "top-16" : "top-0")}>
       <div className="flex h-16 items-center justify-between px-5">
         <span className="text-[13px] font-semibold">Today</span>
         <IconButton label="Hide session panel" onClick={() => setUI({ rail: false })}><PanelRightClose size={16} /></IconButton>
