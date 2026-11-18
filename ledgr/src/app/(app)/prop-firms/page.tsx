@@ -138,9 +138,27 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 /** A drawn monogram for the firm (no third-party logos). */
-function FirmBadge({ firm, size = 40 }: { firm: string; size?: number }) {
-  return <span className="grid shrink-0 place-items-center rounded-xl border border-line bg-card-2 font-bold text-text" style={{ width: size, height: size, fontSize: size * 0.42 }}>{firm.charAt(0) || "?"}</span>;
+const LOGO_KEY: Record<string, string> = {
+  "Apex Trader Funding": "apex", "Lucid Trading": "lucid", Topstep: "topstep", "Take Profit Trader": "takeprofittrader",
+  Tradeify: "tradeify", TradeDay: "tradeday", MyFundedFutures: "myfundedfutures",
+};
+
+/** The firm's logo on a white tile (to identify it next to your accounts); its first letter if the logo can't load. */
+function FirmLogo({ firm, size = 40, round = false, fallback, fallbackStyle }: { firm: string; size?: number; round?: boolean; fallback?: string; fallbackStyle?: React.CSSProperties }) {
+  const [failed, setFailed] = useState(false);
+  const key = LOGO_KEY[firm];
+  const shape = round ? "rounded-full" : "rounded-xl";
+  if (!key || failed) {
+    return <span className={cx("grid shrink-0 place-items-center font-bold", shape, fallback ?? "border border-line bg-card-2 text-text")} style={{ width: size, height: size, fontSize: size * 0.42, ...fallbackStyle }}>{firm.charAt(0) || "?"}</span>;
+  }
+  return (
+    <span className={cx("grid shrink-0 place-items-center overflow-hidden bg-white", shape)} style={{ width: size, height: size, padding: size * 0.14 }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/api/firm-logo?f=${key}`} alt={`${firm} logo`} onError={() => setFailed(true)} className="h-full w-full object-contain" />
+    </span>
+  );
 }
+const FirmBadge = FirmLogo;
 
 /* ------------------------------------------------------------------ add account */
 
@@ -174,7 +192,7 @@ function AddAccount({ onDone }: { onDone: () => void }) {
               className="prop-rise group relative overflow-hidden rounded-[22px] border border-white/10 p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] transition-all duration-300 hover:-translate-y-1 hover:border-white/20">
               <div aria-hidden className="absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-40 blur-3xl transition-opacity duration-500 group-hover:opacity-70" style={{ background: t.accent }} />
               <div className="relative flex items-center gap-4">
-                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/40 text-[24px] font-bold text-white ring-1 ring-white/15 transition-transform duration-500 group-hover:rotate-[-6deg] group-hover:scale-110">{f.charAt(0)}</span>
+                <span className="shrink-0 transition-transform duration-500 group-hover:rotate-[-6deg] group-hover:scale-110"><FirmLogo firm={f} size={56} fallback="bg-black/40 text-white ring-1 ring-white/15" /></span>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: t.accent }}>Futures</p>
                   <p className="text-[20px] font-semibold text-white">{f}</p>
@@ -260,7 +278,7 @@ function FirmPicker({ firm, onClose, onAdded }: { firm: string; onClose: () => v
           </div>
           <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 text-center">
             <p className="flex items-center justify-center gap-3 text-[24px] font-semibold text-white sm:text-[28px]">
-              <span className="grid h-9 w-9 place-items-center rounded-full text-[16px] font-bold text-black" style={{ background: t.accent }}>{firm.charAt(0)}</span>{firm}
+              <FirmLogo firm={firm} size={38} round fallback="text-black" fallbackStyle={{ background: t.accent }} />{firm}
             </p>
             <p className="mt-0.5 text-[13px] text-white/55">Futures · pick the account you bought</p>
           </div>
