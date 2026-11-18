@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Plus, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PageIntro } from "@/components/blocks";
+import { CountUp } from "@/components/CountUp";
 import { Badge, Button, Card, EmptyState, Segmented, useFeedback } from "@/components/ui";
 import { PageVerse } from "@/components/VerseCard";
 import { accountSummary } from "@/lib/accounts";
@@ -28,7 +29,7 @@ export default function PropFirmsPage() {
       <PageIntro title="Prop firms" sub="Your Apex and Lucid accounts against their rules: room left before the max loss, today's loss against the daily limit, and progress to target. Estimated from your journal — your firm's dashboard is the official record."
         actions={<Segmented ariaLabel="Prop firms view" value={tab} onChange={setTab} options={[{ value: "accounts", label: "Accounts" }, { value: "add", label: "Add account" }]} />} />
       <PageVerse page="prop" compact />
-      {tab === "accounts" ? <Accounts onAdd={() => setTab("add")} /> : <AddAccount onDone={() => setTab("accounts")} />}
+      <div key={tab}>{tab === "accounts" ? <Accounts onAdd={() => setTab("add")} /> : <AddAccount onDone={() => setTab("accounts")} />}</div>
     </div>
   );
 }
@@ -49,8 +50,8 @@ function Accounts({ onAdd }: { onAdd: () => void }) {
   }
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2">
-      {funded.map(({ a, st }) => <AccountCard key={a.id} a={a} st={st} />)}
-      <button type="button" onClick={onAdd} className="grid min-h-[200px] place-items-center rounded-2xl border border-dashed border-line text-[14px] text-text-2 transition-colors hover:border-text-2 hover:text-text">
+      {funded.map(({ a, st }, i) => <AccountCard key={a.id} a={a} st={st} i={i} />)}
+      <button type="button" onClick={onAdd} style={{ "--i": funded.length } as React.CSSProperties} className="prop-rise grid min-h-[200px] place-items-center rounded-2xl border border-dashed border-line text-[14px] text-text-2 transition-colors hover:border-text-2 hover:text-text">
         <span className="inline-flex items-center gap-2"><Plus size={16} /> Add another account</span>
       </button>
     </div>
@@ -64,7 +65,7 @@ const STATE: Record<PropStatus["state"], { label: string; tone: "pos" | "neg" | 
   "daily-limit": { label: "Daily limit hit", tone: "neg" },
 };
 
-function AccountCard({ a, st }: { a: Account; st: PropStatus }) {
+function AccountCard({ a, st, i }: { a: Account; st: PropStatus; i: number }) {
   const cur = a.currency;
   const lo = st.floor ?? st.start - (a.rules.maxDrawdown ?? st.start * 0.04);
   const hi = st.target ?? st.start + (a.rules.maxDrawdown ?? st.start * 0.04);
@@ -72,7 +73,7 @@ function AccountCard({ a, st }: { a: Account; st: PropStatus }) {
   const room = st.roomLeft ?? 0;
   const roomTone = st.roomLeft === null ? "" : room <= (a.rules.maxDrawdown ?? 1) * 0.25 ? "neg" : room <= (a.rules.maxDrawdown ?? 1) * 0.5 ? "text-[#e0a83a]" : "pos";
   return (
-    <Card className="flex flex-col gap-5">
+    <Card className="prop-rise flex flex-col gap-5 transition-transform duration-300 hover:-translate-y-0.5" style={{ "--i": i } as React.CSSProperties}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <FirmBadge firm={a.propFirm ?? ""} />
@@ -81,15 +82,18 @@ function AccountCard({ a, st }: { a: Account; st: PropStatus }) {
             <p className="truncate text-xs text-muted">{[a.propFirm, a.accountSize ? k(a.accountSize) : null, a.propPlan, a.propStage === "funded" ? "Funded" : "Evaluation"].filter(Boolean).join(" · ")}</p>
           </div>
         </div>
-        <Badge tone={STATE[st.state].tone}>{STATE[st.state].label}</Badge>
+        <span className="prop-pop" style={{ "--i": i } as React.CSSProperties}><Badge tone={STATE[st.state].tone}>{STATE[st.state].label}</Badge></span>
       </div>
 
       {/* Fail line → start → target, with the balance marked */}
       <div>
         <div className="relative h-2.5 rounded-full bg-card-2">
-          <div className="absolute inset-y-0 left-0 rounded-l-full bg-neg/25" style={{ width: pos(st.start) }} />
-          {st.target !== null && <div className="absolute inset-y-0 rounded-r-full bg-pos/25" style={{ left: pos(st.start), right: 0 }} />}
-          <div className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bg bg-text shadow" style={{ left: pos(st.balance) }} title={`Balance ${usd(st.balance, cur)}`} />
+          <div className="prop-grow absolute inset-0 rounded-full" style={{ "--i": i } as React.CSSProperties}>
+            <div className="absolute inset-y-0 left-0 rounded-l-full bg-neg/25" style={{ width: pos(st.start) }} />
+            {st.target !== null && <div className="absolute inset-y-0 rounded-r-full bg-pos/25" style={{ left: pos(st.start), right: 0 }} />}
+          </div>
+          {/* The balance slides from the start line to where it is now */}
+          <div className="prop-slide absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bg bg-text shadow" style={{ left: pos(st.balance), "--from": pos(st.start), "--i": i } as React.CSSProperties} title={`Balance ${usd(st.balance, cur)}`} />
         </div>
         <div className="mt-2 flex justify-between text-[11.5px]">
           <span><span className="num block text-text-2">{usd0(st.floor, cur)}</span><span className="text-muted">Fail below</span></span>
@@ -99,9 +103,9 @@ function AccountCard({ a, st }: { a: Account; st: PropStatus }) {
       </div>
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-        <Stat label="Balance" value={<span className="num">{usd(st.balance, cur)}</span>} />
-        <Stat label="Room left" value={<span className={cx("num", roomTone)}>{st.roomLeft === null ? "Set max loss" : usd(st.roomLeft, cur)}</span>} />
-        <Stat label="To target" value={<span className="num">{st.target === null ? "—" : st.balance >= st.target ? "Reached" : usd(st.target - st.balance, cur)}</span>} />
+        <Stat label="Balance" value={<CountUp className="num" value={st.balance} format={(v) => usd(v, cur)} />} />
+        <Stat label="Room left" value={st.roomLeft === null ? "Set max loss" : <CountUp className={cx("num", roomTone)} value={st.roomLeft} format={(v) => usd(v, cur)} />} />
+        <Stat label="To target" value={st.target === null ? "—" : st.balance >= st.target ? "Reached" : <CountUp className="num" value={st.target - st.balance} format={(v) => usd(v, cur)} />} />
         <Stat label="Trading days" value={<span className="num">{st.tradingDays}</span>} />
       </div>
 
@@ -111,13 +115,13 @@ function AccountCard({ a, st }: { a: Account; st: PropStatus }) {
             <span className="text-text-2">Today vs daily loss limit</span>
             <span className={cx("num", st.todayNet < 0 ? "neg" : "text-text-2")}>{fmtMoney(st.todayNet, cur, { sign: true })} of −{usd(st.dailyLimit, cur)}</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-card-2"><div className={cx("h-full rounded-full", (st.dailyUsed ?? 0) >= 0.75 ? "bg-neg" : (st.dailyUsed ?? 0) >= 0.5 ? "bg-[#e0a83a]" : "bg-text-2")} style={{ width: `${(st.dailyUsed ?? 0) * 100}%` }} /></div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-card-2"><div className={cx("prop-grow h-full rounded-full", (st.dailyUsed ?? 0) >= 0.75 ? "bg-neg" : (st.dailyUsed ?? 0) >= 0.5 ? "bg-[#e0a83a]" : "bg-text-2")} style={{ width: `${(st.dailyUsed ?? 0) * 100}%`, "--i": i } as React.CSSProperties} /></div>
         </div>
       )}
       {st.progress !== null && (
         <div>
           <div className="mb-1.5 flex justify-between text-[12px]"><span className="text-text-2">Progress to target</span><span className="num text-text-2">{Math.round(st.progress * 100)}%</span></div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-card-2"><div className="h-full rounded-full bg-pos" style={{ width: `${st.progress * 100}%` }} /></div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-card-2"><div className="prop-grow h-full rounded-full bg-pos" style={{ width: `${st.progress * 100}%`, "--i": i } as React.CSSProperties} /></div>
         </div>
       )}
       <div className="flex items-center justify-between border-t border-line-soft pt-3 text-[12px] text-muted">
@@ -145,12 +149,12 @@ function AddAccount({ onDone }: { onDone: () => void }) {
   if (!firm) {
     return (
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
-        {FIRMS.map((f) => {
+        {FIRMS.map((f, i) => {
           const plans = PROP_FIRM_RULES[f], sizes = firmSizes(f);
           return (
-            <button key={f} type="button" onClick={() => setFirm(f)} className="group flex flex-col gap-5 rounded-2xl border border-line bg-card p-6 text-left transition-colors hover:border-text-2">
+            <button key={f} type="button" onClick={() => setFirm(f)} style={{ "--i": i } as React.CSSProperties} className="prop-rise group flex flex-col gap-5 rounded-2xl border border-line bg-card p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-text-2 hover:shadow-[0_24px_60px_-30px_rgba(0,0,0,0.8)] active:scale-[0.99]">
               <div className="flex items-center gap-4">
-                <FirmBadge firm={f} size={52} />
+                <span className="transition-transform duration-500 group-hover:rotate-[-6deg] group-hover:scale-110"><FirmBadge firm={f} size={52} /></span>
                 <div>
                   <p className="text-[18px] font-semibold text-text">{f}</p>
                   <p className="text-[13px] text-muted">Futures · {plans.length} plans · {k(sizes[0])} to {k(sizes[sizes.length - 1])}</p>
@@ -186,7 +190,7 @@ function FirmPicker({ firm, onBack, onAdded }: { firm: string; onBack: () => voi
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="prop-rise flex flex-col gap-5">
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" variant="ghost" icon={<ArrowLeft size={14} />} onClick={onBack}>Firms</Button>
         <FirmBadge firm={firm} size={34} />
@@ -196,7 +200,7 @@ function FirmPicker({ firm, onBack, onAdded }: { firm: string; onBack: () => voi
       <div className="flex flex-wrap gap-2">
         {plans.map((p) => (
           <button key={p.name} type="button" onClick={() => setPlanName(p.name)} aria-pressed={p.name === plan.name}
-            className={cx("min-w-[150px] rounded-2xl border px-5 py-3 text-left transition-colors", p.name === plan.name ? "border-text-2 bg-card-2" : "border-line bg-card hover:border-text-2/60")}>
+            className={cx("min-w-[150px] rounded-2xl border px-5 py-3 text-left transition-all duration-300", p.name === plan.name ? "scale-[1.03] border-text-2 bg-card-2 shadow-[0_16px_40px_-24px_rgba(255,255,255,0.25)]" : "border-line bg-card hover:-translate-y-0.5 hover:border-text-2/60")}>
             <span className="block text-[15px] font-semibold text-text">{p.name}</span>
             <span className="block text-[12px] text-muted">{p.tagline}</span>
           </button>
@@ -214,24 +218,24 @@ function FirmPicker({ firm, onBack, onAdded }: { firm: string; onBack: () => voi
         )}
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {sizes.map((size) => {
+      <div key={`${plan.name}-${stage}-${daily}`} className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {sizes.map((size, i) => {
           const pre = presetRules(firm, plan.name, size, stage, daily)!;
           const s = plan.sizes[size];
           const fail = size - pre.rules.maxDrawdown!, target = pre.rules.profitTarget ? size + pre.rules.profitTarget : null;
           const hi = target ?? size + pre.rules.maxDrawdown!;
           const at = (v: number) => `${((v - fail) / (hi - fail)) * 100}%`;
           return (
-            <div key={size} className="flex flex-col rounded-2xl border border-line bg-gradient-to-b from-card-2 to-card p-5">
+            <div key={size} style={{ "--i": i } as React.CSSProperties} className="prop-rise group flex flex-col rounded-2xl border border-line bg-gradient-to-b from-card-2 to-card p-5 transition-all duration-300 hover:-translate-y-1.5 hover:border-text-2/70 hover:shadow-[0_30px_70px_-35px_rgba(0,0,0,0.9)]">
               <div className="flex items-start justify-between">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Account size</p>
                 <span className="rounded-full bg-card px-2.5 py-0.5 text-[11px] text-text-2">{stage === "evaluation" ? "Evaluation" : "Funded"}</span>
               </div>
-              <p className="mt-1 text-[44px] font-bold leading-none tracking-tight text-text">{k(size)}</p>
+              <p className="mt-1 origin-left text-[44px] font-bold leading-none tracking-tight text-text transition-transform duration-300 group-hover:scale-105">{k(size)}</p>
               <p className="mt-1 text-[12.5px] text-muted">{short(firm)} · {plan.name}</p>
               <div className="relative mt-5 h-1.5 rounded-full bg-card">
-                <div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-neg/40 via-text-2/40 to-pos/60" style={{ width: "100%" }} />
-                <span className="absolute top-1/2 h-3 w-0.5 -translate-y-1/2 bg-text" style={{ left: at(size) }} />
+                <div className="prop-grow absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-neg/40 via-text-2/40 to-pos/60" style={{ width: "100%", "--i": i } as React.CSSProperties} />
+                <span className="prop-pop absolute top-1/2 h-3 w-0.5 -translate-y-1/2 bg-text" style={{ left: at(size), "--i": i } as React.CSSProperties} />
               </div>
               <div className="mt-2 flex justify-between text-[11px]">
                 <span><span className="num block text-text">{usd0(fail)}</span><span className="text-muted">Fail below</span></span>
