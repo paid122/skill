@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 
-/** Lets browsers install Ledgr as an app (its own window and icon). */
+/** Lets browsers install LEDGR as an app (its own window and icon). */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Ledgr — Trading journal",
-    short_name: "Ledgr",
-    description: "A private trading journal for reflective, disciplined traders.",
+    name: "LEDGR — Trading journal",
+    short_name: "LEDGR",
+    description: "The free trading journal that makes you disciplined.",
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",
