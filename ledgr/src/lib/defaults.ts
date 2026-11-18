@@ -23,7 +23,7 @@ export const defaultAppearance: Appearance = {
   nav: "top",
   cursor: "system",
   savedThemes: [],
-  wallpaper: { kind: "none", live: "aurora", blobId: null, dim: 0.1, blur: 0, glass: true },
+  wallpaper: { kind: "none", blobId: null, library: [], dim: 0.1, blur: 0, glass: true },
 };
 
 export function defaultSettings(): Settings {
@@ -103,7 +103,7 @@ export function blankTrade(number: number, accountId: string | null): Trade {
     emotions: [],
     emotionNote: "",
     mistakes: [],
-    reflection: { wentWell: "", improve: "", followedPlan: null, learned: "" },
+    reflection: { wentWell: "", wentWrong: "", improve: "", rating: null, followedPlan: null, learned: "" },
     attachments: [],
     tags: [],
     showcase: null,
@@ -122,7 +122,12 @@ export function migrate(raw: Partial<LedgrState>): LedgrState {
   s.settings.appearance = { ...defaultAppearance, ...(raw.settings?.appearance ?? {}) };
   s.settings.appearance.wallpaper = { ...defaultAppearance.wallpaper!, ...(raw.settings?.appearance?.wallpaper ?? {}) };
   // The first release dimmed wallpapers a lot (0.35 / 0.55); bring untouched ones up to the clearer default.
-  if ([0.35, 0.55].includes(s.settings.appearance.wallpaper.dim)) s.settings.appearance.wallpaper.dim = defaultAppearance.wallpaper!.dim;
+  const wp = s.settings.appearance.wallpaper;
+  if ([0.35, 0.55].includes(wp.dim)) wp.dim = defaultAppearance.wallpaper!.dim;
+  // Built-in live wallpapers were removed: only the trader's own uploads remain.
+  if ((wp.kind as string) === "live") wp.kind = "none";
+  delete (wp as { live?: unknown }).live;
+  if (wp.blobId && !(wp.library ?? []).some((x) => x.blobId === wp.blobId)) wp.library = [{ blobId: wp.blobId, kind: wp.blobKind ?? "video" }, ...(wp.library ?? [])];
   // v2 monochrome rebrand: move the old gold defaults to the new black-and-white ones.
   const ap = s.settings.appearance;
   if (ap.accent.toUpperCase() === "#C5A66D") ap.accent = ap.theme === "light" ? "#0A0A0A" : defaultAppearance.accent;

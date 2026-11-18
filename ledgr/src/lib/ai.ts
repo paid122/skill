@@ -90,7 +90,7 @@ export function offlineAnswer(question: string, state: LedgrState, list: Enriche
     if (!target) return `I couldn't find trade #${numMatch?.[1]} in your records.`;
     const t = target.trade, m = target.m;
     const strengths = [t.reflection.followedPlan === "yes" && "you recorded that you followed your written plan", t.emotions.some((e) => ["Calm", "Patient"].includes(e)) && `you noted feeling ${t.emotions.join(" and ").toLowerCase()}`, t.grade && ["A+", "A"].includes(t.grade) && `you graded the execution ${t.grade}`, t.reflection.wentWell && `you wrote: “${t.reflection.wentWell}”`].filter(Boolean);
-    const improve = [t.reflection.followedPlan && t.reflection.followedPlan !== "yes" && "your reflection says the plan was not fully followed", t.mistakes.length && `you documented: ${t.mistakes.join(", ").toLowerCase()}`, !t.reflection.learned && "the “What did I learn?” prompt is still empty", t.reflection.improve && `you noted: “${t.reflection.improve}”`].filter(Boolean);
+    const improve = [t.reflection.followedPlan && t.reflection.followedPlan !== "yes" && "your reflection says the plan was not fully followed", t.mistakes.length && `you documented: ${t.mistakes.join(", ").toLowerCase()}`, !t.reflection.learned && "the “What did I learn?” prompt is still empty", t.reflection.wentWrong && `you wrote that this went wrong: “${t.reflection.wentWrong}”`, t.reflection.improve && `you noted: “${t.reflection.improve}”`].filter(Boolean);
     return [
       `**Trade [T#${t.number}] — ${t.symbol} ${t.direction ?? ""}, ${t.date}**`,
       `Status: ${m.status}${m.result ? ` (${m.result})` : ""}. Net ${fmtMoney(m.net, cur)}, ${fmtR(m.r)}. Setup: ${t.setup || "not recorded"}.`,
@@ -167,7 +167,7 @@ export function buildTradeContext(state: LedgrState, x: EnrichedTrade, all: Enri
     `Entry notes: ${clip(t.entryNotes, 600)}`,
     `Exit notes: ${clip(t.exitNotes, 600)}`,
     `Emotions: ${t.emotions.join(", ") || "-"} | note: ${clip(t.emotionNote, 300)} | mistakes: ${t.mistakes.join(", ") || "-"}`,
-    `Reflection — went well: ${clip(t.reflection.wentWell, 300)} | improve: ${clip(t.reflection.improve, 300)} | followed plan: ${t.reflection.followedPlan ?? "-"} | learned: ${clip(t.reflection.learned, 300)}`,
+    `Reflection — rating: ${t.reflection.rating ? `${t.reflection.rating}/10` : "-"} | went well: ${clip(t.reflection.wentWell, 300)} | went wrong: ${clip(t.reflection.wentWrong ?? "", 300)} | improve: ${clip(t.reflection.improve, 300)} | followed plan: ${t.reflection.followedPlan ?? "-"} | learned: ${clip(t.reflection.learned, 300)}`,
     `Screenshots attached: ${t.attachments.length}`,
   ];
   if (st) lines.push(`STRATEGY FOR THIS TRADE — ${st.name}: entry: ${clip(st.entryCriteria, 500)} | exit: ${clip(st.exitCriteria, 400)} | invalidation: ${clip(st.invalidation, 300)} | confluences: ${st.confluences.join(", ") || "-"}`);

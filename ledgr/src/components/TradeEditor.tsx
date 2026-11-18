@@ -9,6 +9,7 @@ import { deleteBlob, getState, putBlob, useLedgr, validateUpload } from "@/lib/s
 import { EMOTIONS, GRADES, MARKETS, SESSIONS, STRAINED_EMOTIONS, type Emotion, type Execution, type Grade, type Trade, type TradeAttachment } from "@/lib/types";
 import { cx, fmtMoney, fmtNum, fmtR, nowISO, uid } from "@/lib/util";
 import { BlobImage } from "./BlobImage";
+import { RatingPicker, REVIEW_PROMPTS } from "./TradeReview";
 import { Badge, Button, Chips, Field, IconButton, Input, Modal, NumberInput, Segmented, Select, Tabs, Textarea, useFeedback } from "./ui";
 
 type Tab = "trade" | "execution" | "psychology" | "reflection" | "attachments";
@@ -66,7 +67,7 @@ export function TradeEditor() {
     { value: "trade", label: "Trade", badge: m.missing.length ? <span className="h-1.5 w-1.5 rounded-full bg-neutral" /> : undefined },
     { value: "execution", label: "Execution" },
     { value: "psychology", label: "Psychology" },
-    { value: "reflection", label: "Reflection" },
+    { value: "reflection", label: "Review", badge: t.reflection.rating ? <span className="text-[11px] text-muted">{t.reflection.rating}/10</span> : undefined },
     { value: "attachments", label: "Attachments", badge: t.attachments.length ? <span className="text-[11px] text-muted">{t.attachments.length}</span> : undefined },
   ];
 
@@ -295,8 +296,15 @@ function ReflectionTab({ t, set }: TabProps) {
   const setR = (p: Partial<Trade["reflection"]>) => set({ reflection: { ...r, ...p } });
   return (
     <div className="grid gap-5">
-      <Field label="What went well?"><Textarea value={r.wentWell} onChange={(e) => setR({ wentWell: e.target.value })} /></Field>
-      <Field label="What could improve?"><Textarea value={r.improve} onChange={(e) => setR({ improve: e.target.value })} /></Field>
+      <RatingPicker value={r.rating} onChange={(rating) => setR({ rating })} />
+      <div className="grid gap-3">
+        {REVIEW_PROMPTS.map((q) => (
+          <label key={q.key} className="block rounded-xl border border-line-soft bg-bg-2/40 p-3 focus-within:border-line">
+            <span className="mb-1.5 flex items-center gap-2 text-[13px] font-medium text-text"><span className={cx("h-2 w-2 rounded-full", q.dot)} />{q.label}</span>
+            <Textarea value={r[q.key] ?? ""} onChange={(e) => setR({ [q.key]: e.target.value })} placeholder={q.placeholder} rows={2} style={{ background: "transparent", border: 0, padding: 0, boxShadow: "none" }} />
+          </label>
+        ))}
+      </div>
       <Field label="Did I follow my written plan?">
         <Segmented value={r.followedPlan ?? ("" as never)} onChange={(v) => setR({ followedPlan: v })} options={[{ value: "yes", label: "Yes" }, { value: "partial", label: "Partly" }, { value: "no", label: "No" }]} ariaLabel="Followed plan" />
       </Field>

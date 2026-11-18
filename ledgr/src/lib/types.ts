@@ -48,7 +48,11 @@ export interface TradeAttachment {
 
 export interface TradeReflection {
   wentWell: string;
+  /** What went wrong (added later; older trades may not have it). */
+  wentWrong?: string;
   improve: string;
+  /** The trader's own rating of the trade, 1–10. */
+  rating?: number | null;
   followedPlan: PlanAdherence | null;
   learned: string;
 }
@@ -341,13 +345,13 @@ export interface Appearance {
   wallpaper?: Wallpaper;
 }
 
-export type LiveWallpaper = "aurora" | "candles" | "rays" | "particles" | "grid";
 export interface Wallpaper {
-  kind: "none" | "live" | "image" | "video";
-  live: LiveWallpaper;
-  /** The user's upload, stored as a blob on this device (and synced like attachments). */
+  kind: "none" | "image" | "video";
+  /** The wallpaper in use (one of the uploads below). */
   blobId: string | null;
   blobKind?: "image" | "video";
+  /** Every wallpaper the trader has uploaded, newest first (blobs on this device, synced like attachments). */
+  library?: { blobId: string; kind: "image" | "video" }[];
   /** 0–0.9: darkens the wallpaper so text stays readable. */
   dim: number;
   /** Blur in px. */
