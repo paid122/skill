@@ -17,6 +17,7 @@ export const BUILTIN_PICKS = [
   { id: "lp_night-drive-v2", name: "Night drive", src: "/picks/night-drive.mp4?v=2", poster: "/picks/night-drive.jpg" },
   { id: "lp_markets-v2", name: "Markets", src: "/picks/markets.mp4?v=2", poster: "/picks/markets.jpg" },
   { id: "lp_sunset-v2", name: "Sunset", src: "/picks/sunset.mp4?v=2", poster: "/picks/sunset.jpg" },
+  { id: "lp_cathedral", name: "Cathedral", src: "/picks/cathedral.mp4", poster: "/picks/cathedral.jpg" },
 ] as const;
 export const isBuiltinPick = (id: string) => id.startsWith("lp_");
 
