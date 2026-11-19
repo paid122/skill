@@ -11,7 +11,7 @@ import { freezeVideosForExport } from "@/lib/freezeVideo";
 import { useEnriched } from "@/lib/hooks";
 import { buildRecap, periodEnd, recapPeriods, type RecapKind } from "@/lib/recap";
 import { deleteBlob, useLedgr } from "@/lib/store";
-import { MediaPicks } from "./MediaPicks";
+import { BUILTIN_PICKS, loadBuiltinPick, MediaPicks } from "./MediaPicks";
 import { parseISODate } from "@/lib/util";
 import { exportCardVideo, MAX_EXPORT_SECONDS, recordingFormat } from "@/lib/videoExport";
 
@@ -72,9 +72,19 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
 
   const applyPick = (p: { blobId: string; kind: "image" | "video" }) => {
     if (media && media.blobId !== p.blobId && !isPick(media.blobId)) deleteBlob(media.blobId).catch(() => undefined);
-    updateSettings({ recapMedia: { blobId: p.blobId, kind: p.kind, dim: media?.dim ?? 0.4, blur: media?.blur ?? 0, fit: media?.fit } });
+    updateSettings({ recapNoBackground: false, recapMedia: { blobId: p.blobId, kind: p.kind, dim: media?.dim ?? 0.4, blur: media?.blur ?? 0, fit: media?.fit } });
   };
-  const removeMedia = async () => { if (media && !isPick(media.blobId)) await deleteBlob(media.blobId).catch(() => undefined); updateSettings({ recapMedia: null }); };
+  // Recaps with no background start on your first pick, or LEDGR's first built-in pick.
+  const defaulted = useRef(false);
+  useEffect(() => {
+    if (defaulted.current || media || settings.recapNoBackground) return;
+    defaulted.current = true;
+    const mine = settings.pnlPicks ?? [];
+    if (mine.length) applyPick(mine[0]);
+    else void loadBuiltinPick(BUILTIN_PICKS[0]).then(applyPick).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const removeMedia = async () => { if (media && !isPick(media.blobId)) await deleteBlob(media.blobId).catch(() => undefined); updateSettings({ recapMedia: null, recapNoBackground: true }); };
 
   const fileName = start ? `ledgr-${kind === "week" ? "week" : "month"}-${start}-${format === "wide" ? "16x9" : format === "story" ? "9x16" : "square"}` : "ledgr-recap";
   const exportCard = async () => {
@@ -127,6 +137,13 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
             </button>
           )}
         </div>
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-[13px] font-semibold text-text">My picks</p>
+            {media && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeMedia}>No background</Button>}
+          </div>
+          <MediaPicks activeId={media?.blobId ?? null} onPick={applyPick} />
+        </div>
       </div>
 
       <Card>
@@ -148,10 +165,6 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
               </Select>
             </Field>
           )}
-          <Field label="My picks" hint="Your saved backgrounds, shared with your P&L cards. Tap one to use it. Only use media you have the right to share.">
-            <MediaPicks activeId={media?.blobId ?? null} onPick={applyPick} />
-            {media && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeMedia} className="mt-2">No background</Button>}
-          </Field>
           {media && (
             <Field label="Picture" hint={(media.fit ?? "contain") === "contain" ? "Shows your whole picture, with a blurred copy filling the space around it" : "Zooms the picture to fill the card (the edges get cut off)"}>
               <Segmented value={media.fit ?? "contain"} onChange={(v) => updateSettings({ recapMedia: { ...media, fit: v } })} options={[{ value: "contain", label: "Fit (whole picture)" }, { value: "cover", label: "Fill" }]} ariaLabel="Background picture" />

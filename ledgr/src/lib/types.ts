@@ -374,6 +374,8 @@ export interface Settings {
   /** Background (the user's own image or video) for weekly and monthly recap cards. */
   /** The trader's saved backgrounds for P&L cards ("My picks"), newest first. Reused across trades. */
   pnlPicks?: { blobId: string; kind: "image" | "video" }[];
+  /** The trader chose "No background" for recaps, so they don't fall back to a built-in pick. */
+  recapNoBackground?: boolean;
   recapMedia?: { blobId: string; kind: "image" | "video"; dim: number; blur: number; fit?: "cover" | "contain" } | null;
   baseCurrency: string;
   breakevenThreshold: number; // |net| <= threshold counts as break-even

@@ -48,7 +48,7 @@ export default function ShowcasePage() {
       <Segmented value={mode} onChange={setMode} options={[{ value: "trade", label: "Trade card" }, { value: "week", label: "Weekly recap" }, { value: "month", label: "Monthly recap" }]} ariaLabel="Card type" className="self-start" />
 
       {mode !== "trade" ? <RecapEditor kind={mode} key={mode} /> : pinned.length === 0 ? (
-        <EmptyState icon={<Trophy size={18} />} title="No trades in your showcase yet" body="Pin a closed trade to describe what made it a good example of your process." action={<Button variant="accent" onClick={() => setAdding(true)}>Choose a trade</Button>} />
+        <EmptyState icon={<Trophy size={18} />} title="Pick a trade to make your P&L card" body="Choose a closed trade and its card appears here, with My picks (Night drive, Markets, Sunset or your own videos) right under it." action={<Button variant="accent" onClick={() => setAdding(true)}>Choose a trade</Button>} />
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
           <Card pad={false} className="overflow-hidden">
