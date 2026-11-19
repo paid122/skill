@@ -14,6 +14,7 @@ import { PageVerse } from "@/components/VerseCard";
 import { RecapEditor } from "@/components/RecapEditor";
 import { isPick, patchTrade, updateSettings } from "@/lib/actions";
 import { fillTimes } from "@/lib/autoTimes";
+import { openEditor } from "@/lib/overlays";
 import type { EnrichedTrade } from "@/lib/calc";
 import { exportPng } from "@/lib/exporter";
 import { freezeVideosForExport } from "@/lib/freezeVideo";
@@ -32,7 +33,7 @@ export default function ShowcasePage() {
   const [q, setQ] = useState("");
   const [mode, setMode] = useState<"trade" | "week" | "month">("trade");
   const selected = pinned.find((x) => x.trade.id === selectedId) ?? pinned[0] ?? null;
-  const candidates = useMemo(() => all.filter((x) => x.m.status === "closed" && !x.trade.showcase?.pinned && (!q || x.trade.symbol.toLowerCase().includes(q.toLowerCase()) || x.trade.setup.toLowerCase().includes(q.toLowerCase()))).slice(-60).reverse(), [all, q]);
+  const candidates = useMemo(() => all.filter((x) => !x.trade.showcase?.pinned && (!q || x.trade.symbol.toLowerCase().includes(q.toLowerCase()) || x.trade.setup.toLowerCase().includes(q.toLowerCase()))).slice(-60).reverse(), [all, q]);
 
   const pin = (x: EnrichedTrade) => {
     patchTrade(x.trade.id, { showcase: { pinned: true, description: x.trade.showcase?.description ?? "", background: x.trade.showcase?.background ?? "ledger" } }, "Pinned to showcase");
@@ -73,15 +74,20 @@ export default function ShowcasePage() {
 
       <Modal open={adding} onClose={() => setAdding(false)} title="Add a trade to your showcase" size="lg">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by symbol or setup" className="mb-4" />
-        {candidates.length === 0 ? <p className="py-6 text-center text-[13px] text-muted">No closed trades to add.</p> : (
+        {candidates.length === 0 ? <p className="py-6 text-center text-[13px] text-muted">No trades to add yet.</p> : (
           <ul className="divide-y divide-line-soft">
             {candidates.map((x) => (
               <li key={x.trade.id} className="flex items-center gap-3 py-2.5">
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13.5px]">{x.trade.symbol} <span className="text-muted">#{x.trade.number}</span> · <span className="text-text-2">{x.trade.setup || "No setup"}</span></span>
-                  <span className="block text-xs text-muted">{fmtDate(x.trade.date)} · grade {x.trade.grade ?? "—"} · {fmtR(x.m.r)}</span>
+                  <span className="block text-xs text-muted">{fmtDate(x.trade.date)}{x.m.status === "closed" ? <> · grade {x.trade.grade ?? "—"} · {fmtR(x.m.r)}</> : x.m.status === "open" ? " · add the exit to make a P&L card" : " · fill in the missing details first"}</span>
                 </span>
-                <Button size="sm" icon={<Pin size={13} />} onClick={() => pin(x)}>Pin</Button>
+                {x.m.status === "closed"
+                  ? <Button size="sm" icon={<Pin size={13} />} onClick={() => pin(x)}>Pin</Button>
+                  : <span className="flex items-center gap-2">
+                      <Badge tone="neutral">{x.m.status === "open" ? "Still open" : "Draft"}</Badge>
+                      <Button size="sm" onClick={() => { setAdding(false); openEditor(x.trade.id, x.m.status === "open" ? "execution" : "trade"); }}>{x.m.status === "open" ? "Add exit" : "Finish trade"}</Button>
+                    </span>}
               </li>
             ))}
           </ul>
