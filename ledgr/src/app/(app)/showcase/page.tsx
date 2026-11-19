@@ -3,7 +3,7 @@ import { Download, Film, Volume2, VolumeX, Pin, PinOff, Plus, Trash2, Trophy, X 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BlobImage } from "@/components/BlobImage";
-import { MediaPicks } from "@/components/MediaPicks";
+import { BUILTIN_PICKS, loadBuiltinPick, MediaPicks } from "@/components/MediaPicks";
 import { PageIntro } from "@/components/blocks";
 import { FitWidth } from "@/components/FitWidth";
 import { finishCountUp, PosterCard, posterAmount } from "@/components/PosterCard";
@@ -158,18 +158,19 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const picks = useLedgr((s) => s.settings.pnlPicks) ?? [];
   const applyPick = (p: { blobId: string; kind: "image" | "video" }) => {
     if (media && media.blobId !== p.blobId && !isPick(media.blobId)) deleteBlob(media.blobId).catch(() => undefined);
-    setShowcase({ layout: "poster", media: { blobId: p.blobId, kind: p.kind, dim: media?.dim ?? 0.45, blur: media?.blur ?? 0 } });
+    setShowcase({ layout: "poster", noBackground: false, media: { blobId: p.blobId, kind: p.kind, dim: media?.dim ?? 0.45, blur: media?.blur ?? 0 } });
   };
-  // A card with no background starts on your first pick.
-  const defaulted = useRef(false);
+  // A card with no background starts on your first pick, or LEDGR's first built-in pick.
+  const defaulted = useRef<string | null>(null);
   useEffect(() => {
-    if (defaulted.current || layout !== "poster" || media || !picks.length) return;
-    defaulted.current = true;
-    applyPick(picks[0]);
+    if (defaulted.current === t.id || layout !== "poster" || media || sc.noBackground) return;
+    defaulted.current = t.id;
+    if (picks.length) applyPick(picks[0]);
+    else void loadBuiltinPick(BUILTIN_PICKS[0]).then(applyPick).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t.id, layout, picks.length]);
+  }, [t.id, layout]);
 
-  const removeMedia = async () => { if (media && !isPick(media.blobId)) await deleteBlob(media.blobId).catch(() => undefined); setShowcase({ media: null }); };
+  const removeMedia = async () => { if (media && !isPick(media.blobId)) await deleteBlob(media.blobId).catch(() => undefined); setShowcase({ media: null, noBackground: true }); };
   // Video export: same length as the uploaded clip (capped at MAX_EXPORT_SECONDS).
   const [clipSeconds, setClipSeconds] = useState<number | null>(null);
   const [recording, setRecording] = useState<{ at: number; total: number } | null>(null);

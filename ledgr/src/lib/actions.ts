@@ -374,5 +374,6 @@ export function deleteReport(id: string) {
 
 /** True when a blob is one of the trader's saved P&L card picks (shared across trades, so never deleted with one). */
 export function isPick(blobId: string) {
+  if (blobId.startsWith("lp_")) return true; // LEDGR's built-in picks
   return (getState().settings.pnlPicks ?? []).some((x) => x.blobId === blobId);
 }

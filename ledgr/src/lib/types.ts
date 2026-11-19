@@ -100,6 +100,8 @@ export interface Trade {
     background: string;
     layout?: "classic" | "poster";
     media?: { blobId: ID; kind: "image" | "video"; dim: number; blur: number } | null;
+    /** The trader chose "No background", so the card doesn't fall back to a default pick. */
+    noBackground?: boolean;
     /** Real candles from a market-data provider, saved when the user loads them. */
     chart?: TradeChart | null;
     /** Optional custom market icon (an uploaded image). */

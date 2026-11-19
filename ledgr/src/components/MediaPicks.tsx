@@ -6,11 +6,28 @@
 import { Check, ImagePlus, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { updateSettings } from "@/lib/actions";
-import { deleteBlob, getState, putBlob, useLedgr, validateUpload } from "@/lib/store";
+import { deleteBlob, getBlob, getState, putBlob, useLedgr, validateUpload } from "@/lib/store";
 import { cx, uid } from "@/lib/util";
 import { useBlobUrl } from "./BlobImage";
 
 export type Pick = { blobId: string; kind: "image" | "video" };
+
+/** LEDGR's built-in picks, shown to everyone ahead of their own. Silent: no music ships with them. */
+export const BUILTIN_PICKS = [
+  { id: "lp_night-drive", name: "Night drive", src: "/picks/night-drive.mp4", poster: "/picks/night-drive.jpg" },
+  { id: "lp_markets", name: "Markets", src: "/picks/markets.mp4", poster: "/picks/markets.jpg" },
+  { id: "lp_sunset", name: "Sunset", src: "/picks/sunset.mp4", poster: "/picks/sunset.jpg" },
+] as const;
+export const isBuiltinPick = (id: string) => id.startsWith("lp_");
+
+/** Copies a built-in pick into this device's files (once), so cards and exports use it like any upload. */
+export async function loadBuiltinPick(b: (typeof BUILTIN_PICKS)[number]): Promise<Pick> {
+  if (!(await getBlob(b.id).catch(() => undefined))) {
+    const blob = await (await fetch(b.src)).blob();
+    await putBlob(b.id, blob);
+  }
+  return { blobId: b.id, kind: "video" };
+}
 
 /** True when the blob is still used by a card or the recap, so removing the pick must keep the file. */
 function inUse(id: string) {
@@ -23,6 +40,7 @@ export function MediaPicks({ activeId, onPick }: { activeId: string | null; onPi
   const file = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
 
   const upload = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -50,6 +68,17 @@ export function MediaPicks({ activeId, onPick }: { activeId: string | null; onPi
   return (
     <div>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {BUILTIN_PICKS.map((b) => (
+          <div key={b.id} className={cx("group relative aspect-video overflow-hidden rounded-lg border-2 bg-bg-2 transition-colors", activeId === b.id ? "border-accent" : "border-line-soft hover:border-line")}>
+            <button type="button" aria-pressed={activeId === b.id} aria-label={`Use ${b.name}`} disabled={loading === b.id}
+              onClick={async () => { setLoading(b.id); setErr(null); try { onPick(await loadBuiltinPick(b)); } catch { setErr(`Couldn't load ${b.name}. Check your connection and try again.`); } setLoading(null); }}
+              className="absolute inset-0">
+              <video src={b.src} poster={b.poster} autoPlay muted loop playsInline preload="metadata" className="h-full w-full object-cover" />
+            </button>
+            <span className="pointer-events-none absolute bottom-1 left-1.5 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur">{loading === b.id ? "Loading…" : b.name}</span>
+            {activeId === b.id && <span className="pointer-events-none absolute left-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-accent text-on-accent"><Check size={12} /></span>}
+          </div>
+        ))}
         {picks.map((p, i) => <PickThumb key={p.blobId} pick={p} n={i + 1} active={activeId === p.blobId} onPick={() => onPick(p)} onRemove={() => remove(p.blobId)} />)}
         <button type="button" disabled={busy} onClick={() => file.current?.click()} className="flex aspect-video flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-line text-[11.5px] text-text-2 transition-colors hover:border-text-2 hover:text-text disabled:opacity-60">
           <ImagePlus size={16} />{busy ? "Saving…" : "Add"}
