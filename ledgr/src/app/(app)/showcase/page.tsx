@@ -244,6 +244,13 @@ function Editor({ x }: { x: EnrichedTrade }) {
                 {hear ? <Volume2 size={16} /> : <VolumeX size={16} />}{hear ? "Sound on" : "Sound off"}
               </button>
             )}
+            <div className="mt-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-[13px] font-semibold text-text">My picks</p>
+                {media && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeMedia}>No background</Button>}
+              </div>
+              <MediaPicks activeId={media?.blobId ?? null} onPick={applyPick} />
+            </div>
           </div>
         ) : (
           <ShareSurface ref={ref} theme={bg} footer={`${fmtDate(t.date)} · Simulated record`}>
@@ -277,12 +284,6 @@ function Editor({ x }: { x: EnrichedTrade }) {
           <Field label="Layout">
             <Segmented value={layout} onChange={(v) => setShowcase({ layout: v })} options={[{ value: "poster", label: "Poster" }, { value: "classic", label: "Classic" }]} ariaLabel="Card layout" />
           </Field>
-          {layout === "poster" && (
-            <Field label="My picks" hint="Your saved backgrounds. Tap one to use it; add as many videos or pictures as you like. Only use media you have the right to share.">
-              <MediaPicks activeId={media?.blobId ?? null} onPick={applyPick} />
-              {media && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeMedia} className="mt-2">No background</Button>}
-            </Field>
-          )}
           {layout === "poster" && chartState === "loading" && <p className="text-xs text-muted">Loading the price chart…</p>}
           {layout === "poster" && chartState === "none" && <p className="text-xs text-muted">Price history isn't available for this trade, so the card shows the line between your entry and exit.</p>}
           {layout === "poster" && media && (

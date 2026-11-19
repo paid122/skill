@@ -12,11 +12,11 @@ import { useBlobUrl } from "./BlobImage";
 
 export type Pick = { blobId: string; kind: "image" | "video" };
 
-/** LEDGR's built-in picks, shown to everyone ahead of their own. Silent: no music ships with them. */
+/** LEDGR's built-in picks (the owner's own clips, with their sound), shown to everyone ahead of their own. */
 export const BUILTIN_PICKS = [
-  { id: "lp_night-drive", name: "Night drive", src: "/picks/night-drive.mp4", poster: "/picks/night-drive.jpg" },
-  { id: "lp_markets", name: "Markets", src: "/picks/markets.mp4", poster: "/picks/markets.jpg" },
-  { id: "lp_sunset", name: "Sunset", src: "/picks/sunset.mp4", poster: "/picks/sunset.jpg" },
+  { id: "lp_night-drive-v2", name: "Night drive", src: "/picks/night-drive.mp4?v=2", poster: "/picks/night-drive.jpg" },
+  { id: "lp_markets-v2", name: "Markets", src: "/picks/markets.mp4?v=2", poster: "/picks/markets.jpg" },
+  { id: "lp_sunset-v2", name: "Sunset", src: "/picks/sunset.mp4?v=2", poster: "/picks/sunset.jpg" },
 ] as const;
 export const isBuiltinPick = (id: string) => id.startsWith("lp_");
 
@@ -67,7 +67,7 @@ export function MediaPicks({ activeId, onPick }: { activeId: string | null; onPi
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {BUILTIN_PICKS.map((b) => (
           <div key={b.id} className={cx("group relative aspect-video overflow-hidden rounded-xl border-2 bg-bg-2 transition-colors", activeId === b.id ? "border-accent" : "border-line-soft hover:border-line")}>
             <button type="button" aria-pressed={activeId === b.id} aria-label={`Use ${b.name}`} disabled={loading === b.id}
@@ -80,10 +80,10 @@ export function MediaPicks({ activeId, onPick }: { activeId: string | null; onPi
           </div>
         ))}
         {picks.map((p, i) => <PickThumb key={p.blobId} pick={p} n={i + 1} active={activeId === p.blobId} onPick={() => onPick(p)} onRemove={() => remove(p.blobId)} />)}
+        <button type="button" disabled={busy} onClick={() => file.current?.click()} className="flex aspect-video flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line text-[13px] font-medium text-text-2 transition-colors hover:border-text-2 hover:text-text disabled:opacity-60">
+          <ImagePlus size={20} />{busy ? "Saving…" : "Add"}
+        </button>
       </div>
-      <button type="button" disabled={busy} onClick={() => file.current?.click()} className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line text-[14px] font-medium text-text-2 transition-colors hover:border-text-2 hover:text-text disabled:opacity-60">
-        <ImagePlus size={18} />{busy ? "Saving…" : "Add your own video or picture"}
-      </button>
       <input ref={file} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => upload(e.target.files)} />
       {err && <p className="mt-2 text-xs text-neg">{err}</p>}
     </div>
