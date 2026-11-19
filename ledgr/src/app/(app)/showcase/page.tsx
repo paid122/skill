@@ -1,8 +1,9 @@
 "use client";
-import { Download, Film, Volume2, VolumeX, ImagePlus, Pin, PinOff, Plus, Trash2, Trophy, X } from "lucide-react";
+import { Download, Film, Volume2, VolumeX, Pin, PinOff, Plus, Trash2, Trophy, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BlobImage } from "@/components/BlobImage";
+import { MediaPicks } from "@/components/MediaPicks";
 import { PageIntro } from "@/components/blocks";
 import { FitWidth } from "@/components/FitWidth";
 import { finishCountUp, PosterCard, posterAmount } from "@/components/PosterCard";
@@ -11,15 +12,15 @@ import { Badge, Button, Card, EmptyState, Field, Input, Modal, SectionTitle, Seg
 import { dayWindow, guessSource, pickWindow, timesUnknown, type Bar, type TradeChart } from "@/lib/candles";
 import { PageVerse } from "@/components/VerseCard";
 import { RecapEditor } from "@/components/RecapEditor";
-import { patchTrade } from "@/lib/actions";
+import { isPick, patchTrade, updateSettings } from "@/lib/actions";
 import { fillTimes } from "@/lib/autoTimes";
 import type { EnrichedTrade } from "@/lib/calc";
 import { exportPng } from "@/lib/exporter";
 import { freezeVideosForExport } from "@/lib/freezeVideo";
 import { exportCardVideo, MAX_EXPORT_SECONDS, recordingFormat } from "@/lib/videoExport";
 import { useEnriched } from "@/lib/hooks";
-import { deleteBlob, getState, putBlob, useLedgr, validateUpload } from "@/lib/store";
-import { cx, fmtDate, fmtMoney, fmtR, uid } from "@/lib/util";
+import { deleteBlob, getState, useLedgr } from "@/lib/store";
+import { cx, fmtDate, fmtMoney, fmtR } from "@/lib/util";
 
 interface Privacy { amounts: boolean; account: boolean; image: boolean; reflection: boolean }
 
@@ -99,9 +100,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
   const [privacy, setPrivacy] = useState<Privacy>({ amounts: true, account: false, image: true, reflection: true });
   const [handle, setHandle] = useState(displayName);
   const [busy, setBusy] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useFeedback();
   const sc = t.showcase!;
   const bg = sc.background ?? "ledger";
@@ -155,19 +154,22 @@ function Editor({ x }: { x: EnrichedTrade }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t.id, layout, sc.chart?.bars.length, timesKey]);
 
-  const upload = async (file: File | undefined) => {
-    if (!file) return;
-    const problem = validateUpload(file, ["image", "video"]);
-    if (problem) { setUploadError(problem); return; }
-    setUploadError(null);
-    const blobId = uid("blob");
-    await putBlob(blobId, file);
-    if (media) await deleteBlob(media.blobId).catch(() => undefined);
-    setShowcase({ layout: "poster", media: { blobId, kind: file.type.startsWith("video/") ? "video" : "image", dim: media?.dim ?? 0.45, blur: media?.blur ?? 0 } });
-    if (fileRef.current) fileRef.current.value = "";
+  // "My picks": the trader's saved backgrounds, reusable on every P&L card.
+  const picks = useLedgr((s) => s.settings.pnlPicks) ?? [];
+  const applyPick = (p: { blobId: string; kind: "image" | "video" }) => {
+    if (media && media.blobId !== p.blobId && !isPick(media.blobId)) deleteBlob(media.blobId).catch(() => undefined);
+    setShowcase({ layout: "poster", media: { blobId: p.blobId, kind: p.kind, dim: media?.dim ?? 0.45, blur: media?.blur ?? 0 } });
   };
-  const removeMedia = async () => { if (media) await deleteBlob(media.blobId).catch(() => undefined); setShowcase({ media: null }); };
+  // A card with no background starts on your first pick.
+  const defaulted = useRef(false);
+  useEffect(() => {
+    if (defaulted.current || layout !== "poster" || media || !picks.length) return;
+    defaulted.current = true;
+    applyPick(picks[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t.id, layout, picks.length]);
 
+  const removeMedia = async () => { if (media && !isPick(media.blobId)) await deleteBlob(media.blobId).catch(() => undefined); setShowcase({ media: null }); };
   // Video export: same length as the uploaded clip (capped at MAX_EXPORT_SECONDS).
   const [clipSeconds, setClipSeconds] = useState<number | null>(null);
   const [recording, setRecording] = useState<{ at: number; total: number } | null>(null);
@@ -275,13 +277,9 @@ function Editor({ x }: { x: EnrichedTrade }) {
             <Segmented value={layout} onChange={(v) => setShowcase({ layout: v })} options={[{ value: "poster", label: "Poster" }, { value: "classic", label: "Classic" }]} ariaLabel="Card layout" />
           </Field>
           {layout === "poster" && (
-            <Field label="Your background" hint="Any image (PNG, JPEG, WebP, GIF up to 8 MB) or video (MP4, WebM, MOV up to 40 MB). Only use media you have the right to share.">
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" icon={<ImagePlus size={14} />} onClick={() => fileRef.current?.click()}>{media ? "Replace" : "Upload image or video"}</Button>
-                {media && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeMedia}>Remove</Button>}
-                <input ref={fileRef} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => upload(e.target.files?.[0])} />
-              </div>
-              {uploadError && <p className="mt-2 text-xs text-neg">{uploadError}</p>}
+            <Field label="My picks" hint="Your saved backgrounds. Tap one to use it; add as many videos or pictures as you like. Only use media you have the right to share.">
+              <MediaPicks activeId={media?.blobId ?? null} onPick={applyPick} />
+              {media && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeMedia} className="mt-2">No background</Button>}
             </Field>
           )}
           {layout === "poster" && chartState === "loading" && <p className="text-xs text-muted">Loading the price chart…</p>}
@@ -336,3 +334,4 @@ function Editor({ x }: { x: EnrichedTrade }) {
     </div>
   );
 }
+

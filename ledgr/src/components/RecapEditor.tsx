@@ -1,17 +1,18 @@
 "use client";
-import { CalendarRange, Download, Film, ImagePlus, Trash2, Volume2, VolumeX, X } from "lucide-react";
+import { CalendarRange, Download, Film, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FitWidth } from "@/components/FitWidth";
 import { finishCountUp } from "@/components/PosterCard";
 import { RECAP_FORMATS, RecapCard, recapSize, recapValue, type RecapFormat } from "@/components/RecapCard";
 import { Button, Card, EmptyState, Field, Input, SectionTitle, Segmented, Select, Toggle, useFeedback } from "@/components/ui";
-import { updateSettings } from "@/lib/actions";
+import { isPick, updateSettings } from "@/lib/actions";
 import { exportPng } from "@/lib/exporter";
 import { freezeVideosForExport } from "@/lib/freezeVideo";
 import { useEnriched } from "@/lib/hooks";
 import { buildRecap, periodEnd, recapPeriods, type RecapKind } from "@/lib/recap";
-import { deleteBlob, putBlob, useLedgr, validateUpload } from "@/lib/store";
-import { parseISODate, uid } from "@/lib/util";
+import { deleteBlob, useLedgr } from "@/lib/store";
+import { MediaPicks } from "./MediaPicks";
+import { parseISODate } from "@/lib/util";
 import { exportCardVideo, MAX_EXPORT_SECONDS, recordingFormat } from "@/lib/videoExport";
 
 function periodLabel(kind: RecapKind, start: string) {
@@ -33,14 +34,12 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
   const [handle, setHandle] = useState(settings.displayName);
   const [picked, setPicked] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [recording, setRecording] = useState<{ at: number; total: number } | null>(null);
   const [sound, setSound] = useState(true);
   // Preview sound: browsers only allow sound after a click, so the card starts muted until you turn it on.
   const [hear, setHear] = useState(false);
   const [clipSeconds, setClipSeconds] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const { toast } = useFeedback();
 
@@ -71,18 +70,11 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
     if (hear) { v.volume = 1; v.play().catch(() => setHear(false)); }
   }, [hear, media?.blobId, clipSeconds, format, start]);
 
-  const upload = async (file: File | undefined) => {
-    if (!file) return;
-    const problem = validateUpload(file, ["image", "video"]);
-    if (problem) { setUploadError(problem); return; }
-    setUploadError(null);
-    const blobId = uid("blob");
-    await putBlob(blobId, file);
-    if (media) await deleteBlob(media.blobId).catch(() => undefined);
-    updateSettings({ recapMedia: { blobId, kind: file.type.startsWith("video/") ? "video" : "image", dim: media?.dim ?? 0.4, blur: media?.blur ?? 0, fit: media?.fit } });
-    if (fileRef.current) fileRef.current.value = "";
+  const applyPick = (p: { blobId: string; kind: "image" | "video" }) => {
+    if (media && media.blobId !== p.blobId && !isPick(media.blobId)) deleteBlob(media.blobId).catch(() => undefined);
+    updateSettings({ recapMedia: { blobId: p.blobId, kind: p.kind, dim: media?.dim ?? 0.4, blur: media?.blur ?? 0, fit: media?.fit } });
   };
-  const removeMedia = async () => { if (media) await deleteBlob(media.blobId).catch(() => undefined); updateSettings({ recapMedia: null }); };
+  const removeMedia = async () => { if (media && !isPick(media.blobId)) await deleteBlob(media.blobId).catch(() => undefined); updateSettings({ recapMedia: null }); };
 
   const fileName = start ? `ledgr-${kind === "week" ? "week" : "month"}-${start}-${format === "wide" ? "16x9" : format === "story" ? "9x16" : "square"}` : "ledgr-recap";
   const exportCard = async () => {
@@ -156,13 +148,9 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
               </Select>
             </Field>
           )}
-          <Field label="Your background" hint="Any image (PNG, JPEG, WebP, GIF up to 8 MB) or video (MP4, WebM, MOV up to 40 MB), used for weekly and monthly cards. Only use media you have the right to share.">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" icon={<ImagePlus size={14} />} onClick={() => fileRef.current?.click()}>{media ? "Replace" : "Upload image or video"}</Button>
-              {media && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeMedia}>Remove</Button>}
-              <input ref={fileRef} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => upload(e.target.files?.[0])} />
-            </div>
-            {uploadError && <p className="mt-2 text-xs text-neg">{uploadError}</p>}
+          <Field label="My picks" hint="Your saved backgrounds, shared with your P&L cards. Tap one to use it. Only use media you have the right to share.">
+            <MediaPicks activeId={media?.blobId ?? null} onPick={applyPick} />
+            {media && <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={removeMedia} className="mt-2">No background</Button>}
           </Field>
           {media && (
             <Field label="Picture" hint={(media.fit ?? "contain") === "contain" ? "Shows your whole picture, with a blurred copy filling the space around it" : "Zooms the picture to fill the card (the edges get cut off)"}>

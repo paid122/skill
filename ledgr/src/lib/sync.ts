@@ -51,5 +51,9 @@ export function referencedBlobs(s: LedgrState): string[] {
   s.strategies.forEach((x) => x.screenshots.forEach((a) => ids.add(a.blobId)));
   s.studyNotes.forEach((n) => n.blocks.forEach((b) => b.blobId && ids.add(b.blobId)));
   s.studyBoards.forEach((b) => b.cards.forEach((c) => c.blobId && ids.add(c.blobId)));
+  // Settings media: P&L card picks, recap background, wallpapers.
+  (s.settings.pnlPicks ?? []).forEach((x) => ids.add(x.blobId));
+  if (s.settings.recapMedia) ids.add(s.settings.recapMedia.blobId);
+  (s.settings.appearance.wallpaper?.library ?? []).forEach((x) => ids.add(x.blobId));
   return [...ids];
 }

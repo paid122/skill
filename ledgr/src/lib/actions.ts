@@ -115,7 +115,7 @@ export function patchTrade(id: string, patch: Partial<Trade>, message?: string) 
 export async function deleteTrade(id: string) {
   const t = getState().trades.find((x) => x.id === id);
   setState((s) => ({ ...s, trades: s.trades.filter((x) => x.id !== id) }));
-  if (t) await Promise.all([...t.attachments.map((a) => a.blobId), ...(t.showcase?.media ? [t.showcase.media.blobId] : []), ...(t.showcase?.icon ? [t.showcase.icon] : [])].map((b) => deleteBlob(b).catch(() => undefined)));
+  if (t) await Promise.all([...t.attachments.map((a) => a.blobId), ...(t.showcase?.media && !isPick(t.showcase.media.blobId) ? [t.showcase.media.blobId] : []), ...(t.showcase?.icon ? [t.showcase.icon] : [])].map((b) => deleteBlob(b).catch(() => undefined)));
 }
 
 export function duplicateTrade(id: string) {
@@ -370,4 +370,9 @@ export function saveReport(r: ReportDoc) {
 
 export function deleteReport(id: string) {
   setState((s) => ({ ...s, reports: s.reports.filter((x) => x.id !== id) }));
+}
+
+/** True when a blob is one of the trader's saved P&L card picks (shared across trades, so never deleted with one). */
+export function isPick(blobId: string) {
+  return (getState().settings.pnlPicks ?? []).some((x) => x.blobId === blobId);
 }

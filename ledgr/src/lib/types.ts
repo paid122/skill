@@ -370,6 +370,8 @@ export interface Settings {
   /** Profile photo: a small square JPEG as a data URL (synced with the rest of the settings). */
   avatar?: string | null;
   /** Background (the user's own image or video) for weekly and monthly recap cards. */
+  /** The trader's saved backgrounds for P&L cards ("My picks"), newest first. Reused across trades. */
+  pnlPicks?: { blobId: string; kind: "image" | "video" }[];
   recapMedia?: { blobId: string; kind: "image" | "video"; dim: number; blur: number; fit?: "cover" | "contain" } | null;
   baseCurrency: string;
   breakevenThreshold: number; // |net| <= threshold counts as break-even
