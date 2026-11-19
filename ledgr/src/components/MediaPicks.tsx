@@ -67,23 +67,23 @@ export function MediaPicks({ activeId, onPick }: { activeId: string | null; onPi
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         {BUILTIN_PICKS.map((b) => (
-          <div key={b.id} className={cx("group relative aspect-video overflow-hidden rounded-lg border-2 bg-bg-2 transition-colors", activeId === b.id ? "border-accent" : "border-line-soft hover:border-line")}>
+          <div key={b.id} className={cx("group relative aspect-video overflow-hidden rounded-xl border-2 bg-bg-2 transition-colors", activeId === b.id ? "border-accent" : "border-line-soft hover:border-line")}>
             <button type="button" aria-pressed={activeId === b.id} aria-label={`Use ${b.name}`} disabled={loading === b.id}
               onClick={async () => { setLoading(b.id); setErr(null); try { onPick(await loadBuiltinPick(b)); } catch { setErr(`Couldn't load ${b.name}. Check your connection and try again.`); } setLoading(null); }}
               className="absolute inset-0">
               <video src={b.src} poster={b.poster} autoPlay muted loop playsInline preload="metadata" className="h-full w-full object-cover" />
             </button>
-            <span className="pointer-events-none absolute bottom-1 left-1.5 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur">{loading === b.id ? "Loading…" : b.name}</span>
+            <span className="pointer-events-none absolute bottom-2 left-2 rounded-md bg-black/55 px-2 py-0.5 text-[12px] font-medium text-white backdrop-blur">{loading === b.id ? "Loading…" : b.name}</span>
             {activeId === b.id && <span className="pointer-events-none absolute left-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-accent text-on-accent"><Check size={12} /></span>}
           </div>
         ))}
         {picks.map((p, i) => <PickThumb key={p.blobId} pick={p} n={i + 1} active={activeId === p.blobId} onPick={() => onPick(p)} onRemove={() => remove(p.blobId)} />)}
-        <button type="button" disabled={busy} onClick={() => file.current?.click()} className="flex aspect-video flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-line text-[11.5px] text-text-2 transition-colors hover:border-text-2 hover:text-text disabled:opacity-60">
-          <ImagePlus size={16} />{busy ? "Saving…" : "Add"}
-        </button>
       </div>
+      <button type="button" disabled={busy} onClick={() => file.current?.click()} className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line text-[14px] font-medium text-text-2 transition-colors hover:border-text-2 hover:text-text disabled:opacity-60">
+        <ImagePlus size={18} />{busy ? "Saving…" : "Add your own video or picture"}
+      </button>
       <input ref={file} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => upload(e.target.files)} />
       {err && <p className="mt-2 text-xs text-neg">{err}</p>}
     </div>
@@ -93,7 +93,7 @@ export function MediaPicks({ activeId, onPick }: { activeId: string | null; onPi
 function PickThumb({ pick, n, active, onPick, onRemove }: { pick: Pick; n: number; active: boolean; onPick: () => void; onRemove: () => void }) {
   const { url, missing } = useBlobUrl(pick.blobId);
   return (
-    <div className={cx("group relative aspect-video overflow-hidden rounded-lg border-2 bg-bg-2 transition-colors", active ? "border-accent" : "border-line-soft hover:border-line")}>
+    <div className={cx("group relative aspect-video overflow-hidden rounded-xl border-2 bg-bg-2 transition-colors", active ? "border-accent" : "border-line-soft hover:border-line")}>
       <button type="button" onClick={onPick} aria-pressed={active} aria-label={`Use pick ${n}`} className="absolute inset-0">
         {url && (pick.kind === "video"
           ? <video src={url} autoPlay muted loop playsInline className="h-full w-full object-cover" />
