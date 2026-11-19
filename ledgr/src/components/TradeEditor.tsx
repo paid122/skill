@@ -4,13 +4,14 @@ import { ImagePlus, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { deleteTrade, newTradeDraft, saveTrade, ValidationError } from "@/lib/actions";
 import { tradeMetrics } from "@/lib/calc";
+import { useEnriched } from "@/lib/hooks";
 import { closeEditor, useOverlays } from "@/lib/overlays";
 import { deleteBlob, getState, putBlob, useLedgr, validateUpload } from "@/lib/store";
 import { EMOTIONS, GRADES, MARKETS, SESSIONS, STRAINED_EMOTIONS, type Emotion, type Execution, type Grade, type Trade, type TradeAttachment } from "@/lib/types";
 import { cx, fmtMoney, fmtNum, fmtR, nowISO, uid } from "@/lib/util";
 import { BlobImage } from "./BlobImage";
 import { RatingPicker, REVIEW_PROMPTS } from "./TradeReview";
-import { suggestReview, type ReviewSuggestion } from "@/lib/review";
+import { suggestRating, suggestReview, type ReviewSuggestion } from "@/lib/review";
 import { Badge, Button, Chips, Field, IconButton, Input, Modal, NumberInput, Segmented, Select, Tabs, Textarea, useFeedback } from "./ui";
 
 type Tab = "trade" | "execution" | "psychology" | "reflection" | "attachments";
@@ -298,8 +299,12 @@ function ReflectionTab({ t, set }: TabProps) {
   // Autofill from the trade: fill boxes that are empty or still hold the last suggestion, never your own words.
   const last = useRef<ReviewSuggestion | null>(null);
   const [filled, setFilled] = useState(false);
+  const all = useEnriched();
+  const ctx = { all };
+  const metrics = useMemo(() => tradeMetrics(t), [t]);
+  const suggested = suggestRating(t, metrics, ctx);
   const autofill = () => {
-    const s = suggestReview(t, tradeMetrics(t));
+    const s = suggestReview(t, metrics, ctx);
     const patch: Partial<Trade["reflection"]> = {};
     for (const q of REVIEW_PROMPTS) {
       const cur = (r[q.key] ?? "").trim();
@@ -314,7 +319,7 @@ function ReflectionTab({ t, set }: TabProps) {
   }, []);
   return (
     <div className="grid gap-6">
-      <RatingPicker value={r.rating} onChange={(rating) => setR({ rating })} />
+      <RatingPicker value={r.rating} onChange={(rating) => setR({ rating })} suggested={suggested} />
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="text-[12.5px] text-muted">{filled ? "Filled in from your trade. Edit anything." : "Write it yourself or fill it in from the trade."}</p>

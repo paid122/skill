@@ -1,4 +1,5 @@
 "use client";
+import { ratingColor } from "@/components/TradeReview";
 import { SymbolIcon } from "@/components/SymbolIcon";
 import { ArrowDown, ArrowUp, Bookmark, ChevronLeft, ChevronRight, Download, Filter, LayoutGrid, List, NotebookPen, Plus, Upload, X } from "lucide-react";
 import Link from "next/link";
@@ -16,7 +17,7 @@ import { EMOTIONS, MARKETS, SESSIONS, type TradeFilter } from "@/lib/types";
 import { cx, download, fmtDate, fmtMoney, fmtNum, fmtPct, fmtR, gradeLabel, inRange, toCSV, today, uid } from "@/lib/util";
 
 const EMPTY: TradeFilter = { q: "", accountId: "all", market: "all", direction: "all", result: "all", setup: "all", session: "all", emotion: "all", from: "", to: "" };
-type SortKey = "number" | "symbol" | "market" | "direction" | "setup" | "date" | "session" | "net" | "r" | "grade" | "account";
+type SortKey = "number" | "symbol" | "market" | "direction" | "setup" | "date" | "session" | "net" | "r" | "grade" | "rating" | "account";
 const PAGE = 25;
 
 export default function JournalPage() {
@@ -66,6 +67,7 @@ function Journal() {
         case "net": return x.m.net ?? -Infinity;
         case "r": return x.m.r ?? -Infinity;
         case "grade": return x.trade.grade ? ["F", "D", "C", "B", "A", "A+"].indexOf(x.trade.grade) : -1;
+        case "rating": return x.trade.reflection.rating ?? -1;
         case "account": return acctName.get(x.trade.accountId ?? "") ?? "";
         case "date": return x.trade.date + (x.m.firstTime ?? "") + String(x.trade.number).padStart(6, "0");
         case "number": return x.trade.number;
@@ -83,8 +85,8 @@ function Journal() {
   const cur = filtered[0] ? currencyOf(filtered[0].trade.accountId) : "USD";
 
   const exportCSV = () => {
-    const header = ["Trade #", "Date", "Symbol", "Market", "Direction", "Account", "Setup", "Session", "Status", "Result", "Net", "Fees", "R", "Grade", "Emotions", "Mistakes", "Followed plan", "Lesson"];
-    const body = sorted.map((x) => [x.trade.number, x.trade.date, x.trade.symbol, x.trade.market, x.trade.direction, acctName.get(x.trade.accountId ?? "") ?? "", x.trade.setup, x.trade.session, x.m.status, x.m.result, x.m.net === null ? null : x.m.net.toFixed(2), x.m.totalFees.toFixed(2), x.m.r === null ? null : x.m.r.toFixed(3), x.trade.grade, x.trade.emotions.join("; "), x.trade.mistakes.join("; "), x.trade.reflection.followedPlan, x.trade.reflection.learned]);
+    const header = ["Trade #", "Date", "Symbol", "Market", "Direction", "Account", "Setup", "Session", "Status", "Result", "Net", "Fees", "R", "Grade", "Rating", "Emotions", "Mistakes", "Followed plan", "Went well", "Went wrong", "To improve", "Lesson"];
+    const body = sorted.map((x) => [x.trade.number, x.trade.date, x.trade.symbol, x.trade.market, x.trade.direction, acctName.get(x.trade.accountId ?? "") ?? "", x.trade.setup, x.trade.session, x.m.status, x.m.result, x.m.net === null ? null : x.m.net.toFixed(2), x.m.totalFees.toFixed(2), x.m.r === null ? null : x.m.r.toFixed(3), x.trade.grade, x.trade.reflection.rating ?? null, x.trade.emotions.join("; "), x.trade.mistakes.join("; "), x.trade.reflection.followedPlan, x.trade.reflection.wentWell, x.trade.reflection.wentWrong ?? "", x.trade.reflection.improve, x.trade.reflection.learned]);
     download(`ledgr-trades-${today()}.csv`, toCSV([header, ...body]), "text/csv");
     toast(`Exported ${sorted.length} trades`);
   };
@@ -213,7 +215,7 @@ function Journal() {
                 <thead className="text-left text-xs text-muted">
                   <tr className="border-b border-line-soft">
                     {th("number", "#", "pl-4")}{th("symbol", "Symbol")}{th("market", "Market")}{th("direction", "Direction")}{th("setup", "Setup")}{th("date", "Date")}{th("session", "Session")}
-                    <th className="px-3 py-2.5 font-medium">Result</th>{th("net", "Net", "text-right")}{th("r", "R", "text-right")}{th("grade", "Grade")}<th className="px-3 py-2.5 font-medium">Emotion</th>{th("account", "Account", "pr-4")}
+                    <th className="px-3 py-2.5 font-medium">Result</th>{th("net", "Net", "text-right")}{th("r", "R", "text-right")}{th("grade", "Grade")}{th("rating", "Rating")}<th className="px-3 py-2.5 font-medium">Emotion</th>{th("account", "Account", "pr-4")}
                   </tr>
                 </thead>
                 <tbody>
@@ -230,6 +232,7 @@ function Journal() {
                       <td className={cx("num px-3 py-2.5 text-right", (x.m.net ?? 0) > 0 && x.m.status === "closed" ? "pos" : (x.m.net ?? 0) < 0 && x.m.status === "closed" ? "neg" : "text-muted")}>{x.m.status === "closed" ? fmtMoney(x.m.net, currencyOf(x.trade.accountId), { sign: true }) : "—"}</td>
                       <td className="num px-3 py-2.5 text-right text-text-2">{fmtR(x.m.r)}</td>
                       <td className="px-3 py-2.5 text-text-2">{x.trade.grade ?? "—"}</td>
+                      <td className="px-3 py-2.5">{x.trade.reflection.rating ? <span className="num inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-[12px] font-semibold text-black" style={{ background: ratingColor(x.trade.reflection.rating) }}>{x.trade.reflection.rating}</span> : <span className="text-muted">—</span>}</td>
                       <td className="max-w-[140px] truncate px-3 py-2.5 text-text-2">{x.trade.emotions.join(", ") || "—"}</td>
                       <td className="max-w-[160px] truncate py-2.5 pl-3 pr-4 text-text-2">{acctName.get(x.trade.accountId ?? "") ?? "—"}</td>
                     </tr>

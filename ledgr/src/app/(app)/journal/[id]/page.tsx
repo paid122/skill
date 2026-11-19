@@ -1,5 +1,6 @@
 "use client";
 import { TradeReviewCard } from "@/components/TradeReview";
+import { reviewFacts } from "@/lib/review";
 import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -153,7 +154,7 @@ export default function TradeDetailPage() {
             </details>
           </Card>
 
-          <TradeReviewCard t={t} onEdit={() => openEditor(t.id, "reflection")} />
+          <TradeReviewCard t={t} onEdit={() => openEditor(t.id, "reflection")} facts={reviewFacts(t, m, { all })} />
 
           <Card>
             <SectionTitle title="Execution notes" />
