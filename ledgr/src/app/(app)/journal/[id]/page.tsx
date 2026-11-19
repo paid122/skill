@@ -1,5 +1,6 @@
 "use client";
 import { TradeReviewCard } from "@/components/TradeReview";
+import { TradePriceChart } from "@/components/TradePriceChart";
 import { reviewFacts } from "@/lib/review";
 import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -38,7 +39,6 @@ export default function TradeDetailPage() {
   const prev = ordered[idx - 1];
   const next = ordered[idx + 1];
   const images = [...t.attachments].sort((a, b) => ["before", "after", "additional"].indexOf(a.role) - ["before", "after", "additional"].indexOf(b.role));
-  const hero = images.find((a) => a.role === "after") ?? images[0];
 
   const remove = async () => {
     if (await confirm({ title: `Delete trade #${t.number}?`, body: "This permanently removes the trade, its executions and attachments.", confirm: "Delete trade", danger: true })) {
@@ -97,15 +97,9 @@ export default function TradeDetailPage() {
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-6">
           <Card>
-            <SectionTitle title="Chart" sub={hero ? `${hero.role === "after" ? "After exit" : hero.role === "before" ? "Before entry" : "Additional"} · click to enlarge` : undefined} action={<Button size="sm" onClick={() => openEditor(t.id, "attachments")}>Manage images</Button>} />
-            {hero ? (
-              <button type="button" className="block w-full overflow-hidden rounded-xl border border-line-soft" onClick={() => setLightbox(hero.blobId)}>
-                <BlobImage blobId={hero.blobId} alt={hero.name} className="aspect-video w-full" />
-              </button>
-            ) : (
-              <EmptyState title="No chart images yet" body="Add before and after screenshots to review your decisions visually." action={<Button size="sm" onClick={() => openEditor(t.id, "attachments")}>Upload images</Button>} />
-            )}
-            {images.length > 1 && (
+            <SectionTitle title="Chart" sub={`${t.symbol || "Price"} around your trade · entry and exit marked`} action={<Button size="sm" onClick={() => openEditor(t.id, "attachments")}>{images.length ? "Manage images" : "Add screenshots"}</Button>} />
+            <TradePriceChart t={t} />
+            {images.length > 0 && (
               <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {images.map((a) => (
                   <button key={a.id} type="button" onClick={() => setLightbox(a.blobId)} className="group overflow-hidden rounded-lg border border-line-soft text-left">
