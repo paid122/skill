@@ -115,3 +115,13 @@ describe("trades logged without times", () => {
     expect(locateByPrice(bars, 150, 97)).toBeNull();
   });
 });
+
+describe("guessSource: futures without a market, TradingView symbols", () => {
+  it("maps known futures roots even with no market picked", () => {
+    expect(guessSource({ symbol: "MNQ", market: null })).toEqual({ provider: "yahoo", dataSymbol: "MNQ=F" });
+    expect(guessSource({ symbol: "NQZ6", market: null })).toEqual({ provider: "yahoo", dataSymbol: "NQ=F" });
+    expect(guessSource({ symbol: "MNQ1!", market: "Futures" })).toEqual({ provider: "yahoo", dataSymbol: "MNQ=F" });
+    expect(guessSource({ symbol: "ES1!", market: null })).toEqual({ provider: "yahoo", dataSymbol: "ES=F" });
+    expect(guessSource({ symbol: "ES", market: "Stocks" })).toEqual({ provider: "yahoo", dataSymbol: "ES" });
+  });
+});

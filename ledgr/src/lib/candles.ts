@@ -30,9 +30,13 @@ export const PROVIDERS: Record<CandleProvider, { name: string; covers: string; e
 export const INTERVAL_MS: Record<CandleInterval, number> = { "1m": 60e3, "5m": 300e3, "15m": 900e3, "1h": 3600e3, "1d": 86400e3 };
 export const MAX_BARS = 400;
 
+/** CME/CBOT/NYMEX/COMEX roots Yahoo quotes as ROOT=F. */
+const FUTURE_ROOTS = new Set(["NQ", "MNQ", "ES", "MES", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "QM", "NG", "QG", "MNG", "GC", "MGC", "SI", "SIL", "HG", "MHG", "PL", "PA", "ZB", "ZN", "ZF", "ZT", "ZC", "ZS", "ZW", "6E", "6J", "6B", "6A", "6C", "M6E", "M6B", "M6A", "BZ", "RB", "HO"]);
+
 /** Best guess of provider and the provider's symbol for a trade. The user can override both. */
 export function guessSource(t: Pick<Trade, "symbol" | "market">): { provider: CandleProvider; dataSymbol: string } {
-  const raw = (t.symbol || "").toUpperCase().trim();
+  // TradingView continuous contracts (NQ1!, MNQ2!) → the root.
+  const raw = (t.symbol || "").toUpperCase().trim().replace(/\d!$/, "");
   const clean = raw.replace(/[^A-Z0-9]/g, "");
   if (t.market === "Crypto" || ((!t.market || t.market === "Other") && /^(BTC|ETH|SOL|XRP|DOGE|BNB|ADA|AVAX|LTC|LINK)/.test(clean))) {
     // BTCUSD / BTC/USD / BTC-USD → BTCUSDT (Binance quotes dollar pairs in USDT).
@@ -44,8 +48,10 @@ export function guessSource(t: Pick<Trade, "symbol" | "market">): { provider: Ca
   // prices differ slightly; the card flags a mismatch instead of hiding it.
   const CFD: Record<string, string> = { NAS100: "NQ", US100: "NQ", USTEC: "NQ", NDX: "NQ", US30: "YM", DJ30: "YM", WS30: "YM", SPX500: "ES", US500: "ES", SPX: "ES", US2000: "RTY", USOIL: "CL", WTI: "CL", UKOIL: "BZ", NATGAS: "NG", GOLD: "GC", SILVER: "SI", XAUUSD: "GC", XAGUSD: "SI", XPTUSD: "PL", XPDUSD: "PA", XCUUSD: "HG", COPPER: "HG", PLATINUM: "PL", PALLADIUM: "PA" };
   if (CFD[clean]) return { provider: "yahoo", dataSymbol: `${CFD[clean]}=F` };
-  if (t.market === "Futures" || t.market === "Commodities" || t.market === "Indices") {
-    const root = clean.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || clean; // NQZ6 → NQ
+  const root = clean.replace(/[FGHJKMNQUVXZ]\d{1,2}$/, "") || clean; // NQZ6 → NQ
+  // Futures, also when no market was picked but the symbol is a known futures contract (NQ, MNQ, MGC…).
+  const knownFuture = FUTURE_ROOTS.has(root) && t.market !== "Stocks" && t.market !== "Forex";
+  if (t.market === "Futures" || t.market === "Commodities" || t.market === "Indices" || knownFuture) {
     return { provider: "yahoo", dataSymbol: `${root}=F` };
   }
   if (t.market === "Forex" || /^[A-Z]{6}$/.test(clean) && /^(EUR|GBP|USD|JPY|AUD|NZD|CAD|CHF)/.test(clean) && /(EUR|GBP|USD|JPY|AUD|NZD|CAD|CHF)$/.test(clean)) {
