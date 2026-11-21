@@ -1,4 +1,6 @@
 "use client";
+import { DEAL_DISCLOSURE, DealChip } from "@/components/DealChip";
+import { hasDeals, PROP_DEALS } from "@/lib/propDeals";
 import { PlusTag, usePlusGate } from "@/components/PlusGate";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Plus, ShieldCheck, X } from "lucide-react";
 import Link from "next/link";
@@ -343,6 +345,7 @@ function AddAccount({ onDone }: { onDone: () => void }) {
                   <p className="col-span-3 -mb-0.5 text-center text-[10.5px] uppercase tracking-[0.14em] text-white/35">{k(g.size)} · {PROP_FIRM_RULES[f][0].name}</p>
                 </div>
                 <div className="relative mt-4 flex flex-wrap gap-2">{plans.map((p) => <span key={p.name} className="rounded-full bg-white/10 px-3 py-1 text-[12px] text-white/80">{p.name}</span>)}</div>
+                {PROP_DEALS[f] && <div className="relative mt-3"><DealChip deal={PROP_DEALS[f]} /></div>}
                 <div className="relative mt-auto pt-6">
                   <button type="button" onClick={() => { setFirm(f); setStartPlan(null); }} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-black transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]" style={{ background: t.button }}>
                     <Plus size={15} className="transition-transform duration-300 group-hover:rotate-90" /> Log your account
@@ -359,7 +362,7 @@ function AddAccount({ onDone }: { onDone: () => void }) {
           </Link>
         </div>
       )}
-      <p className="prop-rise mt-6 max-w-2xl text-center text-[12px] text-muted" style={{ "--i": shown.length + 3 } as React.CSSProperties}>Only rules that public sources agree on are filled in; where they disagree we leave it for you to enter. Checked {PROP_RULES_CHECKED}; firms change their rules, so compare with your dashboard.</p>
+      <p className="prop-rise mt-6 max-w-2xl text-center text-[12px] text-muted" style={{ "--i": shown.length + 3 } as React.CSSProperties}>Only rules that public sources agree on are filled in; where they disagree we leave it for you to enter. Checked {PROP_RULES_CHECKED}; firms change their rules, so compare with your dashboard.{hasDeals() ? ` ${DEAL_DISCLOSURE}` : ""}</p>
       {firm && <FirmPicker firm={firm} initialPlan={startPlan} onClose={() => setFirm(null)} onAdded={(name) => { toast(`${name} added`); setFirm(null); onDone(); }} />}
     </div>
   );
@@ -477,6 +480,7 @@ function FirmPicker({ firm, initialPlan, onClose, onAdded }: { firm: string; ini
               <FirmLogo firm={firm} size={38} round fallback="text-black" fallbackStyle={{ background: t.accent }} />{firm}
             </p>
             <p className="mt-0.5 text-[13px] text-white/55">Futures · pick the account you bought</p>
+            {PROP_DEALS[firm] && <div className="pointer-events-auto mt-2"><DealChip deal={PROP_DEALS[firm]} /></div>}
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"><X size={18} /></button>
         </div>
