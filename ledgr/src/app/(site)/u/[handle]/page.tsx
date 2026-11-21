@@ -63,6 +63,7 @@ export default function PublicProfilePage() {
             <h1 className="text-[36px] font-semibold leading-tight tracking-[-0.03em]">{p.display_name || p.handle}<RoleTag userId={p.user_id} className="ml-3 px-2 py-0.5 text-[13px]" /></h1>
             <p className="text-[15px] text-ink/55">@{p.handle} · <b className="text-ink">{counts.followers}</b> followers · <b className="text-ink">{counts.following}</b> following</p>
             {p.bio && <p className="mt-3 max-w-xl whitespace-pre-wrap text-[16px] leading-relaxed text-ink/75">{p.bio}</p>}
+            {p.public_stats.link && /^https:\/\//.test(p.public_stats.link) && <a href={p.public_stats.link} target="_blank" rel="noopener noreferrer nofollow ugc" className="mt-2 inline-block text-[14.5px] font-medium text-ink underline underline-offset-4">{p.public_stats.link.replace(/^https:\/\/(www\.)?/, "").slice(0, 60)}</a>}
           </div>
           <div className="flex gap-2">
             {isMe ? <Link href="/feed?tab=profile" className="rounded-full border border-ink/20 px-5 py-2.5 text-[14px]">Edit profile</Link>

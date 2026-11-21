@@ -7,45 +7,21 @@ import { LogoMark } from "@/components/Logo";
 import { MatrixXLogo } from "@/components/matrixx";
 import { Button, useFeedback } from "@/components/ui";
 import { getMatrixxKey } from "@/lib/matrixxClient";
-import { PLUS } from "@/lib/plus";
-import { refreshPlus } from "@/lib/usePlus";
+import { FREE_INCLUDES, PLAN_COMPARE, PLUS, PRO, planName, type PlanId } from "@/lib/plus";
+import { planFromMatrixx, refreshPlus } from "@/lib/usePlus";
 import { cx, fmtDate } from "@/lib/util";
 
 interface Plan { tier: string; title: string; paid: boolean; period_end: string | null; credits_left_usd: number }
 
 const MX = "#3ee08a"; // the MatrixX green, used softly for glow and accents
 
-const FEATURES: { icon: ReactNode; title: string; body: string }[] = [
-  { icon: <ScanSearch size={18} />, title: "Trade reviews", body: "One click on any trade: what went well, what to improve against your own rules, your mindset, and one lesson." },
-  { icon: <CalendarCheck size={18} />, title: "Weekly reviews", body: "Every week summed up: what worked, what kept going wrong, patterns, and your focus for next week." },
-  { icon: <MessageSquare size={18} />, title: "AI chat", body: "Ask anything about your own records. Answers cite the trades they draw on." },
-  { icon: <Film size={18} />, title: "Creator tools", body: "Count-up video P&L cards and recaps, your own clips as backgrounds and wallpapers, videos in community posts and stories, private crews." },
-  { icon: <Copy size={18} />, title: "Pro journaling", body: "Reviews that fill themselves in from your trade, a suggested rating, and copy trading accounts that sync on their own." },
-  { icon: <Smartphone size={18} />, title: "Works everywhere", body: `${PLUS.matrixxPlan} is on your MatrixX account, so it also works in the MatrixX app and on your phone.` },
-];
-
-const COMPARE: { label: string; free: boolean | string; plus: boolean | string }[] = [
-  { label: "Journal, dashboard, analytics, reports", free: true, plus: true },
-  { label: "Daily & weekly journal, study room, verses", free: true, plus: true },
-  { label: "Prop firm tracker, paper accounts, trade scores", free: true, plus: true },
-  { label: "Community: posts, stories, crews, messages", free: "Up to 4 photos", plus: "Videos, 10 photos, private crews" },
-  { label: "P&L and recap cards", free: "Pictures", plus: "Pictures + count-up videos" },
-  { label: "My picks backgrounds", free: "Built-in clips", plus: "Your own videos & pictures" },
-  { label: "Trade review autofill + suggested rating", free: false, plus: true },
-  { label: "Copy trading accounts", free: false, plus: true },
-  { label: "Custom video wallpapers", free: false, plus: true },
-  { label: "MatrixX AI with your own MatrixX account", free: true, plus: true },
-  { label: `${PLUS.matrixxPlan} included`, free: false, plus: true },
-  { label: "Stronger AI models", free: false, plus: true },
-  { label: "Daily AI message cap", free: "25 a day", plus: "None" },
-  { label: "AI credits each 30 days", free: false, plus: "$4" },
-];
-
 const FAQ: [string, string][] = [
-  ["Does it renew automatically?", `No. ${PLUS.name} is a one-time payment for ${PLUS.days} days. Buy another ${PLUS.days} days whenever you want; extra days are added on top.`],
-  ["What happens when it ends?", "Your MatrixX account goes back to Free. Everything in LEDGR stays, and the AI keeps working on MatrixX's free plan."],
+  ["Does it renew automatically?", "No. Each plan is a one-time payment for 30 days. Buy another 30 days whenever you want; extra days are added on top."],
+  ["What happens when it ends?", "You go back to Free. Everything you logged stays, and anything you already set up keeps working."],
+  ["Can I switch plans?", "Yes. Buy the other plan any time; it starts straight away on your MatrixX account."],
   ["Who handles the payment?", "Ziina, the card payment provider, on its own secure page. LEDGR never sees your card."],
-  ["Why do I need a MatrixX account?", `${PLUS.name} adds ${PLUS.matrixxPlan} to your MatrixX account. A free account takes a minute, with email or Google.`],
+  ["Why do I need a MatrixX account?", "Your plan lives on your MatrixX account, together with the AI it includes. A free account takes a minute, with email or Google."],
+  ["Is the journal really free?", "Yes: unlimited trades, the daily journal, dashboard, prop tracker, trade scores, paper trading, sharing cards and videos, CSV import and the community."],
 ];
 
 export default function PlusPage() {
@@ -85,7 +61,7 @@ function Plus() {
         .then((x) => x.json())
         .then((r) => {
           const res = r.result as string | undefined;
-          if (res === "applied") setNote({ tone: "pos", text: `Thank you! ${PLUS.name} is active: ${PLUS.matrixxPlan} is on your MatrixX account.` });
+          if (res === "applied") { refreshPlus(); setNote({ tone: "pos", text: `Thank you! ${planName(planFromMatrixx(r.plan))} is active on your account.` }); }
           else if (res === "pending") setNote({ tone: "muted", text: "Your payment is still being confirmed. Reload this page in a minute." });
           else setNote({ tone: "neg", text: r.error ?? "The payment didn't go through. Nothing was charged; you can try again." });
           if (r.plan) setPlan(r.plan);
@@ -98,103 +74,66 @@ function Plus() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const buy = async () => {
+  const buy = async (which: "plus" | "pro") => {
     if (!key) return;
     setBusy(true);
-    const r = await fetch("/api/plus/checkout", { method: "POST", headers: headers(key) }).then((x) => x.json()).catch(() => ({ error: "Could not reach LEDGR. Try again." }));
+    const r = await fetch("/api/plus/checkout", { method: "POST", headers: headers(key), body: JSON.stringify({ plan: which }) }).then((x) => x.json()).catch(() => ({ error: "Could not reach LEDGR. Try again." }));
     if (r.url) { window.location.href = r.url; return; }
     setNote({ tone: "neg", text: r.error ?? "The payment page couldn't be opened." });
     setBusy(false);
   };
 
-  const active = !!(plan?.paid && plan.period_end && new Date(plan.period_end).getTime() > Date.now());
-  const label = available === false ? "Coming soon" : available === null ? "Checking…" : busy ? "Opening…" : active ? `Add ${PLUS.days} days · $${PLUS.priceUsd}` : `Get ${PLUS.name} · $${PLUS.priceUsd}`;
-  const why = available === false ? `${PLUS.name} isn't switched on for this site yet.` : !key ? "Connect MatrixX first (step 1 below)." : null;
-  const connect = <a href="/api/matrixx/connect?back=%2Fplus" className="inline-flex h-10 items-center gap-2 rounded-[11px] bg-text px-4 text-[13.5px] font-semibold text-bg transition-opacity hover:opacity-90"><MatrixXLogo size={20} /> Sign in with MatrixX</a>;
+  const current: PlanId = planFromMatrixx(plan);
+  const active = current !== "free";
+  const focus = params.get("plan") === "pro" ? "pro" : "plus";
+  const connect = <a href="/api/matrixx/connect?back=%2Fplus" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-text px-4 text-[14px] font-semibold text-bg transition-opacity hover:opacity-90"><MatrixXLogo size={20} /> Sign in with MatrixX</a>;
+  const button = (id: "plus" | "pro") => {
+    const p = id === "pro" ? PRO : PLUS;
+    if (available === false) return <Button className="h-11 w-full" disabled>Coming soon</Button>;
+    if (!key) return connect;
+    const same = current === id;
+    return <Button variant={id === focus ? "primary" : "secondary"} className="h-11 w-full text-[14.5px]" onClick={() => buy(id)} disabled={busy || available !== true}>{busy ? "Opening…" : same ? `Add ${p.days} days · $${p.priceUsd}` : `Get ${p.name} · $${p.priceUsd}`}{!busy && <ArrowRight size={15} />}</Button>;
+  };
 
   return (
-    <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-8 pb-10">
+    <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-8 pb-10">
       {note && (
         <div role="status" className={cx("rounded-2xl border px-5 py-3.5 text-[14px]", note.tone === "pos" ? "border-pos/40 bg-pos/10 text-pos" : note.tone === "neg" ? "border-neg/40 bg-neg/10 text-neg" : "border-line bg-card text-text-2")}>{note.text}</div>
       )}
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-[28px] border border-line bg-card">
-        <div aria-hidden className="pointer-events-none absolute -right-24 -top-32 h-[420px] w-[420px] rounded-full opacity-[0.16] blur-3xl" style={{ background: `radial-gradient(circle, ${MX}, transparent 65%)` }} />
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)", backgroundSize: "32px 32px", maskImage: "radial-gradient(ellipse at 80% 0%, black, transparent 70%)" }} />
-        <div className="relative grid gap-10 p-7 sm:p-10 lg:grid-cols-[1.25fr_1fr] lg:items-center">
-          <div>
-            <div className="flex items-center gap-2.5 text-text">
-              <LogoMark size={30} />
-              <span className="text-[18px] text-muted">+</span>
-              <MatrixXLogo size={30} />
-              <span className="ml-1 rounded-full border border-line px-2.5 py-0.5 text-[11.5px] font-medium tracking-wide text-text-2">{PLUS.name}</span>
-            </div>
-            <h1 className="mt-6 text-[34px] font-semibold leading-[1.08] tracking-[-0.03em] text-text sm:text-[44px]">Your AI trading coach, inside your journal.</h1>
-            <p className="mt-4 max-w-[46ch] text-[15.5px] leading-relaxed text-text-2">MatrixX reviews your trades and your weeks from your own records, and answers your questions about them. Everything else in LEDGR stays free.</p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {["Trade reviews", "Weekly reviews", "AI chat", "No daily cap"].map((t) => (
-                <span key={t} className="inline-flex items-center gap-1.5 rounded-full bg-card-2 px-3 py-1 text-[12.5px] text-text-2"><Sparkles size={12} style={{ color: MX }} /> {t}</span>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-[22px] border border-line bg-bg/60 p-6 backdrop-blur-sm">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-[13px] font-medium text-text-2">{PLUS.name}</p>
-              {active ? <StatusPill tone="pos">Active until {fmtDate(plan!.period_end!)}</StatusPill> : key ? <StatusPill tone="muted">MatrixX connected</StatusPill> : null}
-            </div>
-            <p className="mt-3 flex items-end gap-2"><span className="num text-[56px] font-semibold leading-none tracking-[-0.04em] text-text">${PLUS.priceUsd}</span><span className="mb-1.5 text-[14px] text-muted">for {PLUS.days} days</span></p>
-            <p className="mt-2 text-[13px] text-text-2">Includes {PLUS.matrixxPlan}: stronger models, no daily cap, $4 of AI credits.</p>
-            {active && plan && <p className="mt-2 text-[12.5px] text-muted">Credits left: <span className="num text-text">${plan.credits_left_usd.toFixed(2)}</span></p>}
-            <div className="mt-6">
-              {!key && available !== false ? connect : (
-                <Button variant="primary" className="h-11 w-full text-[14.5px]" onClick={buy} disabled={!key || busy || available !== true}>{label}{!busy && available === true && <ArrowRight size={15} />}</Button>
-              )}
-              {why && key && <p className="mt-2 text-center text-[12px] text-muted">{why}</p>}
-              {!key && available !== false && <p className="mt-2 text-[12px] text-muted">Then pay ${PLUS.priceUsd} by card. A free MatrixX account works.</p>}
-            </div>
-            <p className="mt-5 flex items-center gap-1.5 border-t border-line-soft pt-4 text-[11.5px] text-muted"><Lock size={12} /> Secure card payment with Ziina · one-time · doesn&apos;t renew by itself</p>
-          </div>
-        </div>
+      <section className="text-center">
+        <div className="flex items-center justify-center gap-2.5 text-text"><LogoMark size={30} /><span className="text-[18px] text-muted">+</span><MatrixXLogo size={30} /></div>
+        <h1 className="mt-5 text-[34px] font-semibold leading-[1.08] tracking-[-0.03em] text-text sm:text-[44px]">Free to journal. Go further when you want.</h1>
+        <p className="mx-auto mt-3 max-w-[56ch] text-[15.5px] leading-relaxed text-text-2">One payment for 30 days, no subscription. Each paid plan also puts MatrixX AI on your account.</p>
+        {active && plan?.period_end && <p className="mt-4"><StatusPill tone="pos">{planName(current)} active until {fmtDate(plan.period_end)}{plan.credits_left_usd ? ` · $${plan.credits_left_usd.toFixed(2)} AI credits left` : ""}</StatusPill></p>}
       </section>
 
-      {/* What you get */}
-      <section>
-        <h2 className="text-[13px] font-medium uppercase tracking-[0.12em] text-muted">What you get</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="group rounded-[20px] border border-line bg-card p-6 transition-colors hover:border-text-2/40">
-              <span className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-card-2" style={{ color: MX }}>{f.icon}</span>
-              <h3 className="mt-4 text-[16px] font-semibold text-text">{f.title}</h3>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-2">{f.body}</p>
-            </div>
-          ))}
-        </div>
+      <section className="grid gap-4 lg:grid-cols-3">
+        <PlanCard name="Free" price="$0" per="forever" tagline="For new traders, paper traders and one prop account." items={[...FREE_INCLUDES]} current={current === "free"}
+          action={<Link href="/journal" className="flex h-11 w-full items-center justify-center rounded-[11px] border border-line text-[14px] text-text-2 hover:text-text">{current === "free" ? "Your plan" : "Included"}</Link>} />
+        <PlanCard name={PLUS.name} price={`$${PLUS.priceUsd}`} per={`${PLUS.days} days`} tagline={PLUS.tagline} items={[...PLUS.includes]} badge="Most popular" accent={MX} current={current === "plus"} action={button("plus")} highlight={focus === "plus"} />
+        <PlanCard name={PRO.name} price={`$${PRO.priceUsd}`} per={`${PRO.days} days`} tagline={PRO.tagline} items={[...PRO.includes]} badge="AI coach" accent="#a58bff" current={current === "pro"} action={button("pro")} highlight={focus === "pro"} />
       </section>
+      <p className="-mt-4 flex items-center justify-center gap-1.5 text-center text-[12px] text-muted"><Lock size={12} /> Secure card payment with Ziina · one-time · doesn&apos;t renew by itself{!key && available !== false ? " · connect a free MatrixX account first" : ""}</p>
 
-      {/* How it works */}
-      <section className="rounded-[24px] border border-line bg-card p-7 sm:p-8">
-        <h2 className="text-[20px] font-semibold tracking-[-0.01em] text-text">How it works</h2>
-        <ol className="mt-6 grid gap-4 md:grid-cols-3">
-          <Step n={1} done={!!key} title="Connect MatrixX" body="Sign in or create a free MatrixX account, then allow LEDGR." action={key ? undefined : connect} />
-          <Step n={2} done={active} title={`Pay $${PLUS.priceUsd} by card`} body={`Secure Ziina page. ${PLUS.matrixxPlan} starts as soon as it's paid.`} action={key && !active && available === true ? <Button variant="primary" size="sm" onClick={buy} disabled={busy}>{busy ? "Opening…" : `Pay $${PLUS.priceUsd}`}</Button> : undefined} />
-          <Step n={3} done={false} title="Start reviewing" body="Open any trade or your weekly review and click Review with MatrixX." action={active ? <div className="flex flex-wrap gap-2"><Link href="/journal" className="text-[13px] font-medium text-text underline-offset-4 hover:underline">Your trades →</Link><Link href="/weekly-review" className="text-[13px] font-medium text-text underline-offset-4 hover:underline">Weekly review →</Link></div> : undefined} />
-        </ol>
-      </section>
-
-      {/* Free vs LEDGR+ */}
       <section className="overflow-hidden rounded-[24px] border border-line bg-card">
-        <div className="grid grid-cols-[minmax(0,1fr)_88px_88px] items-center border-b border-line-soft px-6 py-4 text-[13px] sm:grid-cols-[minmax(0,1fr)_120px_120px]">
-          <span className="text-[20px] font-semibold tracking-[-0.01em] text-text">Free vs {PLUS.name}</span>
+        <div className="grid grid-cols-[minmax(0,1fr)_72px_72px_72px] items-center border-b border-line-soft px-5 py-4 text-[12.5px] sm:grid-cols-[minmax(0,1fr)_120px_120px_120px] sm:px-6">
+          <span className="text-[18px] font-semibold tracking-[-0.01em] text-text sm:text-[20px]">Every feature, plan by plan</span>
           <span className="text-center font-medium text-text-2">Free</span>
           <span className="text-center font-semibold text-text">{PLUS.name}</span>
+          <span className="text-center font-semibold text-text">{PRO.name}</span>
         </div>
-        {COMPARE.map((r, i) => (
-          <div key={r.label} className={cx("grid grid-cols-[minmax(0,1fr)_88px_88px] items-center px-6 py-3.5 text-[13.5px] sm:grid-cols-[minmax(0,1fr)_120px_120px]", i % 2 === 1 && "bg-card-2/40")}>
-            <span className="text-text-2">{r.label}</span>
-            <Cell v={r.free} />
-            <Cell v={r.plus} strong />
+        {PLAN_COMPARE.map((g) => (
+          <div key={g.group}>
+            <p className="bg-card-2/60 px-5 py-2 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-muted sm:px-6">{g.group}</p>
+            {g.rows.map((r) => (
+              <div key={r.label} className="grid grid-cols-[minmax(0,1fr)_72px_72px_72px] items-center border-t border-line-soft px-5 py-3 text-[13px] sm:grid-cols-[minmax(0,1fr)_120px_120px_120px] sm:px-6">
+                <span className="text-text-2">{r.label}</span>
+                <Cell v={r.free} />
+                <Cell v={r.plus} strong />
+                <Cell v={r.pro} strong />
+              </div>
+            ))}
           </div>
         ))}
       </section>
@@ -236,4 +175,22 @@ function Cell({ v, strong }: { v: boolean | string; strong?: boolean }) {
   if (v === true) return <span className="flex justify-center"><Check size={17} className={strong ? "text-pos" : "text-text-2"} /></span>;
   if (v === false) return <span className="flex justify-center text-muted"><Minus size={16} /></span>;
   return <span className={cx("text-center text-[13px]", strong ? "font-semibold text-text" : "text-text-2")}>{v}</span>;
+}
+
+function PlanCard({ name, price, per, tagline, items, badge, accent, current, action, highlight }: { name: string; price: string; per: string; tagline: string; items: string[]; badge?: string; accent?: string; current?: boolean; action: ReactNode; highlight?: boolean }) {
+  return (
+    <div className={cx("relative flex flex-col overflow-hidden rounded-[24px] border bg-card p-6", highlight ? "border-text-2/60 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)]" : "border-line")}>
+      {accent && <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full opacity-[0.16] blur-3xl" style={{ background: accent }} />}
+      <div className="relative flex items-center justify-between gap-2">
+        <p className="text-[16px] font-semibold text-text">{name}</p>
+        {current ? <StatusPill tone="pos">Your plan</StatusPill> : badge ? <span className="rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold text-black" style={{ background: accent }}>{badge}</span> : null}
+      </div>
+      <p className="relative mt-1 text-[13px] text-muted">{tagline}</p>
+      <p className="relative mt-5 flex items-end gap-2"><span className="num text-[44px] font-semibold leading-none tracking-[-0.04em] text-text">{price}</span><span className="mb-1 text-[13.5px] text-muted">/ {per}</span></p>
+      <div className="relative mt-5">{action}</div>
+      <ul className="relative mt-6 flex flex-col gap-2.5 border-t border-line-soft pt-5">
+        {items.map((it) => <li key={it} className="flex gap-2.5 text-[13.5px] leading-snug text-text-2"><Check size={15} className="mt-0.5 shrink-0" style={{ color: accent ?? "var(--text-2)" }} />{it}</li>)}
+      </ul>
+    </div>
+  );
 }

@@ -1,4 +1,7 @@
 "use client";
+import { PlusTag } from "@/components/PlusGate";
+import { usePlus } from "@/lib/usePlus";
+import Link from "next/link";
 /**
  * The trade's real price chart on the trade page, drawn with TradingView Lightweight Charts:
  * candles around the trade with the entries and exits marked, plus the stop and target. Uses the chart saved with the P&L card when there is one,
@@ -14,6 +17,20 @@ import { fmtNum } from "@/lib/util";
 const cache = new Map<string, { bars: Bar[]; interval: CandleInterval } | null>();
 
 export function TradePriceChart({ t }: { t: Trade }) {
+  const plus = usePlus();
+  if (plus === false) {
+    return (
+      <div className="grid h-[220px] place-items-center rounded-xl border border-dashed border-line-soft px-6 text-center">
+        <div><p className="flex items-center justify-center gap-2 text-[14px] font-semibold text-text">The real price chart of this trade <PlusTag /></p>
+        <p className="mt-1.5 text-[13px] text-muted">Candles around your trade with your entry, exit, stop and target marked.</p>
+        <Link href="/plus?plan=plus" className="mt-3 inline-block rounded-lg bg-accent px-3.5 py-1.5 text-[13px] font-semibold text-on-accent">Get LEDGR+</Link></div>
+      </div>
+    );
+  }
+  return <TradePriceChartInner t={t} />;
+}
+
+function TradePriceChartInner({ t }: { t: Trade }) {
   const saved = t.showcase?.chart?.bars.length ? { bars: t.showcase.chart.bars, interval: t.showcase.chart.interval } : null;
   const times = t.executions.map((e) => e.time);
   const key = `${t.id}:${t.symbol}:${t.market}:${times.join("|")}`;

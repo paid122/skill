@@ -1,4 +1,5 @@
 "use client";
+import { PlanWall } from "@/components/PlusGate";
 import { Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -13,7 +14,7 @@ import { useLedgr } from "@/lib/store";
 import { EMOTIONS, POSITIVE_EMOTIONS, STRAINED_EMOTIONS } from "@/lib/types";
 import { fmtDate, fmtNum, fmtPct, today, weekStart } from "@/lib/util";
 
-export default function PsychologyPage() {
+function PsychologyPageInner() {
   const { current } = useScoped();
   const journals = useLedgr((s) => s.dailyJournals);
   const mistakeCats = useLedgr((s) => s.settings.mistakeCategories);
@@ -150,4 +151,8 @@ function MistakeTracker({ categories, counts }: { categories: string[]; counts: 
       </div>
     </Card>
   );
+}
+
+export default function PsychologyPage() {
+  return <PlanWall feature="Psychology" sub="How your emotions, mistakes and plan-following line up with your results."><PsychologyPageInner /></PlanWall>;
 }

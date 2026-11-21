@@ -315,7 +315,7 @@ function ReflectionTab({ t, set }: TabProps) {
     if (Object.keys(patch).length) { setR(patch); setFilled(true); }
   };
   // LEDGR+: fills itself in when the review is still empty.
-  const [plus, gate] = usePlusGate();
+  const [plus, gate] = usePlusGate("pro");
   const ran = useRef(false);
   useEffect(() => {
     if (plus !== true || ran.current) return;
@@ -329,7 +329,7 @@ function ReflectionTab({ t, set }: TabProps) {
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="text-[12.5px] text-muted">{filled ? "Filled in from your trade. Edit anything." : "Write it yourself or fill it in from the trade."}</p>
-          <button type="button" onClick={() => gate("Autofill reviews", autofill)} className="inline-flex items-center gap-1.5 rounded-full bg-card-2 px-3 py-1 text-[12.5px] font-medium text-text-2 transition-colors hover:text-text"><Sparkles size={13} />Autofill{plus === false && <PlusTag />}</button>
+          <button type="button" onClick={() => gate("Autofill reviews", autofill)} className="inline-flex items-center gap-1.5 rounded-full bg-card-2 px-3 py-1 text-[12.5px] font-medium text-text-2 transition-colors hover:text-text"><Sparkles size={13} />Autofill{plus === false && <PlusTag level="pro" />}</button>
         </div>
         <div className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line-soft">
           {REVIEW_PROMPTS.map((q) => (
@@ -355,6 +355,7 @@ function ReflectionTab({ t, set }: TabProps) {
 
 function AttachmentsTab({ t, set, onUploaded }: TabProps & { onUploaded: (id: string) => void }) {
   const input = useRef<HTMLInputElement>(null);
+  const [shotPlus, shotGate] = usePlusGate();
   const [role, setRole] = useState<TradeAttachment["role"]>("before");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -386,7 +387,7 @@ function AttachmentsTab({ t, set, onUploaded }: TabProps & { onUploaded: (id: st
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center gap-3">
         <Segmented size="sm" value={role} onChange={setRole} options={groups.map((g) => ({ value: g.role, label: g.label }))} ariaLabel="Attachment type" />
-        <Button size="sm" icon={<ImagePlus size={14} />} onClick={() => input.current?.click()} disabled={busy}>{busy ? "Uploading…" : `Upload ${role} image`}</Button>
+        <Button size="sm" icon={<ImagePlus size={14} />} onClick={() => (t.attachments.length >= 6 ? setError("Up to 6 screenshots a trade.") : t.attachments.length >= 1 ? shotGate("More than 1 screenshot a trade", () => input.current?.click()) : input.current?.click())} disabled={busy}>{busy ? "Uploading…" : `Upload ${role} image`}{shotPlus === false && t.attachments.length >= 1 && <PlusTag className="ml-1" />}</Button>
         <input ref={input} type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden onChange={(e) => upload(e.target.files)} />
         <span className="text-xs text-muted">PNG, JPEG, WebP or GIF up to 8 MB. Stored privately in this browser.</span>
       </div>

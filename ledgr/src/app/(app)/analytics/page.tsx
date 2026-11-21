@@ -1,4 +1,5 @@
 "use client";
+import { PlanWall } from "@/components/PlusGate";
 import { FlaskConical, Info, Settings2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -18,7 +19,7 @@ import { cx, dayOfWeek, DOW, fmtDate, fmtMoney, fmtNum, fmtPct, fmtR, monthKey }
 type Tab = "charts" | "breakdown" | "insights" | "whatif";
 type Metric = "avgR" | "net" | "winRate";
 
-export default function AnalyticsPage() {
+function AnalyticsPageInner() {
   const { current } = useScoped();
   const currency = useCurrency();
   const [tab, setTab] = useState<Tab>("charts");
@@ -324,4 +325,8 @@ function WhatIf({ list, currency }: { list: EnrichedTrade[]; currency: string })
       </div>
     </div>
   );
+}
+
+export default function AnalyticsPage() {
+  return <PlanWall feature="Full analytics" sub="Every chart and breakdown of your trades: by setup, session, day, time, symbol and more."><AnalyticsPageInner /></PlanWall>;
 }

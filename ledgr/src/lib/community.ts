@@ -11,7 +11,7 @@ export const MEDIA_BUCKET = "ledgr-community";
 export const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
 export interface Profile { user_id: string; handle: string; display_name: string; bio: string; avatar_path: string | null; public_stats: PublicStats; dm_policy: "mutual" | "nobody" }
-export interface PublicStats { updatedAt?: string; show?: Partial<Record<StatKey, boolean>>; values?: Partial<Record<StatKey, number | string | null>> }
+export interface PublicStats { link?: string; updatedAt?: string; show?: Partial<Record<StatKey, boolean>>; values?: Partial<Record<StatKey, number | string | null>> }
 export type StatKey = "trades" | "winRate" | "avgR" | "profitFactor" | "discipline" | "weekStreak" | "bestR" | "net";
 export const STAT_LABELS: Record<StatKey, string> = {
   trades: "Trades journaled", winRate: "Win rate", avgR: "Average R", profitFactor: "Profit factor",

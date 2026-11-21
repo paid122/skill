@@ -48,7 +48,9 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
   const preset = funded ? presetRules(a.propFirm, a.propPlan, a.accountSize, (a.propStage ?? "evaluation") as PropStage, a.propDailyLimit ?? false) : null;
   const [plus, gate] = usePlusGate();
   const others = useLedgr((st) => st.accounts.filter((o) => o.id !== a.id && o.status !== "archived"));
+  const otherFunded = useLedgr((st) => st.accounts.filter((o) => o.type === "Funded" && o.id !== a.id && o.status !== "archived").length);
   const save = () => {
+    if (a.type === "Funded" && otherFunded >= 1 && plus === false) { gate("More than 1 prop account", () => undefined); return; }
     try { saveAccount({ ...a, name: a.name.trim(), currency: a.currency.toUpperCase() }); onClose(); }
     catch (e) { setError(e instanceof ValidationError ? e.message : "Could not save the account."); }
   };

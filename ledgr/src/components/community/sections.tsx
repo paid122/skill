@@ -64,6 +64,7 @@ export function Crews({ me, profile }: { me: string; profile: Profile }) {
   const [mine, setMine] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<Crew | null>(null);
   const [creating, setCreating] = useState(false);
+  const [crewPro, crewGate] = usePlusGate("pro");
   const [code, setCode] = useState("");
   const refresh = useCallback(async () => {
     try { const [c, m] = await Promise.all([loadCrews(), myCrewIds(me)]); setList(c); setMine(m); return c; } catch (e) { toast((e as Error).message, "error"); setList([]); return []; }
@@ -78,7 +79,7 @@ export function Crews({ me, profile }: { me: string; profile: Profile }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="accent" icon={<Plus size={14} />} onClick={() => setCreating(true)}>Start a crew</Button>
+        <Button variant="accent" icon={<Plus size={14} />} onClick={() => crewGate("Start your own crew", () => setCreating(true))}>Start a crew{crewPro === false && <PlusTag level="pro" className="ml-1" />}</Button>
         <span className="flex-1" />
         <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Invite code" className="h-9 w-40" aria-label="Invite code" />
         <Button disabled={!code.trim()} onClick={async () => { try { const id = await joinCrewByCode(code); setCode(""); const c = await refresh(); const crew = c.find((x) => x.id === id); if (crew) setOpen(crew); toast("Joined"); } catch (e) { toast((e as Error).message, "error"); } }}>Join with code</Button>
@@ -101,14 +102,13 @@ export function Crews({ me, profile }: { me: string; profile: Profile }) {
 
 function CreateCrew({ me, onClose, onCreated }: { me: string; onClose: () => void; onCreated: (id: string) => void }) {
   const { toast } = useFeedback();
-  const [plus, gate] = usePlusGate();
   const [name, setName] = useState(""), [desc, setDesc] = useState(""), [priv, setPriv] = useState(false), [busy, setBusy] = useState(false);
   return (
     <Modal open onClose={onClose} title="Start a crew" footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="accent" disabled={busy || name.trim().length < 2} onClick={async () => { setBusy(true); try { const r = await createCrew(me, name.trim().slice(0, 40), desc.trim().slice(0, 280), priv); onCreated(r.id); } catch (e) { toast((e as Error).message, "error"); } setBusy(false); }}>Create crew</Button></>}>
       <div className="grid gap-4">
         <Field label="Name"><Input value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="NQ Scalpers, Funded by Friday…" /></Field>
         <Field label="What's it about?"><Textarea value={desc} maxLength={280} onChange={(e) => setDesc(e.target.value)} rows={3} /></Field>
-        <Field label="Who can join?"><Segmented value={priv ? "private" : "public"} onChange={(v) => (v === "private" ? gate("Private crews", () => setPriv(true)) : setPriv(false))} options={[{ value: "public", label: "Anyone" }, { value: "private", label: plus === false ? <span className="flex items-center gap-1.5">Invite code only <PlusTag /></span> : "Invite code only" }]} /></Field>
+        <Field label="Who can join?"><Segmented value={priv ? "private" : "public"} onChange={(v) => setPriv(v === "private")} options={[{ value: "public", label: "Anyone" }, { value: "private", label: "Invite code only" }]} /></Field>
       </div>
     </Modal>
   );
@@ -224,6 +224,8 @@ export function ProfileEditor({ me, profile, onSaved, first }: { me: string; pro
   const [show, setShow] = useState<Record<StatKey, boolean>>({ ...DEFAULT_SHOW, ...(profile?.public_stats.show ?? {}) } as Record<StatKey, boolean>);
   const [dm, setDm] = useState<"mutual" | "nobody">(profile?.dm_policy ?? "mutual");
   const [avatar, setAvatar] = useState<string | null>(profile?.avatar_path ?? null);
+  const [link, setLink] = useState<string>(profile?.public_stats.link ?? "");
+  const [linkPlus, linkGate] = usePlusGate();
   const [busy, setBusy] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const valid = HANDLE_RE.test(handle);
@@ -233,7 +235,7 @@ export function ProfileEditor({ me, profile, onSaved, first }: { me: string; pro
     try {
       const shown = Object.fromEntries((Object.keys(STAT_LABELS) as StatKey[]).filter((k) => show[k]).map((k) => [k, values[k]]));
       const p: Profile = { user_id: me, handle, display_name: name.trim().slice(0, 40), bio: bio.trim().slice(0, 280), avatar_path: avatar, dm_policy: dm,
-        public_stats: { updatedAt: new Date().toISOString(), show, values: { ...shown, ...(show.net ? { currency } : {}) } as PublicStatsValues } };
+        public_stats: { updatedAt: new Date().toISOString(), show, values: { ...shown, ...(show.net ? { currency } : {}) } as PublicStatsValues, ...(linkPlus !== false && /^https:\/\/[^\s]{3,200}$/.test(link.trim()) ? { link: link.trim() } : {}) } };
       await saveProfile(p);
       onSaved(p);
       toast(first ? "Welcome to the community" : "Profile saved");
@@ -265,6 +267,9 @@ export function ProfileEditor({ me, profile, onSaved, first }: { me: string; pro
             </label>
           ))}
         </div>
+      </Field>
+      <Field label={<span className="flex items-center gap-1.5">Link on your profile{linkPlus === false && <PlusTag />}</span>} hint="Your Linktree, YouTube or site. Must start with https://">
+        <Input value={link} onChange={(e) => setLink(e.target.value)} onFocus={() => { if (linkPlus === false) linkGate("A link on your profile", () => undefined); }} placeholder="https://linktr.ee/you" readOnly={linkPlus === false} />
       </Field>
       <Field label="Who can message you"><Segmented value={dm} onChange={setDm} options={[{ value: "mutual", label: "People we both follow" }, { value: "nobody", label: "Nobody" }]} /></Field>
       <div className="flex flex-wrap items-center justify-end gap-2">

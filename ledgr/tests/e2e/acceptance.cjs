@@ -204,10 +204,12 @@ async function check(name, fn) {
     assert.match(pdf.suggestedFilename(), /\.pdf$/);
   });
 
-  await check("CSV export downloads", async () => {
+  await check("CSV export is a LEDGR+ feature (free users see the upgrade prompt)", async () => {
     await go("/journal");
-    const [csv] = await Promise.all([page.waitForEvent("download"), main().getByRole("button", { name: "Export CSV" }).click()]);
-    assert.match(csv.suggestedFilename(), /\.csv$/);
+    await page.waitForTimeout(1500); // the plan check settles
+    await main().getByRole("button", { name: /Export CSV/ }).click();
+    await page.getByRole("dialog").getByRole("link", { name: /See LEDGR\+/ }).waitFor({ timeout: 5000 });
+    await page.keyboard.press("Escape");
   });
 
   await check("Themes apply and persist; unreadable accents are rejected", async () => {

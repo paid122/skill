@@ -1,4 +1,5 @@
 "use client";
+import { PlusTag, usePlusGate } from "@/components/PlusGate";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Plus, ShieldCheck, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -412,6 +413,7 @@ function FirmPicker({ firm, initialPlan, onClose, onAdded }: { firm: string; ini
   const [mounted, setMounted] = useState(false);
   const row = useRef<HTMLDivElement>(null);
   const accounts = useLedgr((s) => s.accounts);
+  const [propPlus, propGate] = usePlusGate();
   const plan = plans.find((p) => p.name === planName) ?? plans[0];
   const sizes = firmSizes(firm, plan.name);
   const t = tone(firm);
@@ -449,6 +451,7 @@ function FirmPicker({ firm, initialPlan, onClose, onAdded }: { firm: string; ini
   goRef.current = go;
 
   const add = (size: number) => {
+    if (accounts.filter((a) => a.type === "Funded" && a.status !== "archived").length >= 1 && propPlus === false) { propGate("More than 1 prop account", () => undefined); return; }
     const pre = presetRules(firm, plan.name, size, stage, daily)!;
     const n = accounts.filter((a) => a.propFirm === firm && a.accountSize === size).length;
     const name = `${short(firm)} ${k(size)}${n ? ` #${n + 1}` : ""}`;

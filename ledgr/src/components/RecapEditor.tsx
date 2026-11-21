@@ -1,5 +1,4 @@
 "use client";
-import { PlusTag, usePlusGate } from "@/components/PlusGate";
 import { CalendarRange, Download, Film, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FitWidth } from "@/components/FitWidth";
@@ -99,7 +98,6 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
     unfreeze();
     setBusy(false);
   };
-  const [plus, gate] = usePlusGate();
   const exportVideo = async () => {
     const node = ref.current;
     const v = node?.querySelector<HTMLVideoElement>("video[data-poster-video]");
@@ -186,7 +184,7 @@ export function RecapEditor({ kind }: { kind: RecapKind }) {
             <Button variant="accent" icon={<Download size={14} />} onClick={exportCard} disabled={busy || !!recording}>{busy ? "Exporting…" : "Export PNG"}</Button>
             {media?.kind === "video" && (recording
               ? <Button icon={<X size={14} />} onClick={() => abortRef.current?.abort()}>Cancel · {Math.floor(recording.at)} / {Math.round(recording.total)} s</Button>
-              : <Button icon={<Film size={14} />} onClick={() => gate("Video recap cards", () => void exportVideo())} disabled={busy || !clipSeconds || !recordingFormat()}>Export video{clipSeconds ? ` (${Math.round(Math.min(clipSeconds, MAX_EXPORT_SECONDS))} s)` : ""}{plus === false && <PlusTag className="ml-1" />}</Button>)}
+              : <Button icon={<Film size={14} />} onClick={exportVideo} disabled={busy || !clipSeconds || !recordingFormat()}>Export video{clipSeconds ? ` (${Math.round(Math.min(clipSeconds, MAX_EXPORT_SECONDS))} s)` : ""}</Button>)}
           </div>
           {media?.kind === "video" && (
             <div className="grid gap-2">

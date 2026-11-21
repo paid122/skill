@@ -4,7 +4,7 @@ import Link from "next/link";
 import { LegalPage, type LegalSection } from "@/components/site/Legal";
 import { Mark } from "@/components/site/Mark";
 import { CONTACT_EMAIL, LEGAL_UPDATED } from "@/lib/contact";
-import { PLUS } from "@/lib/plus";
+import { PLUS, PRO } from "@/lib/plus";
 
 export const metadata: Metadata = { title: "Terms", description: "The rules for using LEDGR and LEDGR+, in plain language: what LEDGR is, payments, refunds, and what we each promise." };
 
@@ -32,7 +32,7 @@ const SECTIONS: LegalSection[] = [
     <p>You&apos;re responsible for keeping backups of data stored only in your browser.</p>
   </> },
   { id: "plus", title: `${PLUS.name} and payments`, icon: I(Wallet), body: <>
-    <p>{PLUS.name} is an optional <strong>one-time purchase of ${PLUS.priceUsd} (USD) for {PLUS.days} days</strong>. It adds {PLUS.matrixxPlan} to the MatrixX account you connect.</p>
+    <p>{PLUS.name} and {PRO.name} are optional <strong>one-time purchases of ${PLUS.priceUsd} and ${PRO.priceUsd} (USD) for {PLUS.days} days</strong>. They add {PLUS.matrixxPlan} or {PRO.matrixxPlan} to the MatrixX account you connect, and unlock the features listed for that plan on the pricing page.</p>
     <ul>
       <li>It <strong>does not renew automatically</strong>. Buy another {PLUS.days} days whenever you choose; extra days are added on top.</li>
       <li>Card payments are processed by <strong>Ziina</strong> on its own secure page. LEDGR never sees or stores your card details.</li>
@@ -82,7 +82,7 @@ const SECTIONS: LegalSection[] = [
 const SUMMARY = [
   { icon: I(BookOpen), title: "A journal, not a broker", body: "LEDGR records and analyses trades. It never places them or holds money." },
   { icon: I(Gavel), title: "Not financial advice", body: "Stats and AI reviews describe your past records. Decisions are yours." },
-  { icon: I(BadgeCheck), title: "Free, with an optional extra", body: `Every journal feature is free. ${PLUS.name} is $${PLUS.priceUsd} for ${PLUS.days} days and doesn't auto-renew.` },
+  { icon: I(BadgeCheck), title: "Free, with an optional extra", body: `Journaling is free. ${PLUS.name} ($${PLUS.priceUsd}) and ${PRO.name} ($${PRO.priceUsd}) are ${PLUS.days} days each and don't auto-renew.` },
   { icon: I(Handshake), title: "Fair use", body: "No signals, no profit promises, no abuse. Treat others with respect." },
 ];
 

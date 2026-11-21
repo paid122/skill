@@ -1,5 +1,5 @@
 "use client";
-import { PlusTag, usePlusGate } from "@/components/PlusGate";
+import { PlanWall } from "@/components/PlusGate";
 import { Download, Film, Volume2, VolumeX, Pin, PinOff, Plus, Trash2, Trophy, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -49,7 +49,7 @@ export default function ShowcasePage() {
 
       <Segmented value={mode} onChange={setMode} options={[{ value: "trade", label: "Trade card" }, { value: "week", label: "Weekly recap" }, { value: "month", label: "Monthly recap" }]} ariaLabel="Card type" className="self-start" />
 
-      {mode !== "trade" ? <RecapEditor kind={mode} key={mode} /> : pinned.length === 0 ? (
+      {mode === "week" ? <PlanWall feature="Weekly recap cards" sub="Share your week as a card or count-up video. Monthly recaps stay free."><RecapEditor kind="week" key="week" /></PlanWall> : mode === "month" ? <RecapEditor kind="month" key="month" /> : pinned.length === 0 ? (
         <EmptyState icon={<Trophy size={18} />} title="Pick a trade to make your P&L card" body="Choose a closed trade and its card appears here, with My picks (Night drive, Markets, Sunset or your own videos) right under it." action={<Button variant="accent" onClick={() => setAdding(true)}>Choose a trade</Button>} />
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -203,7 +203,6 @@ function Editor({ x }: { x: EnrichedTrade }) {
     return () => clearInterval(id);
   }, [media?.kind, media?.blobId]);
 
-  const [plus, gate] = usePlusGate();
   const exportVideo = async () => {
     const node = ref.current;
     const v = node?.querySelector<HTMLVideoElement>("video[data-poster-video]");
@@ -326,7 +325,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
             <Button variant="accent" icon={<Download size={14} />} onClick={exportCard} disabled={busy || !!recording}>{busy ? "Exporting…" : "Export PNG"}</Button>
             {layout === "poster" && media?.kind === "video" && (recording
               ? <Button icon={<X size={14} />} onClick={() => abortRef.current?.abort()}>Cancel · {Math.floor(recording.at)} / {Math.round(recording.total)} s</Button>
-              : <Button icon={<Film size={14} />} onClick={() => gate("Video P&L cards", () => void exportVideo())} disabled={busy || !clipSeconds || !recordingFormat()}>Export video{clipSeconds ? ` (${Math.round(Math.min(clipSeconds, MAX_EXPORT_SECONDS))} s)` : ""}{plus === false && <PlusTag className="ml-1" />}</Button>)}
+              : <Button icon={<Film size={14} />} onClick={exportVideo} disabled={busy || !clipSeconds || !recordingFormat()}>Export video{clipSeconds ? ` (${Math.round(Math.min(clipSeconds, MAX_EXPORT_SECONDS))} s)` : ""}</Button>)}
             <Button icon={<PinOff size={14} />} onClick={() => patchTrade(t.id, { showcase: { ...sc, pinned: false } }, "Removed from showcase")}>Unpin</Button>
           </div>
           {layout === "poster" && media?.kind === "video" && (

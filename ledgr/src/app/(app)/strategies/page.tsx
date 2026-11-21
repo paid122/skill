@@ -1,4 +1,5 @@
 "use client";
+import { PlusTag, usePlusGate } from "@/components/PlusGate";
 import { Archive, Plus, SquareLibrary } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -16,6 +17,7 @@ import { cx, fmtMoney, fmtNum, fmtPct, fmtR } from "@/lib/util";
 
 export default function StrategiesPage() {
   const strategies = useLedgr((s) => s.strategies);
+  const [plus, gate] = usePlusGate();
   const currency = useLedgr((s) => s.settings.baseCurrency);
   const all = useEnriched();
   const [editing, setEditing] = useState<Strategy | null>(null);
@@ -26,7 +28,7 @@ export default function StrategiesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageIntro title="Strategy library" sub="Document each approach with clear criteria, then see how your recorded trades with it have gone." actions={<Button variant="accent" icon={<Plus size={15} />} onClick={() => setEditing(newStrategy())}>New strategy</Button>} />
+      <PageIntro title="Strategy library" sub="Document each approach with clear criteria, then see how your recorded trades with it have gone." actions={<Button variant="accent" icon={<Plus size={15} />} onClick={() => (strategies.length >= 1 ? gate("Unlimited strategies", () => setEditing(newStrategy())) : setEditing(newStrategy()))}>New strategy{plus === false && strategies.length >= 1 && <PlusTag className="ml-1" />}</Button>} />
       <PageVerse page="strategies" compact />
 
       {strategies.length === 0 ? (

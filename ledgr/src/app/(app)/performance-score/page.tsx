@@ -1,4 +1,5 @@
 "use client";
+import { PlanWall } from "@/components/PlusGate";
 import { useMemo } from "react";
 import { PageIntro, ScopeControls } from "@/components/blocks";
 import { TrendLine } from "@/components/charts";
@@ -24,7 +25,7 @@ function Ring({ value, label }: { value: number | null; label: string }) {
   );
 }
 
-export default function PerformanceScorePage() {
+function PerformanceScorePageInner() {
   const { current } = useScoped();
   const journals = useLedgr((s) => s.dailyJournals);
   const minSample = useLedgr((s) => s.settings.insights.minSample);
@@ -104,4 +105,8 @@ Statistical quality = mean of
       </Card>
     </div>
   );
+}
+
+export default function PerformanceScorePage() {
+  return <PlanWall feature="Performance Score" sub="One 0–100 score for your trading, built from discipline and the quality of your results."><PerformanceScorePageInner /></PlanWall>;
 }

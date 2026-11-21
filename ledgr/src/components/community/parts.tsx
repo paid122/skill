@@ -208,17 +208,17 @@ export function Composer({ me, profile, crewId, onPosted }: { me: string; profil
       {trade && <div className="relative pl-[52px]"><TradeChip t={trade} /><button type="button" aria-label="Remove trade" onClick={() => setTrade(null)} className="absolute right-2 top-5 text-muted hover:text-text"><X size={14} /></button></div>}
       <div className="mt-3 flex items-center justify-between gap-2 border-t border-line-soft pt-3 pl-[52px]">
         <div className="flex gap-1">
-          <button type="button" onClick={() => input.current?.click()} disabled={files.length >= 10} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] text-text-2 hover:bg-card-2 hover:text-text disabled:opacity-40"><ImagePlus size={16} />Photo / video</button>
+          <button type="button" onClick={() => input.current?.click()} disabled={files.length >= 20} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] text-text-2 hover:bg-card-2 hover:text-text disabled:opacity-40"><ImagePlus size={16} />Photo / video</button>
           <button type="button" onClick={() => setPicking(true)} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] text-text-2 hover:bg-card-2 hover:text-text"><TrendingUp size={16} />Share a trade</button>
         </div>
         <Button variant="accent" onClick={post} disabled={busy || (!body.trim() && !files.length && !trade)}>{busy ? "Posting…" : "Post"}</Button>
       </div>
       <input ref={input} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => {
-        const next = [...files, ...Array.from(e.target.files ?? [])].slice(0, 10);
+        const next = [...files, ...Array.from(e.target.files ?? [])].slice(0, 20);
         e.target.value = "";
-        // Free: up to 4 photos. LEDGR+: videos and up to 10.
-        const needsPlus = next.length > 4 || next.some((f) => f.type.startsWith("video/") || /\.mov$/i.test(f.name));
-        if (needsPlus) gate(next.length > 4 ? "More than 4 photos in a post" : "Videos in posts", () => setFiles(next)); else setFiles(next);
+        // Free: up to 10 photos. LEDGR+: videos and up to 20.
+        const needsPlus = next.length > 10 || next.some((f) => f.type.startsWith("video/") || /\.mov$/i.test(f.name));
+        if (needsPlus) gate(next.length > 10 ? "Up to 20 photos in a post" : "Videos in posts", () => setFiles(next)); else setFiles(next);
       }} />
       {picking && <TradePicker onClose={() => setPicking(false)} onPick={(t) => { setTrade(t); setPicking(false); }} />}
     </div>

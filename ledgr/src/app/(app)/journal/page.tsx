@@ -1,4 +1,5 @@
 "use client";
+import { PlusTag, usePlusGate } from "@/components/PlusGate";
 import { ratingColor } from "@/components/TradeReview";
 import { tradeScore } from "@/lib/review";
 import { SymbolIcon } from "@/components/SymbolIcon";
@@ -29,6 +30,7 @@ function Journal() {
   const params = useSearchParams();
   const router = useRouter();
   const all = useEnriched();
+  const [plus, gate] = usePlusGate();
   const accounts = useLedgr((s) => s.accounts);
   const setups = useLedgr((s) => s.settings.setups);
   const saved = useLedgr((s) => s.savedFilters);
@@ -109,7 +111,7 @@ function Journal() {
         title="Trade journal"
         sub="Every record, searchable and honest. Drafts and open positions are kept separate from your statistics."
         actions={<>
-          <Button icon={<Download size={14} />} onClick={exportCSV} disabled={!sorted.length}>Export CSV</Button>
+          <Button icon={<Download size={14} />} onClick={() => gate("Export your journal as CSV", exportCSV)} disabled={!sorted.length}>Export CSV{plus === false && <PlusTag className="ml-1" />}</Button>
           <Button icon={<Upload size={14} />} onClick={openImport}>Import CSV</Button>
           <Button variant="accent" icon={<Plus size={15} />} onClick={() => openEditor(null)}>New trade</Button>
         </>}
