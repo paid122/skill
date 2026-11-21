@@ -110,6 +110,8 @@ export interface Trade {
   isDraft: boolean;
   /** MatrixX's coach review of this trade, when the user asked for one. */
   aiReview?: AIReview | null;
+  /** Copy trading: the lead trade this one was copied from (kept in sync, left out of combined stats). */
+  copyOf?: ID | null;
   /** Fingerprint of the CSV row(s) this trade was imported from; used to skip re-imports. */
   importKey?: string;
   activity: ActivityEntry[];
@@ -117,8 +119,8 @@ export interface Trade {
   updatedAt: ISODateTime;
 }
 
-export type AccountType = "Live" | "Funded" | "Personal simulation" | "Hypothetical evaluation" | "Demo" | "Backtest";
-export const ACCOUNT_TYPES: AccountType[] = ["Live", "Funded", "Personal simulation", "Hypothetical evaluation", "Demo", "Backtest"];
+export type AccountType = "Live" | "Funded" | "Paper" | "Personal simulation" | "Hypothetical evaluation" | "Demo" | "Backtest";
+export const ACCOUNT_TYPES: AccountType[] = ["Live", "Funded", "Paper", "Personal simulation", "Hypothetical evaluation", "Demo", "Backtest"];
 /** Prop firms offered for funded accounts (names only; LEDGR doesn't connect to them). */
 export const PROP_FIRMS = ["Apex Trader Funding", "Lucid Trading", "Topstep", "Take Profit Trader", "Tradeify", "TradeDay", "MyFundedFutures", "Other"] as const;
 export type AccountStatus = "active" | "paused" | "archived";
@@ -147,6 +149,8 @@ export interface Account {
   propPlan?: string | null;
   propStage?: "evaluation" | "funded" | null;
   propDailyLimit?: boolean | null;
+  /** Copy trading: this account copies every trade from that (lead) account. */
+  copyOf?: ID | null;
   createdAt: ISODateTime;
 }
 

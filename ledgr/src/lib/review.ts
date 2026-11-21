@@ -105,3 +105,33 @@ export function suggestRating(t: Trade, m: TradeMetrics, ctx?: ReviewContext): n
   if (f.tradeOfDay >= 4) s -= 0.5;
   return Math.max(1, Math.min(10, Math.round(s)));
 }
+
+export interface TradeScore { score: number; parts: { label: string; value: number; weight: number }[] }
+
+/**
+ * LEDGR trade score (0–100), one number per trade:
+ *   Execution   35%  your 1–10 rating × 10 (or the suggested rating when you haven't rated)
+ *   Risk        25%  stop or planned risk set, and the loss kept to about 1R
+ *   Result      20%  R multiple: −1R → 0, +2R or better → 100 (P&L only counts here)
+ *   Discipline  20%  followed the plan, no documented mistakes, no revenge entry or overtrading
+ * Null when the trade isn't closed yet.
+ */
+export function tradeScore(t: Trade, m: TradeMetrics, ctx?: ReviewContext): TradeScore | null {
+  if (m.status !== "closed") return null;
+  const f = reviewFacts(t, m, ctx);
+  const rating = t.reflection.rating ?? suggestRating(t, m, ctx);
+  const hasRisk = t.stopPrice !== null || t.plannedRisk !== null;
+  const risk = !hasRisk ? 0 : m.r !== null && m.r < -1.1 ? Math.max(0, 100 - (Math.abs(m.r) - 1) * 100) : 100;
+  const result = m.r !== null ? Math.max(0, Math.min(1, (m.r + 1) / 3)) * 100 : m.result === "win" ? 70 : m.result === "loss" ? 20 : 45;
+  let discipline = t.reflection.followedPlan === "yes" ? 100 : t.reflection.followedPlan === "partial" ? 60 : t.reflection.followedPlan === "no" ? 20 : 70;
+  discipline -= Math.min(60, t.mistakes.length * 20);
+  if (f.minsAfterLoss !== null && f.minsAfterLoss >= 0 && f.minsAfterLoss < 10) discipline -= 20;
+  if (f.tradeOfDay >= 4) discipline -= 10;
+  const parts = [
+    { label: "Execution", value: rating ? rating * 10 : 50, weight: 0.35 },
+    { label: "Risk", value: risk, weight: 0.25 },
+    { label: "Result", value: result, weight: 0.2 },
+    { label: "Discipline", value: Math.max(0, discipline), weight: 0.2 },
+  ];
+  return { score: Math.round(parts.reduce((s, p) => s + p.value * p.weight, 0)), parts };
+}

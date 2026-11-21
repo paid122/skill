@@ -214,6 +214,7 @@ export function ImportCsv() {
                   <option value="">No account</option>
                   {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </Select>
+                {accounts.some((a) => a.copyOf && a.copyOf === accountId) && <p className="mt-1.5 text-[12px] text-muted">Also copied to {accounts.filter((a) => a.copyOf === accountId).map((a) => a.name).join(", ")} (they copy this account).</p>}
               </Field>
               {openCount > 0 && <Toggle label={`Include ${openCount} open position${openCount === 1 ? "" : "s"}`} description="Still open at the end of the file" checked={includeOpen} onChange={setIncludeOpen} />}
               <div className="text-[13px] text-text-2">Net of trades to import <p className={cx("font-mono text-[18px]", net >= 0 ? "text-pos" : "text-neg")}>{fmtMoney(net, currency, { sign: true })}</p></div>

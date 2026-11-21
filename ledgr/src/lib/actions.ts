@@ -71,6 +71,43 @@ function diffMessage(prev: Trade | undefined, next: Trade): string {
   return changes.length ? `Edited: ${changes.join(", ")}` : "Edited";
 }
 
+/**
+ * Copy trading: the copies a lead trade should have, one per account that copies its account.
+ * Existing copies keep their id and number; new ones get fresh ones. Copies never copy further.
+ */
+function syncCopies(s: LedgrState, lead: Trade, nextNumber: () => number): Trade[] {
+  if (lead.copyOf) return [];
+  const followers = s.accounts.filter((a) => a.copyOf && a.copyOf === lead.accountId && a.id !== lead.accountId && a.status !== "archived");
+  const existing = s.trades.filter((x) => x.copyOf === lead.id);
+  const at = nowISO();
+  return followers.map((acct) => {
+    const prev = existing.find((x) => x.accountId === acct.id);
+    return {
+      ...structuredClone(lead),
+      id: prev?.id ?? uid("trd"),
+      number: prev?.number ?? nextNumber(),
+      accountId: acct.id,
+      copyOf: lead.id,
+      executions: lead.executions.map((e, i) => ({ ...e, id: prev?.executions[i]?.id ?? uid("ex") })),
+      attachments: [],
+      showcase: prev?.showcase ?? null,
+      importKey: lead.importKey ? `${lead.importKey}:copy:${acct.id}` : undefined,
+      activity: prev ? prev.activity : [{ at, message: `Copied from #${lead.number}` }],
+      createdAt: prev?.createdAt ?? at,
+      updatedAt: at,
+    };
+  });
+}
+
+/** Replace a lead trade's copies in a trade list. */
+export function withCopies(s: LedgrState, trades: Trade[], leads: Trade[]): Trade[] {
+  let n = Math.max(0, ...trades.map((x) => x.number)) + 1;
+  const leadIds = new Set(leads.map((l) => l.id));
+  const copies = leads.flatMap((l) => syncCopies({ ...s, trades }, l, () => n++));
+  const keepIds = new Set(copies.map((c) => c.id));
+  return [...trades.filter((x) => !(x.copyOf && leadIds.has(x.copyOf) && !keepIds.has(x.id))).map((x) => (keepIds.has(x.id) ? copies.find((c) => c.id === x.id)! : x)), ...copies.filter((c) => !trades.some((x) => x.id === c.id))];
+}
+
 export function saveTrade(t: Trade) {
   validateTrade(t);
   const before = getState().trades.find((x) => x.id === t.id);
@@ -83,10 +120,11 @@ export function saveTrade(t: Trade) {
     const at = nowISO();
     const next: Trade = { ...t, symbol: t.symbol.trim().toUpperCase(), updatedAt: at, activity: [...t.activity, { at, message: diffMessage(prev, t) }].slice(-50) };
     const setups = next.setup.trim() && !s.settings.setups.includes(next.setup.trim()) ? [...s.settings.setups, next.setup.trim()] : s.settings.setups;
+    const trades = prev ? s.trades.map((x) => (x.id === t.id ? next : x)) : [...s.trades, next];
     return {
       ...s,
       settings: { ...s.settings, setups },
-      trades: prev ? s.trades.map((x) => (x.id === t.id ? next : x)) : [...s.trades, next],
+      trades: next.isDraft ? trades : withCopies(s, trades, [next]),
     };
   });
 }
@@ -98,7 +136,7 @@ export function importTrades(list: Trade[]): number {
     let n = nextTradeNumber(s);
     const at = nowISO();
     const added = list.map((t) => ({ ...t, number: n++, symbol: t.symbol.trim().toUpperCase(), createdAt: at, updatedAt: at }));
-    return { ...s, trades: [...s.trades, ...added] };
+    return { ...s, trades: withCopies(s, [...s.trades, ...added], added.filter((t) => !t.isDraft)) };
   });
   return list.length;
 }
@@ -114,7 +152,8 @@ export function patchTrade(id: string, patch: Partial<Trade>, message?: string) 
 
 export async function deleteTrade(id: string) {
   const t = getState().trades.find((x) => x.id === id);
-  setState((s) => ({ ...s, trades: s.trades.filter((x) => x.id !== id) }));
+  // A lead trade takes its copies with it.
+  setState((s) => ({ ...s, trades: s.trades.filter((x) => x.id !== id && x.copyOf !== id) }));
   if (t) await Promise.all([...t.attachments.map((a) => a.blobId), ...(t.showcase?.media && !isPick(t.showcase.media.blobId) ? [t.showcase.media.blobId] : []), ...(t.showcase?.icon ? [t.showcase.icon] : [])].map((b) => deleteBlob(b).catch(() => undefined)));
 }
 

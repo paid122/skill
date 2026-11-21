@@ -1,7 +1,7 @@
 "use client";
 import { TradeReviewCard } from "@/components/TradeReview";
 import { TradePriceChart } from "@/components/TradePriceChart";
-import { reviewFacts } from "@/lib/review";
+import { reviewFacts, tradeScore } from "@/lib/review";
 import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -35,6 +35,8 @@ export default function TradeDetailPage() {
     return <EmptyState title="Trade not found" body="It may have been deleted." action={<ButtonLink href="/journal">Back to journal</ButtonLink>} />;
   }
   const { trade: t, m } = x;
+  const score = tradeScore(t, m, { all });
+  const lead = t.copyOf ? all.find((y) => y.trade.id === t.copyOf) : undefined;
   const cur = account?.currency ?? "USD";
   const prev = ordered[idx - 1];
   const next = ordered[idx + 1];
@@ -66,6 +68,8 @@ export default function TradeDetailPage() {
             {t.direction && <Badge tone={t.direction === "long" ? "pos" : "neg"}>{t.direction === "long" ? "Long" : "Short"}</Badge>}
             <ResultBadge x={x} />
             {t.showcase?.pinned && <Badge tone="accent">Showcased</Badge>}
+            {lead && <Link href={`/journal/${lead.trade.id}`}><Badge tone="muted">Copy of #{lead.trade.number}</Badge></Link>}
+            {account?.type === "Paper" && <Badge tone="muted">Paper</Badge>}
           </div>
           <p className="mt-1 text-sm text-text-2">{fmtDate(t.date, "long")}{t.session ? ` · ${t.session}` : ""}{account ? ` · ${account.name}` : ""}{t.market ? ` · ${t.market}` : ""}</p>
         </div>
@@ -85,7 +89,8 @@ export default function TradeDetailPage() {
         </div>
       )}
 
-      <Card className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
+      <Card className="grid grid-cols-2 gap-5 sm:grid-cols-4 lg:grid-cols-7">
+        <Stat label="Trade score" value={score ? `${score.score}/100` : "—"} hint={score ? score.parts.map((p) => `${p.label} ${Math.round(p.value)}`).join(" · ") : "Scored once the trade is closed"} />
         <Stat label="Net result" value={fmtMoney(m.net, cur, { sign: true })} tone={m.status === "closed" ? m.net : null} />
         <Stat label="R multiple" value={fmtR(m.r)} tone={m.r} hint={m.risk ? `Risk ${fmtMoney(m.risk, cur)}` : "No stop or planned risk"} />
         <Stat label="Gross" value={fmtMoney(m.gross, cur)} />

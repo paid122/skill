@@ -114,6 +114,8 @@ function AccountCard({ a, s, onEdit }: { a: Account; s: ReturnType<typeof accoun
   const [menu, setMenu] = useState(false);
   const { confirm, toast } = useFeedback();
   const tone = s.tradeNet > 0 ? "pos" : s.tradeNet < 0 ? "neg" : "";
+  const accounts = useLedgr((st) => st.accounts);
+  const copyName = (id: string) => accounts.find((x) => x.id === id)?.name ?? "another account";
   return (
     <Card className="relative flex flex-col">
       <div className="flex items-start justify-between gap-3">
@@ -126,6 +128,8 @@ function AccountCard({ a, s, onEdit }: { a: Account; s: ReturnType<typeof accoun
         </div>
         <div className="flex items-center gap-1">
           {(a.type === "Live" || a.type === "Funded") && <Badge tone="neutral">{a.type}</Badge>}
+          {a.type === "Paper" && <Badge tone="muted">Paper</Badge>}
+          {a.copyOf && <Badge tone="muted">Copies {copyName(a.copyOf)}</Badge>}
           {a.status !== "active" && <Badge tone="muted">{a.status === "paused" ? "Paused" : "Archived"}</Badge>}
           <div className="relative">
             <IconButton label="Account actions" onClick={() => setMenu((m) => !m)} aria-expanded={menu}><MoreHorizontal size={16} /></IconButton>

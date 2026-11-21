@@ -48,3 +48,14 @@ describe("review context", () => {
     expect(suggestRating(clean, list[0].m)!).toBeGreaterThan(suggestRating(sloppy, list[0].m)!);
   });
 });
+
+import { tradeScore } from "@/lib/review";
+describe("trade score", () => {
+  it("scores a clean win above a sloppy one and skips open trades", () => {
+    const list = enrich([at(1, "14:00", 100, 120)]);
+    const clean = { ...list[0].trade, reflection: { ...list[0].trade.reflection, followedPlan: "yes" as const, rating: 9 } };
+    const sloppy = { ...list[0].trade, mistakes: ["Impulsive decision", "Unplanned entry"], reflection: { ...list[0].trade.reflection, followedPlan: "no" as const, rating: 3 } };
+    expect(tradeScore(clean, list[0].m)!.score).toBeGreaterThan(tradeScore(sloppy, list[0].m)!.score);
+    expect(tradeScore(clean, { ...list[0].m, status: "open" })).toBeNull();
+  });
+});

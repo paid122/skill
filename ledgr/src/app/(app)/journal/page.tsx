@@ -1,5 +1,6 @@
 "use client";
 import { ratingColor } from "@/components/TradeReview";
+import { tradeScore } from "@/lib/review";
 import { SymbolIcon } from "@/components/SymbolIcon";
 import { ArrowDown, ArrowUp, Bookmark, ChevronLeft, ChevronRight, Download, Filter, LayoutGrid, List, NotebookPen, Plus, Upload, X } from "lucide-react";
 import Link from "next/link";
@@ -17,7 +18,7 @@ import { EMOTIONS, MARKETS, SESSIONS, type TradeFilter } from "@/lib/types";
 import { cx, download, fmtDate, fmtMoney, fmtNum, fmtPct, fmtR, gradeLabel, inRange, toCSV, today, uid } from "@/lib/util";
 
 const EMPTY: TradeFilter = { q: "", accountId: "all", market: "all", direction: "all", result: "all", setup: "all", session: "all", emotion: "all", from: "", to: "" };
-type SortKey = "number" | "symbol" | "market" | "direction" | "setup" | "date" | "session" | "net" | "r" | "grade" | "rating" | "account";
+type SortKey = "number" | "symbol" | "market" | "direction" | "setup" | "date" | "session" | "net" | "r" | "grade" | "rating" | "score" | "account";
 const PAGE = 25;
 
 export default function JournalPage() {
@@ -41,6 +42,7 @@ function Journal() {
   const [saving, setSaving] = useState(false);
   const [filterName, setFilterName] = useState("");
   const acctName = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
+  const scores = useMemo(() => new Map(all.map((x) => [x.trade.id, tradeScore(x.trade, x.m, { all })?.score ?? null] as const).filter((e): e is readonly [string, number] => e[1] !== null)), [all]);
   const currencyOf = (id: string | null) => accounts.find((a) => a.id === id)?.currency ?? "USD";
 
   useEffect(() => setPage(0), [f, sort]);
@@ -68,6 +70,7 @@ function Journal() {
         case "r": return x.m.r ?? -Infinity;
         case "grade": return x.trade.grade ? ["F", "D", "C", "B", "A", "A+"].indexOf(x.trade.grade) : -1;
         case "rating": return x.trade.reflection.rating ?? -1;
+        case "score": return scores.get(x.trade.id) ?? -1;
         case "account": return acctName.get(x.trade.accountId ?? "") ?? "";
         case "date": return x.trade.date + (x.m.firstTime ?? "") + String(x.trade.number).padStart(6, "0");
         case "number": return x.trade.number;
@@ -75,7 +78,7 @@ function Journal() {
       }
     };
     return [...filtered].sort((a, b) => { const va = val(a), vb = val(b); return (va < vb ? -1 : va > vb ? 1 : 0) * sort.dir; });
-  }, [filtered, sort, acctName]);
+  }, [filtered, sort, acctName, scores]);
 
   const stats = useMemo(() => computeStats(filtered), [filtered]);
   const pages = Math.max(1, Math.ceil(sorted.length / PAGE));
@@ -215,7 +218,7 @@ function Journal() {
                 <thead className="text-left text-xs text-muted">
                   <tr className="border-b border-line-soft">
                     {th("number", "#", "pl-4")}{th("symbol", "Symbol")}{th("market", "Market")}{th("direction", "Direction")}{th("setup", "Setup")}{th("date", "Date")}{th("session", "Session")}
-                    <th className="px-3 py-2.5 font-medium">Result</th>{th("net", "Net", "text-right")}{th("r", "R", "text-right")}{th("grade", "Grade")}{th("rating", "Rating")}<th className="px-3 py-2.5 font-medium">Emotion</th>{th("account", "Account", "pr-4")}
+                    <th className="px-3 py-2.5 font-medium">Result</th>{th("net", "Net", "text-right")}{th("r", "R", "text-right")}{th("grade", "Grade")}{th("rating", "Rating")}{th("score", "Score", "text-right")}<th className="px-3 py-2.5 font-medium">Emotion</th>{th("account", "Account", "pr-4")}
                   </tr>
                 </thead>
                 <tbody>
@@ -233,6 +236,7 @@ function Journal() {
                       <td className="num px-3 py-2.5 text-right text-text-2">{fmtR(x.m.r)}</td>
                       <td className="px-3 py-2.5 text-text-2">{x.trade.grade ?? "—"}</td>
                       <td className="px-3 py-2.5">{x.trade.reflection.rating ? <span className="num inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-[12px] font-semibold text-black" style={{ background: ratingColor(x.trade.reflection.rating) }}>{x.trade.reflection.rating}</span> : <span className="text-muted">—</span>}</td>
+                      <td className="num px-3 py-2.5 text-right text-text-2">{scores.get(x.trade.id) ?? "—"}</td>
                       <td className="max-w-[140px] truncate px-3 py-2.5 text-text-2">{x.trade.emotions.join(", ") || "—"}</td>
                       <td className="max-w-[160px] truncate py-2.5 pl-3 pr-4 text-text-2">{acctName.get(x.trade.accountId ?? "") ?? "—"}</td>
                     </tr>

@@ -87,14 +87,17 @@ export function useEnriched(): EnrichedTrade[] {
 export function useScoped(opts: { ignoreRange?: boolean } = {}) {
   const all = useEnriched();
   const prefs = useUI();
+  const accounts = useLedgr((s) => s.accounts);
+  const paper = useMemo(() => new Set(accounts.filter((a) => a.type === "Paper").map((a) => a.id)), [accounts]);
   return useMemo(() => {
     const b = opts.ignoreRange ? { from: "" as const, to: "" as const } : rangeBounds(prefs);
-    const inAcct = (x: EnrichedTrade) => prefs.accountId === "all" || x.trade.accountId === prefs.accountId;
+    // "All accounts" leaves out paper-trading accounts and copied trades (they'd double-count the lead account).
+    const inAcct = (x: EnrichedTrade) => prefs.accountId === "all" ? !x.trade.copyOf && !paper.has(x.trade.accountId ?? "") : x.trade.accountId === prefs.accountId;
     const current = all.filter((x) => inAcct(x) && inRange(x.trade.date, b.from, b.to));
     const pb = opts.ignoreRange ? null : previousBounds(prefs);
     const previous = pb ? all.filter((x) => inAcct(x) && inRange(x.trade.date, pb.from, pb.to)) : null;
     return { current, previous, bounds: b, prefs };
-  }, [all, prefs, opts.ignoreRange]);
+  }, [all, prefs, opts.ignoreRange, paper]);
 }
 
 export function useAccount(id: string | null | undefined) {

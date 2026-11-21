@@ -14,6 +14,9 @@ import { computeStats, dailyPnl, disciplineScore, frequency } from "@/lib/calc";
 import { useEnriched } from "@/lib/hooks";
 import { getState, useLedgr } from "@/lib/store";
 import type { WeeklyJournal } from "@/lib/types";
+import { reviewWritten, weeklyStreak, weekScore, type WeekScore } from "@/lib/weekly";
+import { CountUp } from "@/components/CountUp";
+import { Flame } from "lucide-react";
 import { addDays, dayOfWeek, fmtDate, fmtMoney, fmtNum, fmtPct, fmtR, today, weekStart } from "@/lib/util";
 
 export default function WeeklyReviewPage() {
@@ -51,6 +54,8 @@ function Weekly() {
     const t = setTimeout(() => { saveWeekly(w); setSaved("saved"); }, 600);
     return () => clearTimeout(t);
   }, [w]);
+  const score = useMemo(() => weekScore(week.map((x) => x.trade), daily, w), [week, daily, w]);
+  const streak = useMemo(() => weeklyStreak(weeklies, today()), [weeklies]);
   const upd = (p: Partial<WeeklyJournal>) => { dirty.current = true; setW((x) => ({ ...x, ...p })); };
   const go = (d: string) => router.replace(`/weekly-review?week=${d}`);
   const byNumber = useMemo(() => new Map(all.map((y) => [y.trade.number, y.trade.id])), [all]);
@@ -72,6 +77,8 @@ function Weekly() {
         </>}
       />
       <PageVerse page="weekly" compact />
+
+      <WeekScoreCard score={score} streak={streak} isThisWeek={ws === weekStart(today())} written={reviewWritten(w)} />
 
       <Card className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
         <Stat label="Net" value={fmtMoney(stats.net, currency, { sign: true })} tone={stats.net} hint={`Prior week ${fmtMoney(prevWeek.net, currency, { sign: true })}`} />
@@ -145,5 +152,38 @@ function Weekly() {
         </div>
       </div>
     </div>
+  );
+}
+
+function WeekScoreCard({ score, streak, isThisWeek, written }: { score: WeekScore; streak: { current: number; best: number; thisWeekDone: boolean }; isThisWeek: boolean; written: boolean }) {
+  const v = score.score;
+  const color = v === null ? "var(--muted)" : v >= 70 ? "var(--pos)" : v >= 45 ? "#e0a83a" : "var(--neg)";
+  const R = 34, C = 2 * Math.PI * R;
+  return (
+    <Card className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+      <div className="flex items-center gap-4">
+        <span className="relative grid h-20 w-20 place-items-center">
+          <svg width="80" height="80" className="-rotate-90"><circle cx="40" cy="40" r={R} fill="none" stroke="var(--card-2)" strokeWidth="7" /><circle cx="40" cy="40" r={R} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - (v ?? 0) / 100)} style={{ transition: "stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1)" }} /></svg>
+          <span className="num absolute text-[22px] font-semibold text-text">{v === null ? "—" : <CountUp value={Math.round(v)} format={(n) => String(Math.round(n ?? 0))} />}</span>
+        </span>
+        <div><p className="text-[15px] font-semibold text-text">Week score</p><p className="text-[12.5px] text-muted">Your process, not your P&amp;L</p></div>
+      </div>
+      <div className="grid gap-2">
+        {score.parts.map((p) => (
+          <div key={p.label} className="grid grid-cols-[minmax(0,1fr)_120px_36px] items-center gap-3 text-[12.5px]">
+            <span className="truncate text-text-2">{p.label}</span>
+            <span className="h-1.5 overflow-hidden rounded-full bg-card-2"><span className="prop-grow block h-full rounded-full" style={{ width: `${p.value ?? 0}%`, background: p.value === null ? "transparent" : "var(--text-2)" }} /></span>
+            <span className="num text-right text-muted">{p.value === null ? "—" : Math.round(p.value)}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-3 rounded-2xl bg-card-2 px-4 py-3">
+        <Flame size={26} className={streak.current ? "text-[#f2a65a]" : "text-muted"} />
+        <div>
+          <p className="text-[15px] font-semibold text-text"><span className="num">{streak.current}</span>-week streak</p>
+          <p className="text-[12px] text-muted">{isThisWeek && !written ? (streak.current ? "Write this week's review to keep it going" : "Write this week's review to start one") : `Best: ${streak.best} week${streak.best === 1 ? "" : "s"}`}</p>
+        </div>
+      </div>
+    </Card>
   );
 }
