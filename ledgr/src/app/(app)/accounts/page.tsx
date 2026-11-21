@@ -119,18 +119,22 @@ function AccountCard({ a, s, onEdit }: { a: Account; s: ReturnType<typeof accoun
   return (
     <Card className="relative flex flex-col">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: a.color }} />
-          <div className="min-w-0">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className="mt-0.5 h-9 w-1.5 shrink-0 rounded-full" style={{ background: a.color }} />
+          <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-semibold">{a.name}</p>
-            <p className="text-xs text-muted">{accountLabel(a)} · {a.currency}</p>
+            <p className="truncate text-xs text-muted">{accountLabel(a)} · {a.currency}</p>
+            {(a.type === "Live" || a.type === "Funded" || a.type === "Paper" || a.copyOf || a.status !== "active") && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {(a.type === "Live" || a.type === "Funded") && <Badge tone="neutral">{a.type}</Badge>}
+                {a.type === "Paper" && <Badge tone="muted">Paper · not in totals</Badge>}
+                {a.copyOf && <Badge tone="muted">Copies {copyName(a.copyOf)}</Badge>}
+                {a.status !== "active" && <Badge tone="muted">{a.status === "paused" ? "Paused" : "Archived"}</Badge>}
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          {(a.type === "Live" || a.type === "Funded") && <Badge tone="neutral">{a.type}</Badge>}
-          {a.type === "Paper" && <Badge tone="muted">Paper</Badge>}
-          {a.copyOf && <Badge tone="muted">Copies {copyName(a.copyOf)}</Badge>}
-          {a.status !== "active" && <Badge tone="muted">{a.status === "paused" ? "Paused" : "Archived"}</Badge>}
+        <div className="flex shrink-0 items-center gap-1">
           <div className="relative">
             <IconButton label="Account actions" onClick={() => setMenu((m) => !m)} aria-expanded={menu}><MoreHorizontal size={16} /></IconButton>
             {menu && (
