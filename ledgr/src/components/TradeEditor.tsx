@@ -1,4 +1,5 @@
 "use client";
+import { PlusTag, usePlusGate } from "@/components/PlusGate";
 import { SymbolIcon } from "./SymbolIcon";
 import { ImagePlus, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -313,17 +314,22 @@ function ReflectionTab({ t, set }: TabProps) {
     last.current = s;
     if (Object.keys(patch).length) { setR(patch); setFilled(true); }
   };
+  // LEDGR+: fills itself in when the review is still empty.
+  const [plus, gate] = usePlusGate();
+  const ran = useRef(false);
   useEffect(() => {
+    if (plus !== true || ran.current) return;
+    ran.current = true;
     if (REVIEW_PROMPTS.every((q) => !(r[q.key] ?? "").trim())) autofill();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [plus]);
   return (
     <div className="grid gap-6">
-      <RatingPicker value={r.rating} onChange={(rating) => setR({ rating })} suggested={suggested} />
+      <RatingPicker value={r.rating} onChange={(rating) => setR({ rating })} suggested={plus ? suggested : null} />
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="text-[12.5px] text-muted">{filled ? "Filled in from your trade. Edit anything." : "Write it yourself or fill it in from the trade."}</p>
-          <button type="button" onClick={autofill} className="inline-flex items-center gap-1.5 rounded-full bg-card-2 px-3 py-1 text-[12.5px] font-medium text-text-2 transition-colors hover:text-text"><Sparkles size={13} />Autofill</button>
+          <button type="button" onClick={() => gate("Autofill reviews", autofill)} className="inline-flex items-center gap-1.5 rounded-full bg-card-2 px-3 py-1 text-[12.5px] font-medium text-text-2 transition-colors hover:text-text"><Sparkles size={13} />Autofill{plus === false && <PlusTag />}</button>
         </div>
         <div className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line-soft">
           {REVIEW_PROMPTS.map((q) => (

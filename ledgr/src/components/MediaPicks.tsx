@@ -1,4 +1,5 @@
 "use client";
+import { PlusTag, usePlusGate } from "@/components/PlusGate";
 /**
  * "My picks": the trader's saved backgrounds for share cards (P&L cards and recaps).
  * Upload several at once; tap one to use it; remove any. Files are kept while a card still uses them.
@@ -38,6 +39,7 @@ function inUse(id: string) {
 
 export function MediaPicks({ activeId, onPick }: { activeId: string | null; onPick: (p: Pick) => void }) {
   const picks = useLedgr((s) => s.settings.pnlPicks) ?? [];
+  const [plus, gate] = usePlusGate();
   const file = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -81,8 +83,8 @@ export function MediaPicks({ activeId, onPick }: { activeId: string | null; onPi
           </div>
         ))}
         {picks.map((p, i) => <PickThumb key={p.blobId} pick={p} n={i + 1} active={activeId === p.blobId} onPick={() => onPick(p)} onRemove={() => remove(p.blobId)} />)}
-        <button type="button" disabled={busy} onClick={() => file.current?.click()} className="flex aspect-video flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line text-[13px] font-medium text-text-2 transition-colors hover:border-text-2 hover:text-text disabled:opacity-60">
-          <ImagePlus size={20} />{busy ? "Saving…" : "Add"}
+        <button type="button" disabled={busy} onClick={() => gate("Your own videos and pictures", () => file.current?.click())} className="flex aspect-video flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line text-[13px] font-medium text-text-2 transition-colors hover:border-text-2 hover:text-text disabled:opacity-60">
+          <ImagePlus size={20} />{busy ? "Saving…" : "Add"}{plus === false && <PlusTag />}
         </button>
       </div>
       <input ref={file} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => upload(e.target.files)} />

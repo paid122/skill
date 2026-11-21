@@ -1,4 +1,5 @@
 "use client";
+import { PlusTag, usePlusGate } from "@/components/PlusGate";
 /** Community sections: feed, crews, messages and your profile. */
 import { ArrowLeft, Copy, Lock, LogOut, Plus, Send, Users } from "lucide-react";
 import Link from "next/link";
@@ -100,13 +101,14 @@ export function Crews({ me, profile }: { me: string; profile: Profile }) {
 
 function CreateCrew({ me, onClose, onCreated }: { me: string; onClose: () => void; onCreated: (id: string) => void }) {
   const { toast } = useFeedback();
+  const [plus, gate] = usePlusGate();
   const [name, setName] = useState(""), [desc, setDesc] = useState(""), [priv, setPriv] = useState(false), [busy, setBusy] = useState(false);
   return (
     <Modal open onClose={onClose} title="Start a crew" footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="accent" disabled={busy || name.trim().length < 2} onClick={async () => { setBusy(true); try { const r = await createCrew(me, name.trim().slice(0, 40), desc.trim().slice(0, 280), priv); onCreated(r.id); } catch (e) { toast((e as Error).message, "error"); } setBusy(false); }}>Create crew</Button></>}>
       <div className="grid gap-4">
         <Field label="Name"><Input value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="NQ Scalpers, Funded by Friday…" /></Field>
         <Field label="What's it about?"><Textarea value={desc} maxLength={280} onChange={(e) => setDesc(e.target.value)} rows={3} /></Field>
-        <Field label="Who can join?"><Segmented value={priv ? "private" : "public"} onChange={(v) => setPriv(v === "private")} options={[{ value: "public", label: "Anyone" }, { value: "private", label: "Invite code only" }]} /></Field>
+        <Field label="Who can join?"><Segmented value={priv ? "private" : "public"} onChange={(v) => (v === "private" ? gate("Private crews", () => setPriv(true)) : setPriv(false))} options={[{ value: "public", label: "Anyone" }, { value: "private", label: plus === false ? <span className="flex items-center gap-1.5">Invite code only <PlusTag /></span> : "Invite code only" }]} /></Field>
       </div>
     </Modal>
   );

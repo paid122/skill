@@ -1,4 +1,5 @@
 "use client";
+import { PlusTag, usePlusGate } from "@/components/PlusGate";
 import { Download, Film, Volume2, VolumeX, Pin, PinOff, Plus, Trash2, Trophy, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -202,6 +203,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
     return () => clearInterval(id);
   }, [media?.kind, media?.blobId]);
 
+  const [plus, gate] = usePlusGate();
   const exportVideo = async () => {
     const node = ref.current;
     const v = node?.querySelector<HTMLVideoElement>("video[data-poster-video]");
@@ -324,7 +326,7 @@ function Editor({ x }: { x: EnrichedTrade }) {
             <Button variant="accent" icon={<Download size={14} />} onClick={exportCard} disabled={busy || !!recording}>{busy ? "Exporting…" : "Export PNG"}</Button>
             {layout === "poster" && media?.kind === "video" && (recording
               ? <Button icon={<X size={14} />} onClick={() => abortRef.current?.abort()}>Cancel · {Math.floor(recording.at)} / {Math.round(recording.total)} s</Button>
-              : <Button icon={<Film size={14} />} onClick={exportVideo} disabled={busy || !clipSeconds || !recordingFormat()}>Export video{clipSeconds ? ` (${Math.round(Math.min(clipSeconds, MAX_EXPORT_SECONDS))} s)` : ""}</Button>)}
+              : <Button icon={<Film size={14} />} onClick={() => gate("Video P&L cards", () => void exportVideo())} disabled={busy || !clipSeconds || !recordingFormat()}>Export video{clipSeconds ? ` (${Math.round(Math.min(clipSeconds, MAX_EXPORT_SECONDS))} s)` : ""}{plus === false && <PlusTag className="ml-1" />}</Button>)}
             <Button icon={<PinOff size={14} />} onClick={() => patchTrade(t.id, { showcase: { ...sc, pinned: false } }, "Removed from showcase")}>Unpin</Button>
           </div>
           {layout === "poster" && media?.kind === "video" && (

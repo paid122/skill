@@ -1,5 +1,5 @@
 "use client";
-import { ArrowRight, CalendarCheck, Check, CreditCard, Lock, MessageSquare, Minus, ScanSearch, Smartphone, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarCheck, Check, Copy, Film, CreditCard, Lock, MessageSquare, Minus, ScanSearch, Smartphone, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
@@ -8,6 +8,7 @@ import { MatrixXLogo } from "@/components/matrixx";
 import { Button, useFeedback } from "@/components/ui";
 import { getMatrixxKey } from "@/lib/matrixxClient";
 import { PLUS } from "@/lib/plus";
+import { refreshPlus } from "@/lib/usePlus";
 import { cx, fmtDate } from "@/lib/util";
 
 interface Plan { tier: string; title: string; paid: boolean; period_end: string | null; credits_left_usd: number }
@@ -18,12 +19,21 @@ const FEATURES: { icon: ReactNode; title: string; body: string }[] = [
   { icon: <ScanSearch size={18} />, title: "Trade reviews", body: "One click on any trade: what went well, what to improve against your own rules, your mindset, and one lesson." },
   { icon: <CalendarCheck size={18} />, title: "Weekly reviews", body: "Every week summed up: what worked, what kept going wrong, patterns, and your focus for next week." },
   { icon: <MessageSquare size={18} />, title: "AI chat", body: "Ask anything about your own records. Answers cite the trades they draw on." },
+  { icon: <Film size={18} />, title: "Creator tools", body: "Count-up video P&L cards and recaps, your own clips as backgrounds and wallpapers, videos in community posts and stories, private crews." },
+  { icon: <Copy size={18} />, title: "Pro journaling", body: "Reviews that fill themselves in from your trade, a suggested rating, and copy trading accounts that sync on their own." },
   { icon: <Smartphone size={18} />, title: "Works everywhere", body: `${PLUS.matrixxPlan} is on your MatrixX account, so it also works in the MatrixX app and on your phone.` },
 ];
 
 const COMPARE: { label: string; free: boolean | string; plus: boolean | string }[] = [
   { label: "Journal, dashboard, analytics, reports", free: true, plus: true },
   { label: "Daily & weekly journal, study room, verses", free: true, plus: true },
+  { label: "Prop firm tracker, paper accounts, trade scores", free: true, plus: true },
+  { label: "Community: posts, stories, crews, messages", free: "Up to 4 photos", plus: "Videos, 10 photos, private crews" },
+  { label: "P&L and recap cards", free: "Pictures", plus: "Pictures + count-up videos" },
+  { label: "My picks backgrounds", free: "Built-in clips", plus: "Your own videos & pictures" },
+  { label: "Trade review autofill + suggested rating", free: false, plus: true },
+  { label: "Copy trading accounts", free: false, plus: true },
+  { label: "Custom video wallpapers", free: false, plus: true },
   { label: "MatrixX AI with your own MatrixX account", free: true, plus: true },
   { label: `${PLUS.matrixxPlan} included`, free: false, plus: true },
   { label: "Stronger AI models", free: false, plus: true },
@@ -58,6 +68,7 @@ function Plus() {
     const r = await fetch("/api/plus/status", { headers: k ? headers(k) : undefined, cache: "no-store" }).then((x) => x.json()).catch(() => ({ available: false }));
     setAvailable(!!r.available);
     setPlan(r.plan ?? null);
+    refreshPlus();
     if (r.error) setNote({ tone: "neg", text: r.error });
   }, [headers]);
 

@@ -22,6 +22,7 @@ import { SessionRail } from "./SessionRail";
 import { TopNav } from "./TopNav";
 import { SyncManager } from "./SyncManager";
 import { TradeEditor } from "./TradeEditor";
+import { UpsellProvider } from "./PlusGate";
 import { Button, FeedbackProvider, IconButton, Kbd, Tooltip } from "./ui";
 
 function useApplyAppearance() {
@@ -53,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!ready) return <LoadingScreen />;
   return (
     <FeedbackProvider>
-      <Shell>{children}</Shell>
+      <UpsellProvider><Shell>{children}</Shell></UpsellProvider>
     </FeedbackProvider>
   );
 }

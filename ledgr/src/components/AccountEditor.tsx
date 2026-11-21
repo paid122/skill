@@ -1,4 +1,5 @@
 "use client";
+import { PlusTag, usePlusGate } from "@/components/PlusGate";
 import { useEffect, useState } from "react";
 import { saveAccount, ValidationError } from "@/lib/actions";
 import { firmSizes, presetRules, PROP_FIRM_RULES, PROP_RULES_CHECKED, type PropStage } from "@/lib/propRules";
@@ -45,6 +46,7 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
   const plans = funded ? PROP_FIRM_RULES[a.propFirm ?? ""] : undefined;
   const plan = plans?.find((p) => p.name === a.propPlan) ?? plans?.[0];
   const preset = funded ? presetRules(a.propFirm, a.propPlan, a.accountSize, (a.propStage ?? "evaluation") as PropStage, a.propDailyLimit ?? false) : null;
+  const [plus, gate] = usePlusGate();
   const others = useLedgr((st) => st.accounts.filter((o) => o.id !== a.id && o.status !== "archived"));
   const save = () => {
     try { saveAccount({ ...a, name: a.name.trim(), currency: a.currency.toUpperCase() }); onClose(); }
@@ -56,8 +58,8 @@ export function AccountEditor({ initial, onClose }: { initial: Account; onClose:
         <Field label="Account name"><Input value={a.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} /></Field>
         <Field label="Type"><Select value={a.type} onChange={(e) => setType(e.target.value as AccountType)}>{ACCOUNT_TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
         {a.type === "Paper" && <p className="rounded-lg bg-card-2 px-3 py-2 text-[12.5px] text-text-2 md:col-span-2">Paper trading: its trades stay in their own journal and are left out of your combined stats. Pick this account in the account menu to see them.</p>}
-        <Field label="Copies trades from" hint={a.copyOf ? "Every trade logged or imported into that account is copied here automatically, and kept in sync. Copies count for this account but not twice in your combined stats." : "For trade copiers: pick the lead account this one copies."} className="md:col-span-2">
-          <Select value={a.copyOf ?? ""} onChange={(e) => set({ copyOf: e.target.value || null })}>
+        <Field label={<span className="flex items-center gap-1.5">Copies trades from{plus === false && <PlusTag />}</span>} hint={a.copyOf ? "Every trade logged or imported into that account is copied here automatically, and kept in sync. Copies count for this account but not twice in your combined stats." : "For trade copiers: pick the lead account this one copies."} className="md:col-span-2">
+          <Select value={a.copyOf ?? ""} onChange={(e) => { const v = e.target.value || null; if (v) gate("Copy trading accounts", () => set({ copyOf: v })); else set({ copyOf: null }); }}>
             <option value="">Doesn't copy another account</option>
             {others.filter((o) => !o.copyOf).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </Select>

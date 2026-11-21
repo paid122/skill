@@ -1,4 +1,5 @@
 "use client";
+import { PlusTag, usePlusGate } from "@/components/PlusGate";
 import { Check, Plus, RotateCcw, Save, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useBlobUrl } from "@/components/BlobImage";
@@ -164,6 +165,7 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 /** The trader's own wallpapers: pick one, add more, remove any, and tune dim, blur and glass. */
 function WallpaperSection() {
+  const [plus, gate] = usePlusGate();
   const a = useLedgr((s) => s.settings.appearance);
   const w = a.wallpaper ?? defaultAppearance.wallpaper!;
   const lib = w.library ?? [];
@@ -221,8 +223,8 @@ function WallpaperSection() {
         {lib.map((x, i) => (
           <Thumb key={x.blobId} item={x} n={i + 1} active={on && w.blobId === x.blobId} onPick={() => set({ kind: x.kind, blobId: x.blobId, blobKind: x.kind })} onRemove={() => remove(x.blobId)} />
         ))}
-        <button type="button" disabled={busy} onClick={() => file.current?.click()} className="flex aspect-video flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line text-[13px] text-text-2 transition-colors hover:border-text-2 hover:text-text disabled:opacity-60">
-          <Plus size={18} />{busy ? "Saving…" : "Add video or picture"}
+        <button type="button" disabled={busy} onClick={() => gate("Custom wallpapers", () => file.current?.click())} className="flex aspect-video flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line text-[13px] text-text-2 transition-colors hover:border-text-2 hover:text-text disabled:opacity-60">
+          <Plus size={18} />{busy ? "Saving…" : "Add video or picture"}{plus === false && <PlusTag />}
         </button>
       </div>
       <input ref={file} type="file" hidden multiple accept={[...ALLOWED_VIDEO_TYPES, ...IMAGE_TYPES].join(",")} onChange={(e) => { upload(e.target.files); e.target.value = ""; }} />

@@ -1,4 +1,5 @@
 "use client";
+import { PlusTag, usePlusGate } from "@/components/PlusGate";
 /** Community building blocks: avatar, post card (likes, replies, menu), composer and the stories row. */
 import { Flag, Heart, ImagePlus, MessageCircle, MoreHorizontal, Plus, Send, ShieldOff, Trash2, TrendingDown, TrendingUp, X } from "lucide-react";
 import Link from "next/link";
@@ -170,6 +171,7 @@ export function Composer({ me, profile, crewId, onPosted }: { me: string; profil
   const [trade, setTrade] = useState<SharedTrade | null>(null);
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [, gate] = usePlusGate();
   const input = useRef<HTMLInputElement>(null);
   const previews = useMemo(() => files.map((f) => ({ f, url: URL.createObjectURL(f) })), [files]);
   useEffect(() => () => previews.forEach((p) => URL.revokeObjectURL(p.url)), [previews]);
@@ -211,7 +213,13 @@ export function Composer({ me, profile, crewId, onPosted }: { me: string; profil
         </div>
         <Button variant="accent" onClick={post} disabled={busy || (!body.trim() && !files.length && !trade)}>{busy ? "Posting…" : "Post"}</Button>
       </div>
-      <input ref={input} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => { setFiles([...files, ...Array.from(e.target.files ?? [])].slice(0, 10)); e.target.value = ""; }} />
+      <input ref={input} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => {
+        const next = [...files, ...Array.from(e.target.files ?? [])].slice(0, 10);
+        e.target.value = "";
+        // Free: up to 4 photos. LEDGR+: videos and up to 10.
+        const needsPlus = next.length > 4 || next.some((f) => f.type.startsWith("video/") || /\.mov$/i.test(f.name));
+        if (needsPlus) gate(next.length > 4 ? "More than 4 photos in a post" : "Videos in posts", () => setFiles(next)); else setFiles(next);
+      }} />
       {picking && <TradePicker onClose={() => setPicking(false)} onPick={(t) => { setTrade(t); setPicking(false); }} />}
     </div>
   );
@@ -259,6 +267,11 @@ export function StoriesBar({ me, stories, profiles, onChange }: { me: string; st
     for (const s of [...stories].reverse()) m.set(s.user_id, [...(m.get(s.user_id) ?? []), s]);
     return [...m.entries()].sort((a, b) => (a[0] === me ? -1 : b[0] === me ? 1 : 0));
   }, [stories, me]);
+  const [, gate] = usePlusGate();
+  const pick = (f: File | undefined) => {
+    if (!f) return;
+    if (f.type.startsWith("video/") || /\.mov$/i.test(f.name)) gate("Video stories", () => void add(f)); else void add(f);
+  };
   const add = async (f: File | undefined) => {
     if (!f) return;
     const caption = (window.prompt("Caption for your story (optional)") ?? "").slice(0, 200);
@@ -271,7 +284,7 @@ export function StoriesBar({ me, stories, profiles, onChange }: { me: string; st
       <button type="button" onClick={() => input.current?.click()} disabled={busy} className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-[11.5px] text-text-2">
         <span className="grid h-16 w-16 place-items-center rounded-full border-2 border-dashed border-line text-text-2 transition-colors hover:border-text-2">{busy ? "…" : <Plus size={20} />}</span>Your story
       </button>
-      <input ref={input} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => { void add(e.target.files?.[0]); e.target.value = ""; }} />
+      <input ref={input} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime,.mov" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
       {byUser.map(([u, list]) => (
         <button key={u} type="button" onClick={() => setViewing(u)} className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-[11.5px] text-text-2">
           <span className="rounded-full bg-gradient-to-tr from-[#f2a65a] via-[#e05a8a] to-[#7c6cff] p-[2.5px]"><span className="block rounded-full bg-bg p-[2px]"><CAvatar p={profiles.get(u)} size={56} /></span></span>

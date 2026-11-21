@@ -8,18 +8,18 @@ import { Mark } from "@/components/site/Mark";
 import { Reveal, SectionHeading } from "@/components/site/SiteChrome";
 import { PLUS, PLUS_COMPARE } from "@/lib/plus";
 
-export const metadata: Metadata = { title: "Pricing", description: "LEDGR is free: every journal feature, no card. LEDGR+ adds MatrixX AI for $15 per 30 days." };
+export const metadata: Metadata = { title: "Pricing", description: "Journaling on LEDGR is free, no card. LEDGR+ adds creator tools, review autofill, copy trading and MatrixX AI for $15 per 30 days." };
 
 const MX = "#3ee08a"; // MatrixX green, for the LEDGR+ glow
 
 const FAQ: [string, string][] = [
-  ["Is LEDGR really free?", "Yes. Every journal feature listed under Free is free, with no trial period and no card to enter."],
+  ["Is LEDGR really free?", "Yes. Every feature listed under Free is free, with no trial period and no card to enter: the journal, analytics, prop firm tracker, scores and the community."],
   ["What is LEDGR+?", `LEDGR with MatrixX AI included. $${PLUS.priceUsd} adds ${PLUS.days} days of ${PLUS.matrixxPlan} to your MatrixX account, for trade reviews, weekly reviews and AI chat.`],
   ["Does LEDGR+ renew automatically?", `No. It's a one-time payment for ${PLUS.days} days. Buy another ${PLUS.days} days whenever you want; extra days are added on top.`],
   ["Can I get a refund?", "LEDGR+ purchases are final and not refundable, except where the law requires otherwise. If a payment went wrong, email us and we'll fix it. See the Terms for details."],
   ["Do I need MatrixX for the AI?", "Yes. The AI runs on MatrixX. A free MatrixX account works (25 messages a day); LEDGR+ adds Starter. Without MatrixX, the AI page still answers with offline analysis from your records."],
   ["Do I need an account to use LEDGR?", "No. LEDGR works fully in your browser. A free account only adds cloud backup and sync across devices."],
-  ["Will the free features change?", "No. The features listed under Free stay free. Any change would be announced on this page first."],
+  ["Will the free features change?", "Journaling stays free. In November 2026 a few extras moved to LEDGR+ and are listed in the table: video P&L and recap cards, your own backgrounds and wallpapers, review autofill and suggested ratings, copy trading accounts, and videos, 10-photo posts and private crews in the community. Any future change will be announced here first."],
 ];
 
 const STEPS: [string, string][] = [
@@ -43,8 +43,8 @@ export default function PricingPage() {
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "26px 26px", maskImage: "radial-gradient(ellipse at 50% 20%, black, transparent 65%)" }} />
         <Reveal className="relative mx-auto max-w-3xl text-center">
           <p className="mx-auto mb-7 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-paper/70 px-3 py-1 text-[12.5px] text-ink/70 backdrop-blur">Pricing</p>
-          <h1 className="text-[48px] font-semibold leading-[0.98] tracking-[-0.05em] sm:text-[80px]">Free to journal. <Mark>AI</Mark> when you want it.</h1>
-          <p className="mx-auto mt-7 max-w-[34rem] text-[17px] leading-relaxed text-ink/60 sm:text-[19px]">Every journal feature is free, forever. Add MatrixX AI with LEDGR+ for ${PLUS.priceUsd}, only when you want it.</p>
+          <h1 className="text-[48px] font-semibold leading-[0.98] tracking-[-0.05em] sm:text-[80px]">Free to journal. <Mark>Plus</Mark> when you want more.</h1>
+          <p className="mx-auto mt-7 max-w-[34rem] text-[17px] leading-relaxed text-ink/60 sm:text-[19px]">Journaling is free, forever. LEDGR+ adds creator tools, review autofill, copy trading and MatrixX AI for ${PLUS.priceUsd}, only when you want it.</p>
         </Reveal>
       </section>
 
@@ -65,7 +65,7 @@ export default function PricingPage() {
             <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-25 blur-3xl" style={{ background: MX }} />
             <div className="relative flex items-center justify-between"><p className="text-[15px] font-medium">{PLUS.name}</p><span className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 px-3 py-1 text-[12px] font-medium text-ink/75" style={{ background: `${MX}1f` }}><Sparkles size={12} style={{ color: MX }} /> MatrixX AI included</span></div>
             <p className="relative mt-5 flex items-end gap-2"><span className="text-[72px] font-semibold leading-none tracking-[-0.045em]">${PLUS.priceUsd}</span><span className="mb-2.5 text-ink/50">for {PLUS.days} days</span></p>
-            <p className="relative mt-3 text-[15px] text-ink/60">Everything in Free, plus your AI trading coach.</p>
+            <p className="relative mt-3 text-[15px] text-ink/60">Everything in Free, plus creator tools and your AI trading coach.</p>
             <Link href="/plus" className="relative mt-8 flex h-[52px] items-center justify-center gap-2 rounded-full bg-ink text-[15px] font-medium text-paper transition-transform hover:scale-[1.02]" style={{ boxShadow: `0 16px 40px -16px ${MX}` }}>Get {PLUS.name} <ArrowRight size={16} /></Link>
             <ul className="relative mt-9 grid gap-3">
               <li className="flex gap-3 text-[14.5px] font-medium"><PlusIcon size={17} className="mt-0.5 shrink-0" /> Everything in Free</li>
@@ -130,7 +130,7 @@ export default function PricingPage() {
           <div aria-hidden className="pointer-events-none absolute left-1/2 top-0 h-[340px] w-[620px] -translate-x-1/2 -translate-y-1/3 rounded-full opacity-35 blur-[90px]" style={{ background: MX }} />
           <div className="relative">
             <h2 className="mx-auto max-w-[16ch] text-[40px] font-semibold leading-[1.02] tracking-[-0.045em] sm:text-[60px]">Start free today.</h2>
-            <p className="mx-auto mt-5 max-w-[30rem] text-[16px] leading-relaxed text-paper/60 sm:text-[18px]">Journal for free, and add MatrixX AI whenever you&apos;re ready.</p>
+            <p className="mx-auto mt-5 max-w-[30rem] text-[16px] leading-relaxed text-paper/60 sm:text-[18px]">Journal for free, and add LEDGR+ whenever you&apos;re ready.</p>
             <div className="mt-9 flex flex-wrap justify-center gap-3">
               <Magnetic><CtaLink className="inline-flex h-[56px] items-center gap-2 rounded-full bg-paper px-8 text-[16px] font-medium text-ink transition-transform hover:scale-[1.03]">Start your journal <ArrowRight size={16} /></CtaLink></Magnetic>
               <Magnetic><Link href="/plus" className="inline-flex h-[56px] items-center rounded-full border border-paper/25 px-8 text-[16px] text-paper/85 transition-colors hover:border-paper/60 hover:text-paper">Get {PLUS.name}</Link></Magnetic>

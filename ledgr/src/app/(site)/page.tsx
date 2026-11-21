@@ -124,7 +124,7 @@ export default function LandingPage() {
 
       {/* ------------------------------------------------------- Pricing */}
       <section id="pricing" className="mx-auto max-w-[1200px] scroll-mt-20 px-5 py-28 sm:px-8">
-        <Reveal><SectionHeading kicker="Pricing" title={<>Free. <Mark>Actually</Mark> free.</>} sub="Every journal feature, no card, no trial clock. Add MatrixX AI with LEDGR+ whenever you want." /></Reveal>
+        <Reveal><SectionHeading kicker="Pricing" title={<>Free. <Mark>Actually</Mark> free.</>} sub="Journaling is free: no card, no trial clock. Add creator tools and MatrixX AI with LEDGR+ whenever you want." /></Reveal>
         <Reveal delay={100} className="mt-12"><HomePricing /></Reveal>
       </section>
 
