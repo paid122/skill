@@ -137,7 +137,7 @@ function TopLink({ item, label, active, className }: { item: NavItem; label: str
       className={cx(className ?? "flex", "h-9 items-center gap-2 whitespace-nowrap rounded-full px-3 text-[13.5px] transition-colors", active ? "bg-card-2 text-text shadow-sm" : "text-text-2 hover:text-text")}>
       <Icon size={15} strokeWidth={1.75} className={cx("hidden min-[1800px]:block", active ? "text-text" : "text-muted")} />
       {label}
-      {locked && <Lock size={11} className="-ml-0.5 text-muted" aria-label="LEDGR+" />}
+      {locked && <Lock size={11} className="-ml-0.5 text-muted" aria-hidden />}
     </Link>
   );
 }
