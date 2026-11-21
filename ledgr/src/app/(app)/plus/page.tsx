@@ -3,6 +3,7 @@ import { ArrowRight, CalendarCheck, Check, Copy, Film, CreditCard, Lock, Message
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
+import { CountUp } from "@/components/CountUp";
 import { LogoMark } from "@/components/Logo";
 import { MatrixXLogo } from "@/components/matrixx";
 import { Button, useFeedback } from "@/components/ui";
@@ -83,6 +84,7 @@ function Plus() {
     setBusy(false);
   };
 
+  const [diffOnly, setDiffOnly] = useState(false);
   const current: PlanId = planFromMatrixx(plan);
   const active = current !== "free";
   const focus = params.get("plan") === "pro" ? "pro" : "plus";
@@ -109,21 +111,22 @@ function Plus() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <PlanCard name="Free" price="$0" per="forever" tagline="For new traders, paper traders and one prop account." items={[...FREE_INCLUDES]} current={current === "free"}
+        <PlanCard name="Free" price={0} per="forever" tagline="For new traders, paper traders and one prop account." items={[...FREE_INCLUDES]} current={current === "free"}
           action={<Link href="/journal" className="flex h-11 w-full items-center justify-center rounded-[11px] border border-line text-[14px] text-text-2 hover:text-text">{current === "free" ? "Your plan" : "Included"}</Link>} />
-        <PlanCard name={PLUS.name} price={`$${PLUS.priceUsd}`} per={`${PLUS.days} days`} tagline={PLUS.tagline} items={[...PLUS.includes]} badge="Most popular" accent={MX} current={current === "plus"} action={button("plus")} highlight={focus === "plus"} />
-        <PlanCard name={PRO.name} price={`$${PRO.priceUsd}`} per={`${PRO.days} days`} tagline={PRO.tagline} items={[...PRO.includes]} badge="AI coach" accent="#a58bff" current={current === "pro"} action={button("pro")} highlight={focus === "pro"} />
+        <PlanCard name={PLUS.name} price={PLUS.priceUsd} per={`${PLUS.days} days`} tagline={PLUS.tagline} items={[...PLUS.includes]} badge="Most popular" accent={MX} current={current === "plus"} action={button("plus")} highlight={focus === "plus"} />
+        <PlanCard name={PRO.name} price={PRO.priceUsd} per={`${PRO.days} days`} tagline={PRO.tagline} items={[...PRO.includes]} badge="AI coach" accent="#a58bff" current={current === "pro"} action={button("pro")} highlight={focus === "pro"} />
       </section>
       <p className="-mt-4 flex items-center justify-center gap-1.5 text-center text-[12px] text-muted"><Lock size={12} /> Secure card payment with Ziina · one-time · doesn&apos;t renew by itself{!key && available !== false ? " · connect a free MatrixX account first" : ""}</p>
 
-      <section className="overflow-hidden rounded-[24px] border border-line bg-card">
-        <div className="grid grid-cols-[minmax(0,1fr)_72px_72px_72px] items-center border-b border-line-soft px-5 py-4 text-[12.5px] sm:grid-cols-[minmax(0,1fr)_120px_120px_120px] sm:px-6">
-          <span className="text-[18px] font-semibold tracking-[-0.01em] text-text sm:text-[20px]">Every feature, plan by plan</span>
+      <section className="overflow-clip rounded-[24px] border border-line bg-card">
+        <div className="sticky top-16 z-10 grid grid-cols-[minmax(0,1fr)_72px_72px_72px] items-center border-b border-line-soft bg-card/95 px-5 py-4 text-[12.5px] backdrop-blur sm:grid-cols-[minmax(0,1fr)_120px_120px_120px] sm:px-6">
+          <span className="flex flex-wrap items-center gap-3"><span className="text-[18px] font-semibold tracking-[-0.01em] text-text sm:text-[20px]">Every feature, plan by plan</span>
+            <label className="flex items-center gap-1.5 text-[12.5px] font-normal text-text-2"><input type="checkbox" checked={diffOnly} onChange={(e) => setDiffOnly(e.target.checked)} className="accent-[var(--accent)]" />Only differences</label></span>
           <span className="text-center font-medium text-text-2">Free</span>
           <span className="text-center font-semibold text-text">{PLUS.name}</span>
           <span className="text-center font-semibold text-text">{PRO.name}</span>
         </div>
-        {PLAN_COMPARE.map((g) => (
+        {PLAN_COMPARE.map((g) => ({ ...g, rows: diffOnly ? g.rows.filter((r) => !(r.free === r.plus && r.plus === r.pro)) : g.rows })).filter((g) => g.rows.length).map((g) => (
           <div key={g.group}>
             <p className="bg-card-2/60 px-5 py-2 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-muted sm:px-6">{g.group}</p>
             {g.rows.map((r) => (
@@ -177,7 +180,7 @@ function Cell({ v, strong }: { v: boolean | string; strong?: boolean }) {
   return <span className={cx("text-center text-[13px]", strong ? "font-semibold text-text" : "text-text-2")}>{v}</span>;
 }
 
-function PlanCard({ name, price, per, tagline, items, badge, accent, current, action, highlight }: { name: string; price: string; per: string; tagline: string; items: string[]; badge?: string; accent?: string; current?: boolean; action: ReactNode; highlight?: boolean }) {
+function PlanCard({ name, price, per, tagline, items, badge, accent, current, action, highlight }: { name: string; price: number; per: string; tagline: string; items: string[]; badge?: string; accent?: string; current?: boolean; action: ReactNode; highlight?: boolean }) {
   return (
     <div className={cx("relative flex flex-col overflow-hidden rounded-[24px] border bg-card p-6", highlight ? "border-text-2/60 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)]" : "border-line")}>
       {accent && <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full opacity-[0.16] blur-3xl" style={{ background: accent }} />}
@@ -186,7 +189,8 @@ function PlanCard({ name, price, per, tagline, items, badge, accent, current, ac
         {current ? <StatusPill tone="pos">Your plan</StatusPill> : badge ? <span className="rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold text-black" style={{ background: accent }}>{badge}</span> : null}
       </div>
       <p className="relative mt-1 text-[13px] text-muted">{tagline}</p>
-      <p className="relative mt-5 flex items-end gap-2"><span className="num text-[44px] font-semibold leading-none tracking-[-0.04em] text-text">{price}</span><span className="mb-1 text-[13.5px] text-muted">/ {per}</span></p>
+      <p className="relative mt-5 flex items-end gap-2"><span className="num text-[44px] font-semibold leading-none tracking-[-0.04em] text-text"><CountUp value={price} seconds={1.2} format={(v) => (price === 0 ? "$0" : `$${(v ?? 0).toFixed(2)}`)} /></span><span className="mb-1 text-[13.5px] text-muted">/ {per}</span></p>
+      <p className="relative mt-1 text-[12.5px] text-muted">{price === 0 ? "No card needed" : `About $${(price / 30).toFixed(2)} a day · one payment`}</p>
       <div className="relative mt-5">{action}</div>
       <ul className="relative mt-6 flex flex-col gap-2.5 border-t border-line-soft pt-5">
         {items.map((it) => <li key={it} className="flex gap-2.5 text-[13.5px] leading-snug text-text-2"><Check size={15} className="mt-0.5 shrink-0" style={{ color: accent ?? "var(--text-2)" }} />{it}</li>)}

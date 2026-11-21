@@ -53,7 +53,9 @@ export function usePlusGate(level: Exclude<PlanId, "free"> = "plus"): [boolean |
 }
 
 /** A whole page or section on a paid plan: shows a blurred preview and the upgrade card instead. */
-export function PlanWall({ level = "plus", feature, sub, children }: { level?: Exclude<PlanId, "free">; feature: string; sub: string; children: ReactNode }) {
+export interface Teaser { label: string; value: string; hidden?: boolean }
+
+export function PlanWall({ level = "plus", feature, sub, teasers, children }: { level?: Exclude<PlanId, "free">; feature: string; sub: string; teasers?: Teaser[]; children: ReactNode }) {
   const plan = usePlan();
   if (plan === null || atLeast(plan, level)) return <>{children}</>;
   const p = level === "pro" ? PRO : PLUS;
@@ -64,6 +66,16 @@ export function PlanWall({ level = "plus", feature, sub, children }: { level?: E
         <span className="grid h-12 w-12 place-items-center rounded-2xl bg-card-2 text-text"><Lock size={20} /></span>
         <p className="mt-4 flex items-center gap-2 text-[18px] font-semibold text-text">{feature} <PlusTag level={level} /></p>
         <p className="mt-2 text-[14px] leading-relaxed text-text-2">{sub}</p>
+        {teasers && teasers.length > 0 && (
+          <div className="mt-5 grid w-full gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(teasers.length, 3)}, minmax(0,1fr))` }}>
+            {teasers.map((t) => (
+              <div key={t.label} className="rounded-xl border border-line-soft bg-card-2 px-3 py-2.5 text-left">
+                <p className="truncate text-[11px] text-muted">{t.label}</p>
+                <p className={cx("num mt-0.5 truncate text-[16px] font-semibold text-text", t.hidden && "select-none blur-[5px]")} aria-hidden={t.hidden}>{t.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
         <Link href={`/plus?plan=${level}`} className="mt-5 rounded-xl bg-accent px-5 py-2.5 text-[14px] font-semibold text-on-accent">Get {p.name}: ${p.priceUsd} / {p.days} days</Link>
         <p className="mt-2 text-[12px] text-muted">One payment, no subscription.</p>
       </div>

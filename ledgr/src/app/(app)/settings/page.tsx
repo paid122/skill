@@ -1,4 +1,5 @@
 "use client";
+import { PlanStatusCard } from "@/components/PlanStatusCard";
 import { Database, Download, Plus, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { AccountCard } from "@/components/AccountCard";
@@ -29,6 +30,7 @@ export default function SettingsPage() {
       <PageIntro title="Settings" sub="Profile, journal preferences and your data." />
       <PageVerse page="settings" compact />
       <SettingsNav />
+      <PlanStatusCard />
 
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-2">
         <div className="xl:col-span-2"><AccountCard /></div>

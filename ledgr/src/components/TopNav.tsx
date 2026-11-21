@@ -1,4 +1,7 @@
 "use client";
+import { Lock } from "lucide-react";
+import { PlusTag } from "./PlusGate";
+import { usePlan } from "@/lib/usePlus";
 import { ChevronDown, Eye, EyeOff, PanelRightOpen, Plus, Search, Upload } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,7 +11,7 @@ import { openImport, openQuickLog, setPalette } from "@/lib/overlays";
 import { useLedgr } from "@/lib/store";
 import { cx } from "@/lib/util";
 import { LogoMark } from "./Logo";
-import { ALL_NAV, isActive, type NavItem } from "./nav";
+import { ALL_NAV, isActive, type NavItem, PLAN_PAGES } from "./nav";
 import { Button, IconButton } from "./ui";
 import { NotificationsButton } from "./AppShell";
 import { Avatar } from "./Avatar";
@@ -127,11 +130,14 @@ export function TopNav() {
 
 function TopLink({ item, label, active, className }: { item: NavItem; label: string; active: boolean; className?: string }) {
   const Icon = item.icon;
+  const plan = usePlan();
+  const locked = plan === "free" && PLAN_PAGES[item.href];
   return (
     <Link href={item.href} data-href={item.href} aria-current={active ? "page" : undefined} data-active={active || undefined}
       className={cx(className ?? "flex", "h-9 items-center gap-2 whitespace-nowrap rounded-full px-3 text-[13.5px] transition-colors", active ? "bg-card-2 text-text shadow-sm" : "text-text-2 hover:text-text")}>
       <Icon size={15} strokeWidth={1.75} className={cx("hidden min-[1800px]:block", active ? "text-text" : "text-muted")} />
       {label}
+      {locked && <Lock size={11} className="-ml-0.5 text-muted" aria-label="LEDGR+" />}
     </Link>
   );
 }
@@ -143,6 +149,7 @@ function TopMenu({ label, entries, pathname }: { label: string; entries: { item:
   const openedBy = useRef<"hover" | "click" | null>(null);
   // Highlight only for pages that always live in this menu (others have their own link at wide widths).
   const active = entries.some((e) => e.className === "flex" && isActive(pathname, e.item));
+  const plan = usePlan();
 
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
@@ -177,7 +184,7 @@ function TopMenu({ label, entries, pathname }: { label: string; entries: { item:
             return (
               <Link key={i.href} href={i.href} role="menuitem" aria-current={on ? "page" : undefined}
                 className={cx(className, "items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] transition-colors", on ? "bg-card-2 text-text" : "text-text-2 hover:bg-card-2/60 hover:text-text")}>
-                <I size={16} strokeWidth={1.75} className={on ? "text-text" : "text-muted"} />{i.label}
+                <I size={16} strokeWidth={1.75} className={on ? "text-text" : "text-muted"} /><span className="flex-1">{i.label}</span>{plan === "free" && PLAN_PAGES[i.href] && <PlusTag level={PLAN_PAGES[i.href]} />}
               </Link>
             );
           })}

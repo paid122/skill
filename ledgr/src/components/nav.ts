@@ -72,3 +72,6 @@ export function titleFor(pathname: string) {
 }
 
 export { BookMarked };
+
+/** Pages that need a paid plan (shown with a small tag in the menu for Free users). */
+export const PLAN_PAGES: Record<string, "plus" | "pro"> = { "/analytics": "plus", "/psychology": "plus", "/performance-score": "plus", "/weekly-review": "plus" };

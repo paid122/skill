@@ -1,5 +1,6 @@
 "use client";
 import { PlanWall } from "@/components/PlusGate";
+import { useWeeklyTeasers } from "@/lib/teasers";
 import { Check, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -21,7 +22,8 @@ import { Flame } from "lucide-react";
 import { addDays, dayOfWeek, fmtDate, fmtMoney, fmtNum, fmtPct, fmtR, today, weekStart } from "@/lib/util";
 
 export default function WeeklyReviewPage() {
-  return <PlanWall feature="Weekly review" sub="Your week summed up, with a week score, a weekly streak and MatrixX weekly reviews."><Suspense><Weekly /></Suspense></PlanWall>;
+  const teasers = useWeeklyTeasers();
+  return <PlanWall teasers={teasers} feature="Weekly review" sub="Your week summed up, with a week score, a weekly streak and MatrixX weekly reviews."><Suspense><Weekly /></Suspense></PlanWall>;
 }
 
 function Weekly() {

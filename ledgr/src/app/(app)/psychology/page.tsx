@@ -1,5 +1,6 @@
 "use client";
 import { PlanWall } from "@/components/PlusGate";
+import { usePsychologyTeasers } from "@/lib/teasers";
 import { Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -154,5 +155,6 @@ function MistakeTracker({ categories, counts }: { categories: string[]; counts: 
 }
 
 export default function PsychologyPage() {
-  return <PlanWall feature="Psychology" sub="How your emotions, mistakes and plan-following line up with your results."><PsychologyPageInner /></PlanWall>;
+  const teasers = usePsychologyTeasers();
+  return <PlanWall teasers={teasers} feature="Psychology" sub="How your emotions, mistakes and plan-following line up with your results."><PsychologyPageInner /></PlanWall>;
 }

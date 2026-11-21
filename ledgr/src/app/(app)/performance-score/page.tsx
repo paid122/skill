@@ -1,5 +1,6 @@
 "use client";
 import { PlanWall } from "@/components/PlusGate";
+import { useScoreTeasers } from "@/lib/teasers";
 import { useMemo } from "react";
 import { PageIntro, ScopeControls } from "@/components/blocks";
 import { TrendLine } from "@/components/charts";
@@ -108,5 +109,6 @@ Statistical quality = mean of
 }
 
 export default function PerformanceScorePage() {
-  return <PlanWall feature="Performance Score" sub="One 0–100 score for your trading, built from discipline and the quality of your results."><PerformanceScorePageInner /></PlanWall>;
+  const teasers = useScoreTeasers();
+  return <PlanWall teasers={teasers} feature="Performance Score" sub="One 0–100 score for your trading, built from discipline and the quality of your results."><PerformanceScorePageInner /></PlanWall>;
 }

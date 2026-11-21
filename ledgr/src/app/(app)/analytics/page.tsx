@@ -1,5 +1,6 @@
 "use client";
 import { PlanWall } from "@/components/PlusGate";
+import { useAnalyticsTeasers } from "@/lib/teasers";
 import { FlaskConical, Info, Settings2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -328,5 +329,6 @@ function WhatIf({ list, currency }: { list: EnrichedTrade[]; currency: string })
 }
 
 export default function AnalyticsPage() {
-  return <PlanWall feature="Full analytics" sub="Every chart and breakdown of your trades: by setup, session, day, time, symbol and more."><AnalyticsPageInner /></PlanWall>;
+  const teasers = useAnalyticsTeasers();
+  return <PlanWall teasers={teasers} feature="Full analytics" sub="Every chart and breakdown of your trades: by setup, session, day, time, symbol and more."><AnalyticsPageInner /></PlanWall>;
 }
