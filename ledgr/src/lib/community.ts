@@ -38,6 +38,7 @@ function friendly(e: { message: string; code?: string }): string {
   const m = e.message || "";
   if (e.code === "42P01" || /relation .* does not exist|schema cache/i.test(m)) return "The community isn't switched on yet: the owner needs to run the community SQL in Supabase.";
   if (e.code === "23505" && /handle/.test(m)) return "That handle is taken. Try another.";
+  if (/reserved for LEDGR/.test(m)) return "That handle is reserved for LEDGR. Pick another one.";
   if (/row-level security/i.test(m)) return "You can't do that here.";
   return m;
 }
@@ -189,4 +190,12 @@ export function ago(iso: string, now = Date.now()) {
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   if (s < 7 * 86400) return `${Math.floor(s / 86400)}d`;
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+// ---------------------------------------------------------------- badges
+let badgePromise: Promise<Record<string, "Owner" | "Co-owner">> | null = null;
+/** Owner / co-owner tags, set on the server from LEDGR_OWNER_EMAILS (can't be self-assigned). */
+export function loadBadges() {
+  badgePromise ??= fetch("/api/community/badges").then((r) => r.json()).then((j: { badges?: Record<string, "Owner" | "Co-owner"> }) => j.badges ?? {}).catch(() => ({}));
+  return badgePromise;
 }

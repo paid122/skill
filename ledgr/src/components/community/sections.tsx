@@ -12,6 +12,7 @@ import { useEnriched } from "@/lib/hooks";
 import { DEFAULT_SHOW, formatStat, journalStats } from "@/lib/publicStats";
 import { useLedgr } from "@/lib/store";
 import { cx } from "@/lib/util";
+import { RoleTag } from "./Badge";
 import { CAvatar, Composer, Name, PostCard, StoriesBar } from "./parts";
 
 // ------------------------------------------------------------------ feed
@@ -160,7 +161,7 @@ export function Messages({ me, startWith }: { me: string; startWith?: string | n
           : <ul>{convos.map(([o, last]) => (
               <li key={o}><button type="button" onClick={() => setOther(o)} className={cx("flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-card-2", other === o && "bg-card-2")}>
                 <CAvatar p={profiles.get(o)} size={36} />
-                <span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] font-semibold text-text">{profiles.get(o)?.display_name || profiles.get(o)?.handle || "Trader"}</span><span className="block truncate text-[12px] text-muted">{last.sender_id === me ? "You: " : ""}{last.body}</span></span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] font-semibold text-text">{profiles.get(o)?.display_name || profiles.get(o)?.handle || "Trader"}<RoleTag userId={o} /></span><span className="block truncate text-[12px] text-muted">{last.sender_id === me ? "You: " : ""}{last.body}</span></span>
                 {unread(o) > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-on-accent">{unread(o)}</span>}
               </button></li>
             ))}</ul>}

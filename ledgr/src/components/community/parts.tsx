@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button, Modal, Textarea, useFeedback } from "@/components/ui";
+import { RoleTag } from "./Badge";
 import { addStory, ago, block, createPost, deletePost, deleteReply, deleteStory, mediaUrl, reply, replies as loadReplies, report, setLike, uploadMedia, type Media, type Post, type Profile, type Reply, type SharedTrade, type Story } from "@/lib/community";
 import { useEnriched } from "@/lib/hooks";
 import { useLedgr } from "@/lib/store";
@@ -22,7 +23,7 @@ export function CAvatar({ p, size = 40, ring }: { p: Profile | undefined; size?:
 
 export function Name({ p }: { p: Profile | undefined }) {
   if (!p) return <span className="text-muted">Trader</span>;
-  return <Link href={`/u/${p.handle}`} className="font-semibold text-text hover:underline">{p.display_name || p.handle}<span className="ml-1.5 font-normal text-muted">@{p.handle}</span></Link>;
+  return <span><Link href={`/u/${p.handle}`} className="font-semibold text-text hover:underline">{p.display_name || p.handle}</Link><RoleTag userId={p.user_id} /><Link href={`/u/${p.handle}`} className="ml-1.5 font-normal text-muted">@{p.handle}</Link></span>;
 }
 
 function MediaGrid({ media }: { media: Media[] }) {

@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { feed, followCounts, followState, mediaUrl, profileByHandle, setFollow, STAT_LABELS, ago, type Post, type Profile, type StatKey } from "@/lib/community";
 import { formatStat } from "@/lib/publicStats";
+import { RoleTag } from "@/components/community/Badge";
 import { supabaseConfigured, useSession } from "@/lib/supabase";
 import { fmtDate, fmtMoney, fmtR } from "@/lib/util";
 
@@ -59,7 +60,7 @@ export default function PublicProfilePage() {
             {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : (p.display_name || p.handle).charAt(0).toUpperCase()}
           </span>
           <div className="min-w-0 flex-1">
-            <h1 className="text-[36px] font-semibold leading-tight tracking-[-0.03em]">{p.display_name || p.handle}</h1>
+            <h1 className="text-[36px] font-semibold leading-tight tracking-[-0.03em]">{p.display_name || p.handle}<RoleTag userId={p.user_id} className="ml-3 px-2 py-0.5 text-[13px]" /></h1>
             <p className="text-[15px] text-ink/55">@{p.handle} · <b className="text-ink">{counts.followers}</b> followers · <b className="text-ink">{counts.following}</b> following</p>
             {p.bio && <p className="mt-3 max-w-xl whitespace-pre-wrap text-[16px] leading-relaxed text-ink/75">{p.bio}</p>}
           </div>
