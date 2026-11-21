@@ -1,6 +1,6 @@
 import {
   BarChart3, BookMarked, ShieldCheck, BookOpen, Brain, CalendarDays, ClipboardList, FileText, Gauge, GraduationCap, History,
-  Gem, LayoutDashboard, type LucideIcon, NotebookPen, Settings, Sparkles, SquareLibrary, Trophy, Wallet,
+  Gem, LayoutDashboard, type LucideIcon, NotebookPen, Settings, Sparkles, SquareLibrary, Trophy, Users, Wallet,
 } from "lucide-react";
 
 export interface NavItem { href: string; label: string; icon: LucideIcon; match?: string[] }
@@ -15,6 +15,7 @@ export const NAV: NavGroup[] = [
       { href: "/daily-journal", label: "Daily Journal", icon: CalendarDays },
       { href: "/weekly-review", label: "Weekly Review", icon: ClipboardList },
       { href: "/showcase", label: "Showcase", icon: Trophy },
+      { href: "/feed", label: "Community", icon: Users, match: ["/feed"] },
     ],
   },
   {

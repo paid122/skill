@@ -26,6 +26,7 @@ const LEFT: Entry[] = [
   { label: "Journal", item: find("/journal"), tier: 1 },
   { label: "Daily", item: find("/daily-journal"), tier: 2 },
   { label: "Showcase", item: find("/showcase"), tier: 3 },
+  { label: "Community", item: find("/feed"), tier: 2 },
   { label: "Strategy", item: find("/strategies"), tier: 3 },
   { label: "Study", item: find("/study"), tier: 2 },
 ];

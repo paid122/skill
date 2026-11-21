@@ -68,6 +68,7 @@ export default function CommunityPage() {
           <Reveal delay={200}>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <JoinButton big />
+              <a href="/feed" className="inline-flex h-[60px] items-center rounded-full bg-ink px-8 text-[16px] font-medium text-paper transition-transform hover:scale-[1.02]">Open the community</a>
               <a href="#updates" className="inline-flex h-[60px] items-center rounded-full border border-ink/20 bg-paper/70 px-8 text-[16px] text-ink/80 backdrop-blur transition-colors hover:border-ink/50 hover:text-ink">Get updates by email</a>
             </div>
             <p className="mt-5 text-[13px] text-ink/45">Free to join · No signals, ever · Built by the LEDGR team</p>
