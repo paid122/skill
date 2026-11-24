@@ -110,7 +110,11 @@ async function check(name, fn) {
     await dialog().getByRole("tab", { name: /^Review/ }).click();
     await dialog().getByRole("radio", { name: "8 out of 10" }).click();
     await dialog().getByPlaceholder(/Chased the entry/).fill("Entered a tick early.");
-    await dialog().getByLabel("What did I learn?").fill("Waited for the close.");
+    // Type key by key: focus must stay in the box (it used to jump to the close button).
+    const learn = dialog().getByLabel("What did I learn?");
+    await learn.click(); await learn.fill("");
+    await page.keyboard.type("Waited for the close.", { delay: 40 });
+    assert.equal(await learn.inputValue(), "Waited for the close.", "typing stays in the box");
     await dialog().getByRole("button", { name: "Save changes" }).click();
     await page.reload(); await page.waitForTimeout(800);
     assert.ok(await main().getByText("Waited for the close.").isVisible());

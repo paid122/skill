@@ -315,11 +315,13 @@ export function Modal({ open, onClose, title, children, footer, size = "md", des
   const ref = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") closeRef.current();
       if (e.key === "Tab" && ref.current) {
         const f = ref.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])');
         if (!f.length) return;
@@ -336,7 +338,8 @@ export function Modal({ open, onClose, title, children, footer, size = "md", des
       document.body.style.overflow = "";
       prev?.focus?.();
     };
-  }, [open, onClose]);
+    // Only runs when the modal opens, so typing never moves focus back to the close button.
+  }, [open]);
   if (!open || !mounted) return null;
   const widths = { sm: "max-w-md", md: "max-w-xl", lg: "max-w-3xl", xl: "max-w-5xl" };
   return createPortal(
