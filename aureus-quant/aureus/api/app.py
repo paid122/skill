@@ -27,7 +27,31 @@ from ..stats import engine as st
 from ..tbs import research as tbs
 from ..workspace import WS
 
-app = FastAPI(title="AUREUS QUANT", version=__version__)
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def _lifespan(_app):
+    try:
+        WS.autoload()  # reload saved files + TradingView setups on start
+    except Exception:  # noqa: BLE001 - never block startup on a bad file
+        pass
+    yield
+
+
+app = FastAPI(title="AUREUS QUANT", version=__version__, lifespan=_lifespan)
+
+
+@app.middleware("http")
+async def tunnel_guard(request: Request, call_next):
+    """When AUREUS is exposed through a Cloudflare tunnel (for TradingView
+    webhooks), only the webhook endpoint is reachable from the internet; the
+    dashboard and every other endpoint stay local-only."""
+    via_tunnel = "cf-connecting-ip" in request.headers or "x-forwarded-for" in request.headers
+    if via_tunnel and request.url.path != "/api/tradingview/webhook":
+        return JSONResponse(status_code=403, content={"error": "forbidden", "detail": "Only the webhook is public."})
+    return await call_next(request)
+
 WEB = Path(__file__).resolve().parents[2] / "web"
 
 
@@ -380,6 +404,40 @@ if WEB.exists():
         return FileResponse(WEB / "index.html")
 
 
+# ------------------------------------------------------------ TradingView --
+
+@app.post("/api/tradingview/webhook")
+async def tv_webhook(request: Request):
+    from ..tradingview import store
+    try:
+        res = store.ingest(await request.body())
+    except PermissionError as e:
+        raise HTTPException(401, str(e)) from e
+    if getattr(WS, "_csv_provenance", Provenance.HISTORICAL) != Provenance.SIMULATED:
+        WS.rebuild_journal()
+    return J(res)
+
+
+@app.get("/api/tradingview/setups")
+def tv_setups():
+    from ..tradingview import store
+    return J({"setups": store.setups(), "token": store.token()})
+
+
+@app.delete("/api/tradingview/setups/{setup_id}")
+def tv_delete(setup_id: str):
+    from ..tradingview import store
+    store.delete(setup_id)
+    WS.rebuild_journal()
+    return J({"deleted": setup_id})
+
+
+@app.get("/api/tradingview/pine")
+def tv_pine():
+    return FileResponse(Path(__file__).resolve().parents[2] / "tradingview" / "aureus_tbs_marker.pine",
+                        media_type="text/plain", filename="aureus_tbs_marker.pine")
+
+
 # ------------------------------------------------------- probability models --
 
 @app.get("/api/prob/models")
@@ -435,6 +493,8 @@ def demo_simulated():
 @app.post("/api/reset")
 def reset():
     WS.candles = WS.journal_raw = WS.events = None
+    WS._csv_journal = None
+    WS._csv_provenance = Provenance.HISTORICAL
     WS._features = WS._regimes = None
     WS.journal_warnings = []
     return J({"reset": True})

@@ -159,3 +159,35 @@ def test_assistant(ws):
               "Which conditions have historically produced the highest TBS expected value?"]:
         a = answer(q, ws)
         assert a["intent"] and a["results"], q
+
+
+def test_tradingview_webhook_roundtrip(tmp_path, monkeypatch):
+    import json
+    from fastapi.testclient import TestClient
+    from aureus.tradingview import store
+    monkeypatch.setattr(store, "DB", tmp_path / "tv.sqlite")
+    monkeypatch.setattr(store, "TOKEN_FILE", tmp_path / "tok.txt")
+    from aureus.api import app as appmod
+    appmod.WS.__init__()
+    c = TestClient(appmod.app)
+    tok = store.token()
+    base = {"token": tok, "id": "MGC1!-1767600000000", "symbol": "COMEX:MGC1!", "timeframe": "1", "direction": "long",
+            "daily_crt": "bullish", "h4_crt": "bullish", "amd_aligned": True, "tbs_confirmed": True, "news": "none",
+            "contracts": 1, "entry": 2000.0, "stop": 1995.0, "target": 2010.0, "mfe": 0, "mae": 0}
+    assert c.post("/api/tradingview/webhook", content=json.dumps({**base, "token": "bad", "state": "pending"})).status_code == 401
+    assert c.post("/api/tradingview/webhook", content=json.dumps({**base, "state": "pending", "fill_time": None})).status_code == 200
+    assert appmod.WS.journal_raw is None  # pending setups are not trades
+    closed = {**base, "state": "closed", "fill_time": 1767625200000, "exit_time": 1767628800000,
+              "exit_price": 2010.0, "exit_reason": "target", "mfe": 10.0, "mae": 2.0}
+    assert c.post("/api/tradingview/webhook", content=json.dumps(closed)).status_code == 200
+    assert c.post("/api/tradingview/webhook", content=json.dumps(closed)).status_code == 200  # idempotent
+    j = appmod.WS.journal_raw
+    assert len(j) == 1 and j["r_gross"].iloc[0] == pytest.approx(2.0) and j["mae_r"].iloc[0] == pytest.approx(0.4)
+    # dashboard is blocked through the tunnel, webhook is not
+    assert c.get("/api/status", headers={"cf-connecting-ip": "1.2.3.4"}).status_code == 403
+
+
+def test_tradingview_csv_unix_time():
+    csv = "time,open,high,low,close,Volume,RSI\n1767650400,2000,2001,1999,2000.5,10,50\n1767650700,2000.5,2001,2000,2000.8,12,51\n1767651000,2000.8,2002,2000.1,2001.5,9,52\n"
+    cs = load_candles_csv(io.StringIO(csv), source="TradingView export")
+    assert str(cs.df.index.tz) == "UTC" and cs.df.index[0] == pd.Timestamp("2026-01-05 22:00", tz="UTC")

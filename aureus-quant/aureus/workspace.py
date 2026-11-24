@@ -39,15 +39,46 @@ class Workspace:
         return {"header": self.candles.header(), "quality": self.candles.quality}
 
     def load_journal(self, src, provenance: Provenance = Provenance.HISTORICAL) -> dict:
-        self.journal_raw, self.journal_warnings = load_journal(src, provenance=provenance)
-        return {"trades": int(len(self.journal_raw)), "warnings": self.journal_warnings,
-                "provenance": provenance.value}
+        df = pd.read_csv(src)
+        df.columns = [c.strip().lower() for c in df.columns]
+        self._csv_journal, self._csv_provenance = df, provenance
+        return self.rebuild_journal()
+
+    def rebuild_journal(self) -> dict:
+        """Journal = uploaded CSV trades + filled setups recorded from TradingView."""
+        from .data.journal import REQUIRED, normalise_journal
+        from .tradingview.store import as_journal_rows
+
+        parts, prov = [], getattr(self, "_csv_provenance", Provenance.HISTORICAL)
+        csv = getattr(self, "_csv_journal", None)
+        if csv is not None and len(csv):
+            missing = [c for c in REQUIRED if c not in csv.columns]
+            if missing:
+                raise ValueError(f"Journal is missing required columns: {missing}")
+            parts.append(csv.assign(source="csv"))
+        tv = as_journal_rows() if prov != Provenance.SIMULATED else pd.DataFrame()
+        if len(tv):
+            parts.append(tv.assign(source="tradingview"))
+        if not parts:
+            self.journal_raw, self.journal_warnings = None, []
+            return {"trades": 0, "warnings": [], "provenance": None}
+        self.journal_raw, self.journal_warnings = normalise_journal(pd.concat(parts, ignore_index=True), provenance=prov)
+        return {"trades": int(len(self.journal_raw)), "warnings": self.journal_warnings, "provenance": prov.value,
+                "from_tradingview": int(len(tv))}
 
     def load_events(self, src) -> dict:
         self.events = load_events(src)
         return {"events": int(len(self.events)), "types": sorted(self.events["event"].unique().tolist())}
 
     def autoload(self) -> dict:
+        """Load the first CSV found in data/candles, data/journal, data/events,
+        plus any setups already received from TradingView."""
+        out = self._autoload_files()
+        if self.journal_raw is None:
+            out["tradingview"] = self.rebuild_journal()
+        return out
+
+    def _autoload_files(self) -> dict:
         """Load the first CSV found in data/candles, data/journal, data/events."""
         out = {}
         for kind, fn in [("candles", None), ("journal", self.load_journal), ("events", self.load_events)]:

@@ -440,6 +440,35 @@ views.assistant = async () => {
   document.querySelectorAll(".sug").forEach((a) => a.onclick = () => ask(a.textContent.slice(2)));
 };
 
+views.tradingview = async () => {
+  const r = await api("/api/tradingview/setups");
+  const s = r.setups;
+  const nClosed = s.filter((x) => x.state === "closed").length, nOpen = s.filter((x) => x.state === "open").length;
+  view.innerHTML = `
+    <div class="kpis" style="margin-bottom:12px">${kpi("Setups received", s.length, "from TradingView")}${kpi("Closed", nClosed, "in statistics")}${kpi("Open", nOpen, "awaiting exit")}${kpi("Pending", s.length - nClosed - nOpen, "entry not filled")}</div>
+    <div class="grid g2">
+      ${card("Connect TradingView — one-time setup", `<ol class="explain" style="padding-left:18px;margin:0">
+        <li><b>Expose only the webhook.</b> In a second PowerShell window run:<br><code>cloudflared tunnel --url http://localhost:8000</code><br>
+          (install once with <code>winget install Cloudflare.cloudflared</code>). Copy the <code>https://….trycloudflare.com</code> address it prints. Through the tunnel only the webhook answers; the dashboard stays private.</li>
+        <li><b>Add the indicator.</b> <a href="/api/tradingview/pine" style="color:var(--gold)">Download the Pine script</a> → TradingView → Pine Editor → paste → <i>Add to chart</i>.</li>
+        <li><b>Mark a setup.</b> TradingView asks you to click <i>setup time → entry → stop → target</i>. Then in the indicator's Settings set direction, Daily CRT, 4H CRT, AMD, TBS and paste your token:<br>
+          <code id="tok">${esc(r.token)}</code> <button id="cp">Copy</button></li>
+        <li><b>Create the alert.</b> Alert → Condition: <i>AUREUS TBS Marker</i> → <i>Any alert() function call</i> → Notifications → Webhook URL:<br><code>&lt;your trycloudflare address&gt;/api/tradingview/webhook</code></li>
+        <li>Repeat 3–4 for each setup (one indicator copy per setup). Fills, exits, MFE and MAE are tracked on the chart and sent automatically.</li></ol>
+        <div class="explain lim">⚠ Webhooks need a paid TradingView plan with 2-factor authentication enabled. The quick tunnel address changes every time you restart cloudflared — update the alert's webhook URL when it does.</div>
+        <div class="explain lim">⚠ The indicator assumes a limit fill at your entry and, if stop and target are hit in the same bar, the stop (conservative). Use a 1-minute chart for the most accurate fills and MFE/MAE.</div>`, "spanall")}
+      ${card("Received setups", s.length ? table(s.slice().reverse(), [["id", "Setup id"], ["state", "State"], ["direction", "Dir"], ["daily_crt", "D CRT"], ["h4_crt", "4H CRT"],
+        ["amd_aligned", "AMD", (v) => v ? "✓" : "✗"], ["tbs_confirmed", "TBS", (v) => v ? "✓" : "✗"], ["entry", "Entry"], ["stop", "Stop"], ["target", "Target"],
+        ["exit_price", "Exit"], ["exit_reason", "Why"], ["timeframe", "TF"], ["received", "Last update (UTC)", (v) => esc(String(v).slice(0, 19))],
+        ["id", "", (v) => `<button data-del="${esc(v)}">Remove</button>`]]) : empty("Nothing received yet. Follow the steps above, then mark a setup in TradingView."), "spanall")}
+    </div>`;
+  $("#cp").onclick = () => navigator.clipboard.writeText(r.token);
+  document.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
+    if (!confirm(`Remove setup ${b.dataset.del} from the journal?`)) return;
+    await api(`/api/tradingview/setups/${encodeURIComponent(b.dataset.del)}`, { method: "DELETE" }); views.tradingview();
+  });
+};
+
 // -------------------------------------------------------------- routing ---
 async function go(name) {
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.view === name));

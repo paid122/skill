@@ -27,6 +27,16 @@ Run the tests:
 python -m pytest -q
 ```
 
+## TradingView link
+
+TradingView has no API for reading manual drawings. Instead, the **AUREUS TBS Marker** indicator (`tradingview/aureus_tbs_marker.pine`) lets you click a setup's time, entry, stop and target, and tick Daily CRT, 4H CRT, AMD and TBS. It tracks the fill, exit, MFE and MAE on the chart and sends the full state to `POST /api/tradingview/webhook`. Filled setups join the journal automatically.
+
+1. Run `cloudflared tunnel --url http://localhost:8000` (install with `winget install Cloudflare.cloudflared`). Through the tunnel only the webhook is reachable; the dashboard returns 403.
+2. Add the indicator in the Pine Editor, mark a setup, and paste the token shown on the **TradingView Link** page.
+3. Create an alert on *Any alert() function call* with webhook URL `https://<tunnel>.trycloudflare.com/api/tradingview/webhook`.
+
+This needs a paid TradingView plan with 2FA for webhooks. Fills assume a limit order at entry, and stop-before-target when both are hit in one bar. TradingView "Export chart data" CSVs (Unix `time` column) import directly as candles.
+
 ## What is implemented
 
 | Module | Path | Contents |

@@ -67,7 +67,12 @@ def load_candles_csv(
     if missing:
         raise ValueError(f"Candle file is missing required columns: {missing}")
 
-    ts = pd.to_datetime(raw["timestamp"], utc=False, errors="coerce")
+    # TradingView "Export chart data" writes `time` as Unix seconds (UTC) or ISO-8601 with offset.
+    if pd.api.types.is_numeric_dtype(raw["timestamp"]):
+        unit = "ms" if raw["timestamp"].abs().max() > 1e11 else "s"
+        ts = pd.to_datetime(raw["timestamp"], unit=unit, utc=True)
+    else:
+        ts = pd.to_datetime(raw["timestamp"], utc=False, errors="coerce", format="mixed")
     if ts.isna().any():
         raise ValueError(f"{int(ts.isna().sum())} unparseable timestamps")
     if ts.dt.tz is None:

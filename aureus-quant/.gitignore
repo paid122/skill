@@ -5,3 +5,5 @@ data/runs/*.sqlite
 data/candles/*.csv
 data/journal/*.csv
 data/events/*.csv
+data/journal/*.sqlite
+data/runs/webhook_token.txt

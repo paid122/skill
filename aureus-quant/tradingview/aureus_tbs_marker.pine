@@ -1,0 +1,117 @@
+//@version=6
+// AUREUS TBS Marker — marks ONE TBS setup on the chart and reports it to AUREUS QUANT.
+//
+// How to use (one copy of the indicator per setup):
+//   1. Add the indicator to your MGC1! chart. TradingView asks you to click:
+//      setup time → entry price → stop price → target price.
+//   2. In Settings, set Direction, Daily CRT, 4H CRT, AMD, TBS, and paste your AUREUS token.
+//   3. Create an alert: Condition = "AUREUS TBS Marker", "Any alert() function call",
+//      Webhook URL = your AUREUS address + /api/tradingview/webhook  (Notifications tab).
+//
+// The script fills a LIMIT entry when price trades through the entry after the setup time,
+// then exits at the stop or the target. If both are touched in the same bar, the STOP is
+// assumed (conservative). MFE/MAE are measured in price from the entry using bar highs/lows.
+// Results depend on the chart timeframe: use the lowest timeframe you can (e.g. 1m).
+// Every alert sends the full state, so AUREUS can safely receive the same setup many times.
+indicator("AUREUS TBS Marker", overlay = true, max_lines_count = 10, max_labels_count = 5)
+
+setupTime = input.time(timestamp("01 Jan 2026 00:00 +0000"), "Setup time", confirm = true, group = "Click on chart")
+entry     = input.price(0.0, "Entry",  confirm = true, group = "Click on chart")
+stop      = input.price(0.0, "Stop",   confirm = true, group = "Click on chart")
+target    = input.price(0.0, "Target", confirm = true, group = "Click on chart")
+
+dir       = input.string("Long", "Direction", options = ["Long", "Short"], group = "TBS framework")
+dailyCrt  = input.string("Bullish", "Daily CRT bias", options = ["Bullish", "Bearish", "None"], group = "TBS framework")
+h4Crt     = input.string("Bullish", "4H CRT bias", options = ["Bullish", "Bearish", "None"], group = "TBS framework")
+amd       = input.bool(true, "AMD aligned", group = "TBS framework")
+tbs       = input.bool(true, "5M TBS confirmed", group = "TBS framework")
+news      = input.string("none", "News environment (none / CPI / FOMC / NFP ...)", group = "TBS framework")
+contracts = input.int(1, "Contracts", minval = 1, group = "TBS framework")
+token     = input.string("", "AUREUS token (from Data Management)", group = "AUREUS")
+
+isLong = dir == "Long"
+valid  = isLong ? (stop < entry and target > entry) : (stop > entry and target < entry)
+
+var int   state      = 0       // 0 waiting for fill, 1 open, 2 closed
+var int   fillTime   = na
+var int   exitTime   = na
+var float exitPrice  = na
+var string exitWhy   = ""
+var float mfe        = 0.0
+var float mae        = 0.0
+
+if valid and time >= setupTime and state == 0
+    if (isLong and low <= entry) or (not isLong and high >= entry)
+        state    := 1
+        fillTime := time
+
+if state == 1
+    fav = isLong ? high - entry : entry - low
+    adv = isLong ? entry - low  : high - entry
+    hitStop   = isLong ? low <= stop    : high >= stop
+    hitTarget = isLong ? high >= target : low <= target
+    if hitStop
+        state := 2, exitPrice := stop, exitWhy := "stop", exitTime := time
+        mae := math.max(mae, math.abs(entry - stop))
+        mfe := math.max(mfe, hitTarget ? 0.0 : fav)
+    else if hitTarget
+        state := 2, exitPrice := target, exitWhy := "target", exitTime := time
+        mfe := math.max(mfe, math.abs(target - entry))
+        mae := math.max(mae, adv)
+    else
+        mfe := math.max(mfe, fav)
+        mae := math.max(mae, adv)
+
+stateName = state == 0 ? "pending" : state == 1 ? "open" : "closed"
+f(x) => na(x) ? "null" : str.tostring(x)
+q(s) => "\"" + s + "\""
+
+payload = "{" +
+  q("token") + ":" + q(token) + "," +
+  q("id") + ":" + q(syminfo.ticker + "-" + str.tostring(setupTime)) + "," +
+  q("symbol") + ":" + q(syminfo.tickerid) + "," +
+  q("timeframe") + ":" + q(timeframe.period) + "," +
+  q("state") + ":" + q(stateName) + "," +
+  q("direction") + ":" + q(str.lower(dir)) + "," +
+  q("daily_crt") + ":" + q(str.lower(dailyCrt)) + "," +
+  q("h4_crt") + ":" + q(str.lower(h4Crt)) + "," +
+  q("amd_aligned") + ":" + (amd ? "true" : "false") + "," +
+  q("tbs_confirmed") + ":" + (tbs ? "true" : "false") + "," +
+  q("news") + ":" + q(news) + "," +
+  q("contracts") + ":" + str.tostring(contracts) + "," +
+  q("setup_time") + ":" + str.tostring(setupTime) + "," +
+  q("entry") + ":" + str.tostring(entry) + "," +
+  q("stop") + ":" + str.tostring(stop) + "," +
+  q("target") + ":" + str.tostring(target) + "," +
+  q("fill_time") + ":" + f(fillTime) + "," +
+  q("exit_time") + ":" + f(exitTime) + "," +
+  q("exit_price") + ":" + f(exitPrice) + "," +
+  q("exit_reason") + ":" + q(exitWhy) + "," +
+  q("mfe") + ":" + str.tostring(mfe) + "," +
+  q("mae") + ":" + str.tostring(mae) + "}"
+
+// Send the full state on the first live bar (covers setups marked in the past)
+// and again whenever the state changes. `var` values roll back on intrabar ticks,
+// so with once-per-bar-close this fires exactly once per qualifying bar.
+var bool synced = false
+if barstate.isrealtime and valid and (not synced or state != state[1])
+    alert(payload, alert.freq_once_per_bar_close)
+    synced := true
+
+// ---- drawing ----
+if barstate.islast and valid
+    var line lE = na
+    var line lS = na
+    var line lT = na
+    line.delete(lE), line.delete(lS), line.delete(lT)
+    lE := line.new(setupTime, entry,  time, entry,  xloc = xloc.bar_time, color = color.new(#c9a54c, 0), width = 2)
+    lS := line.new(setupTime, stop,   time, stop,   xloc = xloc.bar_time, color = color.new(#e66767, 0), width = 1)
+    lT := line.new(setupTime, target, time, target, xloc = xloc.bar_time, color = color.new(#0ca30c, 0), width = 1)
+    var label lb = na
+    label.delete(lb)
+    r = state == 2 ? (isLong ? exitPrice - entry : entry - exitPrice) / math.abs(entry - stop) : na
+    lb := label.new(time, entry, "AUREUS · " + stateName + (state == 2 ? " · " + str.tostring(r, "#.##") + "R gross" : ""),
+         xloc = xloc.bar_time, style = label.style_label_left, color = color.new(#17181b, 0), textcolor = #f0efec, size = size.small)
+
+if not valid and barstate.islast
+    label.new(bar_index, close, "AUREUS: stop/target on wrong side of entry", color = color.red, textcolor = color.white)
