@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+data/runs/*.sqlite
+data/candles/*.csv
+data/journal/*.csv
+data/events/*.csv
