@@ -51,11 +51,17 @@ if state == 1
     hitStop   = isLong ? low <= stop    : high >= stop
     hitTarget = isLong ? high >= target : low <= target
     if hitStop
-        state := 2, exitPrice := stop, exitWhy := "stop", exitTime := time
+        state     := 2
+        exitPrice := stop
+        exitWhy   := "stop"
+        exitTime  := time
         mae := math.max(mae, math.abs(entry - stop))
         mfe := math.max(mfe, hitTarget ? 0.0 : fav)
     else if hitTarget
-        state := 2, exitPrice := target, exitWhy := "target", exitTime := time
+        state     := 2
+        exitPrice := target
+        exitWhy   := "target"
+        exitTime  := time
         mfe := math.max(mfe, math.abs(target - entry))
         mae := math.max(mae, adv)
     else
@@ -103,7 +109,9 @@ if barstate.islast and valid
     var line lE = na
     var line lS = na
     var line lT = na
-    line.delete(lE), line.delete(lS), line.delete(lT)
+    line.delete(lE)
+    line.delete(lS)
+    line.delete(lT)
     lE := line.new(setupTime, entry,  time, entry,  xloc = xloc.bar_time, color = color.new(#c9a54c, 0), width = 2)
     lS := line.new(setupTime, stop,   time, stop,   xloc = xloc.bar_time, color = color.new(#e66767, 0), width = 1)
     lT := line.new(setupTime, target, time, target, xloc = xloc.bar_time, color = color.new(#0ca30c, 0), width = 1)
