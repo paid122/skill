@@ -1,44 +1,72 @@
 //@version=6
-// AUREUS TBS Marker — marks ONE TBS setup on the chart and reports it to AUREUS QUANT.
-//
-// How to use (one copy of the indicator per setup):
-//   1. Add the indicator to your MGC1! chart. TradingView asks you to click:
-//      setup time → entry price → stop price → target price.
-//   2. In Settings, set Direction, Daily CRT, 4H CRT, AMD, TBS, and paste your AUREUS token.
-//   3. Create an alert: Condition = "AUREUS TBS Marker", "Any alert() function call",
-//      Webhook URL = your AUREUS address + /api/tradingview/webhook  (Notifications tab).
-//
-// The script fills a LIMIT entry when price trades through the entry after the setup time,
-// then exits at the stop or the target. If both are touched in the same bar, the STOP is
-// assumed (conservative). MFE/MAE are measured in price from the entry using bar highs/lows.
-// Results depend on the chart timeframe: use the lowest timeframe you can (e.g. 1m).
-// Every alert sends the full state, so AUREUS can safely receive the same setup many times.
-indicator("AUREUS TBS Marker", overlay = true, max_lines_count = 10, max_labels_count = 5)
+indicator("AUREUS TBS Marker", overlay = true, max_lines_count = 20, max_labels_count = 5)
 
-setupTime = input.time(timestamp("01 Jan 2026 00:00 +0000"), "Setup time", confirm = true, group = "Click on chart")
-entry     = input.price(0.0, "Entry",  confirm = true, group = "Click on chart")
-stop      = input.price(0.0, "Stop",   confirm = true, group = "Click on chart")
-target    = input.price(0.0, "Target", confirm = true, group = "Click on chart")
+// When you add it, click on the chart in this order:
+// setup time -> entry -> stop -> target -> Daily CRT high -> Daily CRT low -> 4H CRT high -> 4H CRT low
+// (snap each click onto the lines you drew). One copy of the indicator per setup.
+setupTime = input.time(timestamp("01 Jan 2026 00:00 +0000"), "Setup time", confirm = true, group = "Trade (click on chart)")
+entry     = input.price(0.0, "Entry",  confirm = true, group = "Trade (click on chart)")
+stop      = input.price(0.0, "Stop",   confirm = true, group = "Trade (click on chart)")
+target    = input.price(0.0, "Target", confirm = true, group = "Trade (click on chart)")
+
+dHi  = input.price(0.0, "Daily CRT high", confirm = true, group = "CRT lines (click on your lines)")
+dLo  = input.price(0.0, "Daily CRT low",  confirm = true, group = "CRT lines (click on your lines)")
+hHi  = input.price(0.0, "4H CRT high",    confirm = true, group = "CRT lines (click on your lines)")
+hLo  = input.price(0.0, "4H CRT low",     confirm = true, group = "CRT lines (click on your lines)")
+crtMode  = input.string("Auto from my lines", "CRT bias", options = ["Auto from my lines", "Manual"], group = "CRT lines (click on your lines)")
+dLookH   = input.int(24, "Daily sweep lookback (hours before setup)", minval = 1, group = "CRT lines (click on your lines)")
+hLookH   = input.int(8,  "4H sweep lookback (hours before setup)",    minval = 1, group = "CRT lines (click on your lines)")
+dManual  = input.string("None", "Manual Daily CRT bias", options = ["Bullish", "Bearish", "None"], group = "CRT lines (click on your lines)")
+hManual  = input.string("None", "Manual 4H CRT bias",    options = ["Bullish", "Bearish", "None"], group = "CRT lines (click on your lines)")
 
 dir       = input.string("Long", "Direction", options = ["Long", "Short"], group = "TBS framework")
-dailyCrt  = input.string("Bullish", "Daily CRT bias", options = ["Bullish", "Bearish", "None"], group = "TBS framework")
-h4Crt     = input.string("Bullish", "4H CRT bias", options = ["Bullish", "Bearish", "None"], group = "TBS framework")
 amd       = input.bool(true, "AMD aligned", group = "TBS framework")
 tbs       = input.bool(true, "5M TBS confirmed", group = "TBS framework")
 news      = input.string("none", "News environment (none / CPI / FOMC / NFP ...)", group = "TBS framework")
 contracts = input.int(1, "Contracts", minval = 1, group = "TBS framework")
-token     = input.string("", "AUREUS token (from Data Management)", group = "AUREUS")
+token     = input.string("", "AUREUS token (from TradingView Link page)", group = "AUREUS")
 
 isLong = dir == "Long"
 valid  = isLong ? (stop < entry and target > entry) : (stop > entry and target < entry)
 
-var int   state      = 0       // 0 waiting for fill, 1 open, 2 closed
-var int   fillTime   = na
-var int   exitTime   = na
-var float exitPrice  = na
+// ---- CRT bias from your lines ----
+// Bullish = price traded BELOW the CRT low and the setup candle closed back inside the range.
+// Bearish = price traded ABOVE the CRT high and the setup candle closed back inside the range.
+// Anything else (no sweep, both sides swept, or not back inside) = None.
+var bool dSweptLo = false
+var bool dSweptHi = false
+var bool hSweptLo = false
+var bool hSweptHi = false
+var string dAuto = "none"
+var string hAuto = "none"
+var bool biasFixed = false
+
+inWindow(hrs) => time >= setupTime - hrs * 3600000 and time <= setupTime
+if not biasFixed
+    if inWindow(dLookH) and dHi > dLo and dLo > 0
+        dSweptLo := dSweptLo or low < dLo
+        dSweptHi := dSweptHi or high > dHi
+    if inWindow(hLookH) and hHi > hLo and hLo > 0
+        hSweptLo := hSweptLo or low < hLo
+        hSweptHi := hSweptHi or high > hHi
+    if time >= setupTime
+        dInside = close > dLo and close < dHi
+        hInside = close > hLo and close < hHi
+        dAuto := dSweptLo and not dSweptHi and dInside ? "bullish" : dSweptHi and not dSweptLo and dInside ? "bearish" : "none"
+        hAuto := hSweptLo and not hSweptHi and hInside ? "bullish" : hSweptHi and not hSweptLo and hInside ? "bearish" : "none"
+        biasFixed := true
+
+dailyCrt = crtMode == "Manual" ? str.lower(dManual) : dAuto
+h4Crt    = crtMode == "Manual" ? str.lower(hManual) : hAuto
+
+// ---- trade tracking ----
+var int    state     = 0       // 0 waiting for fill, 1 open, 2 closed
+var int    fillTime  = na
+var int    exitTime  = na
+var float  exitPrice = na
 var string exitWhy   = ""
-var float mfe        = 0.0
-var float mae        = 0.0
+var float  mfe       = 0.0
+var float  mae       = 0.0
 
 if valid and time >= setupTime and state == 0
     if (isLong and low <= entry) or (not isLong and high >= entry)
@@ -79,8 +107,13 @@ payload = "{" +
   q("timeframe") + ":" + q(timeframe.period) + "," +
   q("state") + ":" + q(stateName) + "," +
   q("direction") + ":" + q(str.lower(dir)) + "," +
-  q("daily_crt") + ":" + q(str.lower(dailyCrt)) + "," +
-  q("h4_crt") + ":" + q(str.lower(h4Crt)) + "," +
+  q("daily_crt") + ":" + q(dailyCrt) + "," +
+  q("h4_crt") + ":" + q(h4Crt) + "," +
+  q("crt_source") + ":" + q(crtMode == "Manual" ? "manual" : "lines") + "," +
+  q("daily_crt_high") + ":" + str.tostring(dHi) + "," +
+  q("daily_crt_low") + ":" + str.tostring(dLo) + "," +
+  q("h4_crt_high") + ":" + str.tostring(hHi) + "," +
+  q("h4_crt_low") + ":" + str.tostring(hLo) + "," +
   q("amd_aligned") + ":" + (amd ? "true" : "false") + "," +
   q("tbs_confirmed") + ":" + (tbs ? "true" : "false") + "," +
   q("news") + ":" + q(news) + "," +
@@ -96,30 +129,45 @@ payload = "{" +
   q("mfe") + ":" + str.tostring(mfe) + "," +
   q("mae") + ":" + str.tostring(mae) + "}"
 
-// Send the full state on the first live bar (covers setups marked in the past)
-// and again whenever the state changes. `var` values roll back on intrabar ticks,
-// so with once-per-bar-close this fires exactly once per qualifying bar.
+// Send full state on the first live bar and whenever the state changes.
 var bool synced = false
 if barstate.isrealtime and valid and (not synced or state != state[1])
     alert(payload, alert.freq_once_per_bar_close)
     synced := true
 
-// ---- drawing ----
-if barstate.islast and valid
+// ---- drawing (dotted CRT lines let you check they sit on your own lines) ----
+if barstate.islast
     var line lE = na
     var line lS = na
     var line lT = na
+    var line l1 = na
+    var line l2 = na
+    var line l3 = na
+    var line l4 = na
     line.delete(lE)
     line.delete(lS)
     line.delete(lT)
-    lE := line.new(setupTime, entry,  time, entry,  xloc = xloc.bar_time, color = color.new(#c9a54c, 0), width = 2)
-    lS := line.new(setupTime, stop,   time, stop,   xloc = xloc.bar_time, color = color.new(#e66767, 0), width = 1)
-    lT := line.new(setupTime, target, time, target, xloc = xloc.bar_time, color = color.new(#0ca30c, 0), width = 1)
+    line.delete(l1)
+    line.delete(l2)
+    line.delete(l3)
+    line.delete(l4)
+    if valid
+        lE := line.new(setupTime, entry,  time, entry,  xloc = xloc.bar_time, color = color.new(#c9a54c, 0), width = 2)
+        lS := line.new(setupTime, stop,   time, stop,   xloc = xloc.bar_time, color = color.new(#e66767, 0), width = 1)
+        lT := line.new(setupTime, target, time, target, xloc = xloc.bar_time, color = color.new(#0ca30c, 0), width = 1)
+    if dHi > 0
+        l1 := line.new(setupTime - dLookH * 3600000, dHi, time, dHi, xloc = xloc.bar_time, color = color.new(#b9b8b2, 30), style = line.style_dotted)
+    if dLo > 0
+        l2 := line.new(setupTime - dLookH * 3600000, dLo, time, dLo, xloc = xloc.bar_time, color = color.new(#b9b8b2, 30), style = line.style_dotted)
+    if hHi > 0
+        l3 := line.new(setupTime - hLookH * 3600000, hHi, time, hHi, xloc = xloc.bar_time, color = color.new(#3987e5, 30), style = line.style_dotted)
+    if hLo > 0
+        l4 := line.new(setupTime - hLookH * 3600000, hLo, time, hLo, xloc = xloc.bar_time, color = color.new(#3987e5, 30), style = line.style_dotted)
     var label lb = na
     label.delete(lb)
     r = state == 2 ? (isLong ? exitPrice - entry : entry - exitPrice) / math.abs(entry - stop) : na
-    lb := label.new(time, entry, "AUREUS · " + stateName + (state == 2 ? " · " + str.tostring(r, "#.##") + "R gross" : ""),
-         xloc = xloc.bar_time, style = label.style_label_left, color = color.new(#17181b, 0), textcolor = #f0efec, size = size.small)
-
-if not valid and barstate.islast
-    label.new(bar_index, close, "AUREUS: stop/target on wrong side of entry", color = color.red, textcolor = color.white)
+    txt = valid ? "AUREUS · " + stateName + (state == 2 ? " · " + str.tostring(r, "#.##") + "R gross" : "") +
+         "\nDaily CRT: " + dailyCrt + " · 4H CRT: " + h4Crt :
+         "AUREUS: stop/target on wrong side of entry"
+    lb := label.new(time, valid ? entry : close, txt, xloc = xloc.bar_time, style = label.style_label_left,
+         color = valid ? color.new(#17181b, 0) : color.red, textcolor = #f0efec, size = size.small)

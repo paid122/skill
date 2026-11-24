@@ -104,6 +104,8 @@ def as_journal_rows() -> pd.DataFrame:
             "exit": _num(s.get("exit_price")) if closed else None,
             "mfe": _num(s.get("mfe")), "mae": _num(s.get("mae")),
             "news": s.get("news") or "none",
-            "notes": f"TradingView {s.get('symbol', '')} {s.get('timeframe', '')} id={s['id']} exit={s.get('exit_reason', '')}",
+            "notes": (f"TradingView {s.get('symbol', '')} {s.get('timeframe', '')} id={s['id']} exit={s.get('exit_reason', '')} "
+                      f"crt_source={s.get('crt_source', 'manual')} D[{s.get('daily_crt_low')}-{s.get('daily_crt_high')}] "
+                      f"4H[{s.get('h4_crt_low')}-{s.get('h4_crt_high')}]"),
         })
     return pd.DataFrame(rows)
