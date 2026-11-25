@@ -566,6 +566,12 @@ def tv_delete(setup_id: str):
     return J({"deleted": setup_id})
 
 
+@app.get("/api/tradingview/iv-walls-pine")
+def tv_iv_pine():
+    return FileResponse(Path(__file__).resolve().parents[2] / "tradingview" / "aureus_iv_walls.pine",
+                        media_type="text/plain", filename="aureus_iv_walls.pine")
+
+
 @app.get("/api/tradingview/pine")
 def tv_pine():
     return FileResponse(Path(__file__).resolve().parents[2] / "tradingview" / "aureus_tbs_marker.pine",

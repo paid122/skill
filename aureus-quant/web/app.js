@@ -597,12 +597,19 @@ function optionsCards(o) {
       <div><h2>IV term structure & 25Δ skew</h2><div id="oterm" class="plot tall"></div></div>
     </div>
     ${table(o.term, [["expiry", "Expiry"], ["days", "Days"], ["atm_iv", "ATM IV", pct], ["skew_25d", "25Δ skew (put−call)", (v) => v == null ? "—" : (v * 100).toFixed(2) + " vol pts"], ["expected_move_pct", "Expected move", (v) => v == null ? "—" : "±" + (v * 100).toFixed(2) + "%"], ["straddle_move_pct", "Straddle", (v) => v == null ? "—" : "±" + (v * 100).toFixed(2) + "%"]])}
+    <div class="row" style="margin-top:8px"><span class="dim">TradingView:</span> <code id="tvlv" style="font:12px var(--mono)">${esc(o.tradingview_levels || "")}</code>
+      <button id="tvcopy" class="primary">Copy for TradingView</button> <a href="/api/tradingview/iv-walls-pine" style="color:var(--gold)">Download the IV Walls indicator</a></div>
     <p class="dim">Snapshot ${esc((o.saved_at || "").slice(0, 16))} UTC · GLD ${fmt(o.spot_gld, 2)} · MGC/GLD ratio ${fmt(o.mgc_ratio, 3)}</p>
     ${o.assumptions.map((a) => `<div class="explain lim">⚠ ${esc(a)}</div>`).join("")}`, "spanall");
 }
 
 function drawOptions(o) {
   if (o.error || !document.getElementById("ogex")) return;
+  const cp = document.getElementById("tvcopy");
+  if (cp) cp.onclick = async () => {
+    try { await navigator.clipboard.writeText(o.tradingview_levels); cp.textContent = "Copied ✓"; }
+    catch { const r = document.createRange(); r.selectNode($("#tvlv")); getSelection().removeAllRanges(); getSelection().addRange(r); cp.textContent = "Press Ctrl/Cmd+C"; }
+  };
   const st = o.strikes, y = st.map((x) => x.strike_mgc ?? x.strike);
   const spotY = o.mgc_last || (o.mgc_ratio ? o.spot_gld * o.mgc_ratio : o.spot_gld);
   plot("ogex", [

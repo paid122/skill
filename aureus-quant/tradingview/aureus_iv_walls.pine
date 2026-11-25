@@ -1,0 +1,118 @@
+//@version=6
+indicator("AUREUS IV Walls", overlay = true, max_lines_count = 50, max_labels_count = 50)
+
+// ============================================================================
+// PART 1 — Implied-volatility bands (automatic, from CBOE:GVZ)
+//   GVZ = CBOE Gold ETF Volatility Index: 30-day implied volatility of GLD options.
+//   Expected move over N trading days = anchor × GVZ/100 × sqrt(N/252)  (≈68% for 1σ).
+//   All values use the PREVIOUS day's GVZ close, so nothing repaints.
+// PART 2 — Options walls (pasted from AUREUS: Quant Engine → Options walls →
+//   "Copy for TradingView"). TradingView cannot read option open interest, so
+//   these levels must come from AUREUS. They are GLD-option levels mapped to MGC.
+// ============================================================================
+
+grpB = "Implied-volatility bands (automatic)"
+ivSym     = input.symbol("CBOE:GVZ", "IV index symbol", group = grpB)
+showDay   = input.bool(true, "Daily expected-move bands", group = grpB)
+showWeek  = input.bool(true, "Weekly expected-move bands", group = grpB)
+show2s    = input.bool(true, "Show 2σ bands", group = grpB)
+
+grpW = "Options walls (paste from AUREUS)"
+levelsTxt  = input.text_area("", "AUREUS levels (CW=…;PW=…;GF=…;MP=…;EM=…;D=…)", group = grpW)
+zonePct    = input.float(0.05, "Wall zone half-width (%)", minval = 0, step = 0.01, group = grpW)
+maxAgeDays = input.int(2, "Warn if levels older than (days)", minval = 1, group = grpW)
+
+grpT = "Display"
+showTable = input.bool(true, "Show info table", group = grpT)
+tablePos  = input.string("Top right", "Table position", options = ["Top right", "Bottom right", "Top left", "Bottom left"], group = grpT)
+
+// ---------------------------------------------------------------- IV data --
+gvz    = request.security(ivSym, "D", close[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+gvzPct = request.security(ivSym, "D", ta.percentrank(close, 252)[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+rv21   = request.security(syminfo.tickerid, "D", (ta.stdev(math.log(close / close[1]), 21) * math.sqrt(252) * 100)[1], lookahead = barmerge.lookahead_on)
+dayOpen  = request.security(syminfo.tickerid, "D", open, lookahead = barmerge.lookahead_on)
+weekOpen = request.security(syminfo.tickerid, "W", open, lookahead = barmerge.lookahead_on)
+
+dMove = dayOpen  * gvz / 100 * math.sqrt(1.0 / 252)
+wMove = weekOpen * gvz / 100 * math.sqrt(5.0 / 252)
+
+pD1u = plot(showDay ? dayOpen + dMove : na, "Day +1σ", color.new(#3987e5, 0), 1, plot.style_stepline)
+pD1d = plot(showDay ? dayOpen - dMove : na, "Day −1σ", color.new(#3987e5, 0), 1, plot.style_stepline)
+fill(pD1u, pD1d, color.new(#3987e5, 93), "Day 1σ zone")
+plot(showDay and show2s ? dayOpen + 2 * dMove : na, "Day +2σ", color.new(#3987e5, 50), 1, plot.style_stepline)
+plot(showDay and show2s ? dayOpen - 2 * dMove : na, "Day −2σ", color.new(#3987e5, 50), 1, plot.style_stepline)
+plot(showWeek ? weekOpen + wMove : na, "Week +1σ", color.new(#c9a54c, 0), 2, plot.style_stepline)
+plot(showWeek ? weekOpen - wMove : na, "Week −1σ", color.new(#c9a54c, 0), 2, plot.style_stepline)
+plot(showWeek and show2s ? weekOpen + 2 * wMove : na, "Week +2σ", color.new(#c9a54c, 50), 1, plot.style_stepline)
+plot(showWeek and show2s ? weekOpen - 2 * wMove : na, "Week −2σ", color.new(#c9a54c, 50), 1, plot.style_stepline)
+
+// ---------------------------------------------------------- parse walls --
+getLevel(string txt, string key) =>
+    float v = na
+    parts = str.split(str.replace_all(txt, " ", ""), ";")
+    for p in parts
+        kv = str.split(p, "=")
+        if array.size(kv) == 2 and str.upper(array.get(kv, 0)) == key
+            v := str.tonumber(array.get(kv, 1))
+    v
+
+getText(string txt, string key) =>
+    string v = ""
+    parts = str.split(str.replace_all(txt, " ", ""), ";")
+    for p in parts
+        kv = str.split(p, "=")
+        if array.size(kv) == 2 and str.upper(array.get(kv, 0)) == key
+            v := array.get(kv, 1)
+    v
+
+cw = getLevel(levelsTxt, "CW")
+pw = getLevel(levelsTxt, "PW")
+gf = getLevel(levelsTxt, "GF")
+mp = getLevel(levelsTxt, "MP")
+em = getLevel(levelsTxt, "EM")
+lvDate = getText(levelsTxt, "D")
+dParts = str.split(lvDate, "-")
+lvTs = array.size(dParts) == 3 ? timestamp("UTC", int(str.tonumber(array.get(dParts, 0))), int(str.tonumber(array.get(dParts, 1))), int(str.tonumber(array.get(dParts, 2))), 0, 0) : na
+ageDays = na(lvTs) ? na : (timenow - lvTs) / 86400000.0
+stale = not na(ageDays) and ageDays > maxAgeDays
+
+drawLevel(float lvl, string name, color col, int width, string styleName) =>
+    if not na(lvl)
+        st = styleName == "dashed" ? line.style_dashed : styleName == "dotted" ? line.style_dotted : line.style_solid
+        line.new(bar_index - 1, lvl, bar_index, lvl, extend = extend.both, color = col, width = width, style = st)
+        label.new(bar_index + 3, lvl, name + " " + str.tostring(lvl, format.mintick), style = label.style_label_left,
+             color = color.new(col, 75), textcolor = color.white, size = size.small)
+        if zonePct > 0 and (name == "Call wall" or name == "Put wall")
+            h = lvl * zonePct / 100
+            box.new(bar_index - 300, lvl + h, bar_index + 30, lvl - h, border_color = color.new(col, 100), bgcolor = color.new(col, 88))
+
+if barstate.islast
+    for l in line.all
+        line.delete(l)
+    for b in label.all
+        label.delete(b)
+    for x in box.all
+        box.delete(x)
+    drawLevel(cw, "Call wall", #0ca30c, 2, "dashed")
+    drawLevel(pw, "Put wall", #e66767, 2, "dashed")
+    drawLevel(gf, "Gamma flip", #c9a54c, 1, "dotted")
+    drawLevel(mp, "Max pain", #85847f, 1, "dotted")
+
+// ------------------------------------------------------------- table -----
+pos = tablePos == "Top right" ? position.top_right : tablePos == "Bottom right" ? position.bottom_right : tablePos == "Top left" ? position.top_left : position.bottom_left
+var table t = table.new(pos, 2, 9, bgcolor = color.new(#17181b, 5), border_color = color.new(#33363c, 0), border_width = 1)
+cell(r, a, b, col) =>
+    table.cell(t, 0, r, a, text_color = #b9b8b2, text_size = size.small, text_halign = text.align_left)
+    table.cell(t, 1, r, b, text_color = col, text_size = size.small, text_halign = text.align_right)
+
+if showTable and barstate.islast
+    vrp = gvz - rv21
+    cell(0, "AUREUS IV Walls", "", #c9a54c)
+    cell(1, "Gold IV (GVZ)", na(gvz) ? "n/a" : str.tostring(gvz, "#.0"), #f0efec)
+    cell(2, "IV percentile (1y)", na(gvzPct) ? "n/a" : str.tostring(gvzPct, "#") + "%", gvzPct > 80 ? #e66767 : gvzPct < 20 ? #0ca30c : #f0efec)
+    cell(3, "Realised vol 21d", na(rv21) ? "n/a" : str.tostring(rv21, "#.0"), #f0efec)
+    cell(4, "Vol risk premium", na(vrp) ? "n/a" : str.tostring(vrp, "+#.0;-#.0"), vrp >= 0 ? #f0efec : #e66767)
+    cell(5, "Day ±1σ move", na(dMove) ? "n/a" : "±" + str.tostring(dMove, "#.0"), #3987e5)
+    cell(6, "Week ±1σ move", na(wMove) ? "n/a" : "±" + str.tostring(wMove, "#.0"), #c9a54c)
+    cell(7, "AUREUS expected move", na(em) ? "—" : "±" + str.tostring(em, "#.0"), #f0efec)
+    cell(8, "Walls as of", lvDate == "" ? "not pasted" : lvDate + (stale ? "  STALE" : ""), stale or lvDate == "" ? #e66767 : #0ca30c)

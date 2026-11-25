@@ -335,3 +335,10 @@ def test_yahoo_hardening(tmp_path, monkeypatch):
         assert runner.update_now(("5m",))["busy"] is True
     finally:
         runner._update_lock.release()
+
+
+def test_tradingview_levels_string():
+    from aureus.engine.runner import tradingview_levels
+    snap = {"levels_mgc": {"call_wall": 3627.63, "put_wall": 3348.58, "gamma_flip": None, "max_pain": 3441.6},
+            "term": [{"expected_move_pct": 0.0126}], "mgc_last": 3441.6, "saved_at": "2026-11-25T14:34:00"}
+    assert tradingview_levels(snap) == "CW=3627.6;PW=3348.6;MP=3441.6;EM=43.4;D=2026-11-25"

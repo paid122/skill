@@ -98,7 +98,20 @@ def options_view() -> dict:
     snap = store.last_snapshot("options")
     if snap is None:
         raise InsufficientData("No options snapshot yet — press 'Update data now'.")
+    snap["tradingview_levels"] = tradingview_levels(snap)
     return snap
+
+
+def tradingview_levels(snap: dict) -> str:
+    """Compact string pasted into the AUREUS IV Walls TradingView indicator."""
+    L = snap.get("levels_mgc") or {}
+    parts = [f"{k}={L[v]:.1f}" for k, v in (("CW", "call_wall"), ("PW", "put_wall"), ("GF", "gamma_flip"), ("MP", "max_pain"))
+             if L.get(v) is not None]
+    term = snap.get("term") or []
+    if term and term[0].get("expected_move_pct") and snap.get("mgc_last"):
+        parts.append(f"EM={term[0]['expected_move_pct'] * snap['mgc_last']:.1f}")
+    parts.append("D=" + str(snap.get("saved_at", ""))[:10])
+    return ";".join(parts)
 
 
 def volatility_view() -> dict:
