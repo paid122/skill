@@ -221,3 +221,29 @@ def test_variance_ratio_detects_momentum():
     px = pd.Series(np.exp(np.cumsum(r * 0.001)) * 4000)
     vr = variance_ratio(px, 4)
     assert vr["vr"] > 1.2 and vr["p"] < 0.01
+
+
+def test_options_walls_and_iv_inversion():
+    from aureus.engine.options import analyse_chain, implied_vol, bs_price
+    from aureus.simulate import simulated_option_chains
+    assert implied_vol(bs_price(370, 380, 0.1, 0.22, True), 370, 380, 0.1, True) == pytest.approx(0.22, abs=1e-4)
+    chains, spot = simulated_option_chains()
+    res = analyse_chain(chains, spot, 10.0)
+    lv = res["levels_gld"]
+    assert lv["call_wall"] >= spot and lv["put_wall"] <= spot
+    assert res["levels_mgc"]["call_wall"] == pytest.approx(lv["call_wall"] * 10)
+    assert res["term"][0]["atm_iv"] == pytest.approx(0.17, abs=0.01)   # recovers the generating IV
+    assert res["term"][-1]["skew_25d"] > 0                              # put skew built into the smile
+
+
+def test_garch_recovers_persistence():
+    from aureus.engine.volmodels import garch11
+    rng = np.random.default_rng(0)
+    n, w, a, b = 2000, 0.02, 0.08, 0.9
+    s2, r = w / (1 - a - b), []
+    for _ in range(n):
+        e = rng.standard_normal() * np.sqrt(s2)
+        r.append(e)
+        s2 = w + a * e * e + b * s2
+    g = garch11(pd.Series(np.array(r) / 100))
+    assert abs(g["persistence"] - 0.98) < 0.03

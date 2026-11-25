@@ -91,3 +91,28 @@ def load_simulated(ws) -> None:
     ws.load_candles(simulated_candles_csv(), source="SIMULATED random walk (not market data)", provenance=Provenance.SIMULATED)
     ws.load_journal(simulated_journal_csv(), provenance=Provenance.SIMULATED)
     ws.load_events(simulated_events_csv())
+
+
+def simulated_option_chains(spot: float = 370.0, seed: int = 3):
+    """SIMULATED GLD-like option chains (BS-priced with a skewed smile and
+    random open interest) — for tests and UI previews only."""
+    from .engine.options import bs_price
+    rng = np.random.default_rng(seed)
+    chains = []
+    for i, days in enumerate([2, 9, 16, 30, 44, 58]):
+        T = days / 365
+        strikes = np.arange(round(spot * 0.85), round(spot * 1.15), 1.0)
+        rows_c, rows_p = [], []
+        for k in strikes:
+            m = np.log(k / spot)
+            iv = 0.17 + 0.6 * m * m - 0.15 * m + 0.01 * i
+            for call, rows in ((True, rows_c), (False, rows_p)):
+                px = bs_price(spot, k, T, iv, call)
+                spread = max(0.02, px * 0.03)
+                bump = 3 if (call and k % 10 == 0 and k > spot) or (not call and k % 10 == 0 and k < spot) else 1
+                oi = int(rng.gamma(2, 400) * np.exp(-abs(m) * 12) * bump)
+                rows.append({"strike": k, "bid": max(px - spread / 2, 0), "ask": px + spread / 2, "openInterest": oi,
+                             "volume": int(oi * rng.uniform(0, 0.3)), "impliedVolatility": iv})
+        exp = (pd.Timestamp("2026-04-03") + pd.Timedelta(days=days)).strftime("%Y-%m-%d")
+        chains.append({"expiry": exp, "T": T, "calls": pd.DataFrame(rows_c), "puts": pd.DataFrame(rows_p)})
+    return chains, spot

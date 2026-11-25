@@ -516,6 +516,8 @@ async function renderEngine(force = false) {
     return;
   }
   const s = r.state, ev = r.evaluation;
+  const [opt, vol] = await Promise.all([api("/api/engine/options").catch((e) => ({ error: e.message })), api("/api/engine/volatility").catch((e) => ({ error: e.message }))]);
+  ENG.opt = opt;
   ENG.horizon = ENG.horizon || ev.horizons[1] || ev.horizons[0];
   const sim = r.provenance === "SIMULATED";
   const ban = $("#banner");
@@ -536,6 +538,8 @@ async function renderEngine(force = false) {
     <div class="grid g3" style="margin-top:12px">
       ${card("Price & detector signals (last 600 bars)", `<div id="echart" class="plot tall"></div>`, "span2")}
       ${card("Active now (last 3 bars)", activeList(s.active))}
+      ${optionsCards(opt)}
+      ${volCards(vol)}
       ${card("Edge scanner", `<div class="row">horizon ${ev.horizons.map((h) => `<button class="${h === ENG.horizon ? "primary" : ""}" data-h="${h}">${h}</button>`).join("")}
         <span class="dim">IS = first 70% of history (discovery, FDR-corrected) · OOS = last 30% (validation) · values are ticks of excess return per event</span></div><div id="escan"></div>`, "spanall")}
       ${card("Detector detail", `<div id="edetail">${empty("Click a row in the edge scanner")}</div>`, "spanall")}
@@ -545,11 +549,113 @@ async function renderEngine(force = false) {
       ${r.seasonality ? card("Intraday seasonality — mean |move| per bar by NY hour (gold = FDR-significant mean return)", `<div id="eseas" class="plot"></div>`, "spanall") : ""}
     </div>`;
   drawEngineChart(r);
+  drawOptions(opt);
+  drawVol(vol);
   drawCone(s.cone);
   drawScanner(ev);
   drawRegime(r.regime.timeline);
   if (r.seasonality) drawSeason(r.seasonality);
   body.querySelectorAll("[data-h]").forEach((b) => b.onclick = () => { ENG.horizon = b.dataset.h; renderEngine(); });
+}
+
+const WALLS = [["call_wall", "Call wall", C.good, "dash"], ["put_wall", "Put wall", C.bad, "dash"], ["gamma_flip", "Gamma flip", C.gold, "dot"], ["max_pain", "Max pain", C.muted, "dashdot"]];
+function wallShapes(lo, hi) {
+  const o = ENG.opt; if (!o || o.error || !o.levels_mgc) return [];
+  return WALLS.filter(([k]) => o.levels_mgc[k] != null && o.levels_mgc[k] >= lo && o.levels_mgc[k] <= hi).map(([k, , col, dash]) => ({ type: "line", xref: "paper", x0: 0, x1: 1, y0: o.levels_mgc[k], y1: o.levels_mgc[k], line: { color: col, width: 1.5, dash } }));
+}
+function wallLabels(lo, hi) {
+  const o = ENG.opt; if (!o || o.error || !o.levels_mgc) return [];
+  const ws = WALLS.filter(([k]) => o.levels_mgc[k] != null);
+  const inside = ws.filter(([k]) => o.levels_mgc[k] >= lo && o.levels_mgc[k] <= hi).map(([k, lab, col]) => ({ xref: "paper", x: 0.01, y: o.levels_mgc[k], xanchor: "left", yanchor: "bottom", showarrow: false, text: `${lab} ${o.levels_mgc[k].toFixed(1)}`, font: { size: 10, color: col } }));
+  const above = ws.filter(([k]) => o.levels_mgc[k] > hi), below = ws.filter(([k]) => o.levels_mgc[k] < lo);
+  const edge = (arr, y, arrow) => arr.length ? [{ xref: "paper", yref: "paper", x: 0.01, y, xanchor: "left", yanchor: y > 0.5 ? "top" : "bottom", showarrow: false,
+    text: arr.map(([k, lab]) => `${arrow} ${lab} ${o.levels_mgc[k].toFixed(1)}`).join("   "), font: { size: 10, color: C.text2 } }] : [];
+  return [...inside, ...edge(above, 0.99, "↑"), ...edge(below, 0.01, "↓")];
+}
+
+function optionsCards(o) {
+  if (o.error) return card("Options walls · GLD options mapped to MGC1!", empty(o.error), "spanall");
+  const L = o.levels_mgc, near = o.term[0] || {};
+  return card(`Options walls · GLD options mapped to MGC1! ${o.provenance ? provChip(o.provenance) : provChip("DELAYED")}`, `
+    <div class="kpis">
+      ${kpi("Call wall", fmt(L.call_wall, 1), `GLD ${fmt(o.levels_gld.call_wall, 0)} · max call OI above`)}
+      ${kpi("Put wall", fmt(L.put_wall, 1), `GLD ${fmt(o.levels_gld.put_wall, 0)} · max put OI below`)}
+      ${kpi("Gamma flip", fmt(L.gamma_flip, 1), "net GEX changes sign")}
+      ${kpi("Max pain", fmt(L.max_pain, 1), `expiry ${esc(o.expiries[0])}`)}
+      ${kpi("Net GEX", `${fmt(o.total_gex_usd_per_1pct / 1e6, 1)}M`, "$ per 1% move")}
+      ${kpi("Gamma regime", `<span style="font-size:12px">${o.total_gex_usd_per_1pct > 0 ? "Positive" : "Negative"}</span>`, o.total_gex_usd_per_1pct > 0 ? "dampening / mean-reverting" : "amplifying / trending")}
+      ${kpi("Put/Call OI", fmt(o.put_call_oi_ratio, 2), "scanned expiries")}
+      ${kpi("Implied move", near.expected_move_pct != null ? `±${(near.expected_move_pct * 100).toFixed(2)}%` : "—", o.mgc_last ? `±${fmt(near.expected_move_pct * o.mgc_last, 1)} on MGC1! by ${esc(near.expiry || "")}` : `by ${esc(near.expiry || "")}`)}
+    </div>
+    <div class="grid g3" style="margin-top:10px">
+      <div><h2>Gamma exposure & open interest by strike</h2><div id="ogex" class="plot tall"></div></div>
+      <div><h2>Net GEX vs spot (where dealers flip)</h2><div id="ocurve" class="plot tall"></div></div>
+      <div><h2>IV term structure & 25Δ skew</h2><div id="oterm" class="plot tall"></div></div>
+    </div>
+    ${table(o.term, [["expiry", "Expiry"], ["days", "Days"], ["atm_iv", "ATM IV", pct], ["skew_25d", "25Δ skew (put−call)", (v) => v == null ? "—" : (v * 100).toFixed(2) + " vol pts"], ["expected_move_pct", "Expected move", (v) => v == null ? "—" : "±" + (v * 100).toFixed(2) + "%"], ["straddle_move_pct", "Straddle", (v) => v == null ? "—" : "±" + (v * 100).toFixed(2) + "%"]])}
+    <p class="dim">Snapshot ${esc((o.saved_at || "").slice(0, 16))} UTC · GLD ${fmt(o.spot_gld, 2)} · MGC/GLD ratio ${fmt(o.mgc_ratio, 3)}</p>
+    ${o.assumptions.map((a) => `<div class="explain lim">⚠ ${esc(a)}</div>`).join("")}`, "spanall");
+}
+
+function drawOptions(o) {
+  if (o.error || !document.getElementById("ogex")) return;
+  const st = o.strikes, y = st.map((x) => x.strike_mgc ?? x.strike);
+  const spotY = o.mgc_last || (o.mgc_ratio ? o.spot_gld * o.mgc_ratio : o.spot_gld);
+  plot("ogex", [
+    { type: "bar", orientation: "h", y, x: st.map((x) => x.gex / 1e6), name: "Net GEX ($M/1%)", marker: { color: st.map((x) => x.gex >= 0 ? C.A : C.B) }, hovertemplate: "%{y:.1f}: GEX %{x:.2f}M<extra></extra>" },
+    { type: "scatter", mode: "lines", y, x: st.map((x) => x.call_oi / 1000), name: "Call OI (k)", xaxis: "x2", line: { color: C.good, width: 1.5 }, hovertemplate: "%{y:.1f}: call OI %{x:.1f}k<extra></extra>" },
+    { type: "scatter", mode: "lines", y, x: st.map((x) => x.put_oi / 1000), name: "Put OI (k)", xaxis: "x2", line: { color: C.bad, width: 1.5 }, hovertemplate: "%{y:.1f}: put OI %{x:.1f}k<extra></extra>" }],
+    { margin: { l: 56, r: 10, t: 40, b: 36 }, legend: { orientation: "h", y: 1.14, font: { size: 10 } }, yaxis: { gridcolor: C.grid, title: "MGC1! price" },
+      xaxis: { gridcolor: C.grid, title: "GEX $M per 1%" }, xaxis2: { overlaying: "x", side: "top", showgrid: false, title: { text: "OI (thousands)", font: { size: 10 } } },
+      shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: spotY, y1: spotY, line: { color: C.gold, width: 1.5 } }] });
+  const g = o.gex_curve;
+  plot("ocurve", [{ x: g.spot_mgc[0] != null ? g.spot_mgc : g.spot_gld, y: g.total_gex.map((v) => v / 1e6), mode: "lines", line: { color: C.A, width: 2 }, name: "net GEX", hovertemplate: "spot %{x:.1f}: %{y:.2f}M<extra></extra>" }],
+    { showlegend: false, xaxis: { title: "hypothetical MGC1! price", gridcolor: C.grid }, yaxis: { title: "$M per 1%", gridcolor: C.grid },
+      shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: C.muted, width: 1 } }, ...vline(spotY, C.gold), ...vline(o.levels_mgc.gamma_flip, C.gold, "dot")] });
+  const t = o.term;
+  plot("oterm", [{ x: t.map((x) => x.days), y: t.map((x) => x.atm_iv * 100), mode: "lines+markers", name: "ATM IV %", line: { color: C.A, width: 2 }, marker: { size: 8 } },
+    { x: t.map((x) => x.days), y: t.map((x) => x.skew_25d == null ? null : x.skew_25d * 100), mode: "lines+markers", name: "25Δ skew (vol pts)", line: { color: C.B, width: 2 }, marker: { size: 8 } }],
+    { legend: { orientation: "h", y: 1.14, font: { size: 10 } }, margin: { l: 40, r: 10, t: 40, b: 36 }, xaxis: { title: "days to expiry", gridcolor: C.grid }, yaxis: { gridcolor: C.grid } });
+}
+
+function volCards(v) {
+  if (v.error) return card("Volatility models", empty(v.error), "spanall");
+  const g = v.garch, iv = v.iv, ca = v.cross_asset || {};
+  return card("Volatility models · GARCH · IV vs realised · cross-asset", `
+    <div class="kpis">
+      ${g.error ? kpi("GARCH(1,1)", "—", esc(g.error)) : kpi("GARCH forecast", `${fmt(g.forecast_vol_pct["1d"], 1)}%`, `5d ${fmt(g.forecast_vol_pct["5d"], 1)}% · 21d ${fmt(g.forecast_vol_pct["21d"], 1)}% (ann.)`)}
+      ${g.error ? "" : kpi("Long-run vol", `${fmt(g.long_run_vol_pct, 1)}%`, `persistence ${fmt(g.persistence, 3)} · half-life ${fmt(g.half_life_days, 0)}d`)}
+      ${iv ? kpi("Gold IV (GVZ)", fmt(iv.gvz, 1), `IV rank ${fmt(iv.iv_rank_1y, 0)} · pct ${fmt(iv.iv_percentile_1y, 0)}`) : kpi("Gold IV (GVZ)", "—", "no data")}
+      ${iv ? kpi("Vol risk premium", `${tk(iv.vrp, 1)} pts`, `IV ${fmt(iv.gvz, 1)} − RV21 ${fmt(iv.rv21, 1)}`) : ""}
+      ${Object.entries(ca).map(([k, x]) => kpi(`Corr to ${k} (60d)`, fmt(x.corr_now, 2), `β ${fmt(x.beta_now, 2)} ${esc(x.unit)} · full-sample r ${fmt(x.corr_full, 2)} (p ${fmt(x.p_full, 3)})`)).join("")}
+    </div>
+    <div class="grid g3" style="margin-top:10px">
+      <div><h2>Realised-vol cone (annualised %)</h2><div id="vcone" class="plot"></div></div>
+      <div><h2>GARCH conditional vol vs GVZ implied</h2><div id="vgarch" class="plot"></div></div>
+      <div><h2>Rolling 60-day correlation</h2><div id="vcorr" class="plot"></div></div>
+    </div>
+    <div class="explain lim">⚠ GARCH assumes Gaussian shocks and stable parameters; IV (GVZ) is GLD-option based; correlations are associations, not causes.</div>`, "spanall");
+}
+
+function drawVol(v) {
+  if (v.error || !document.getElementById("vcone")) return;
+  const c = v.cone.cone, x = c.map((r) => r.window + "d");
+  plot("vcone", [
+    { x, y: c.map((r) => r.p95), mode: "lines", line: { color: C.muted, dash: "dot", width: 1 }, name: "p95" },
+    { x, y: c.map((r) => r.p75), mode: "lines", line: { color: C.A, width: 1 }, name: "p75" },
+    { x, y: c.map((r) => r.p50), mode: "lines", line: { color: C.text2, width: 1.5 }, name: "median" },
+    { x, y: c.map((r) => r.p25), mode: "lines", line: { color: C.A, width: 1 }, name: "p25" },
+    { x, y: c.map((r) => r.p5), mode: "lines", line: { color: C.muted, dash: "dot", width: 1 }, name: "p5" },
+    { x, y: c.map((r) => r.current), mode: "lines+markers", line: { color: C.gold, width: 2 }, marker: { size: 8 }, name: "now" }],
+    { legend: { orientation: "h", y: 1.16, font: { size: 10 } }, margin: { l: 40, r: 10, t: 40, b: 30 }, yaxis: { gridcolor: C.grid } });
+  const tr = [];
+  if (!v.garch.error) { const n = v.garch.conditional_vol_pct.length; tr.push({ y: v.garch.conditional_vol_pct, x: [...Array(n).keys()].map((i) => i - n + 1), mode: "lines", name: "GARCH σ", line: { color: C.A, width: 2 } }); }
+  if (v.iv) { const n = v.iv.history.gvz.length; tr.push({ y: v.iv.history.gvz, x: [...Array(n).keys()].map((i) => i - n + 1), mode: "lines", name: "GVZ (IV)", line: { color: C.gold, width: 1.5 } }); }
+  plot("vgarch", tr, { legend: { orientation: "h", y: 1.16, font: { size: 10 } }, margin: { l: 40, r: 10, t: 40, b: 30 }, xaxis: { title: "trading days ago", gridcolor: C.grid }, yaxis: { title: "% annualised", gridcolor: C.grid } });
+  const ca = v.cross_asset || {};
+  plot("vcorr", Object.entries(ca).map(([k, x], i) => ({ x: x.series.t, y: x.series.corr, mode: "lines", name: k, line: { color: [C.A, C.B, C.C][i], width: 2 } })),
+    { legend: { orientation: "h", y: 1.16, font: { size: 10 } }, margin: { l: 40, r: 10, t: 40, b: 30 }, yaxis: { range: [-1, 1], gridcolor: C.grid },
+      shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: C.muted, width: 1 } }] });
 }
 
 function activeList(a) {
@@ -562,6 +668,8 @@ function activeList(a) {
 
 function drawEngineChart(r) {
   const c = r.chart;
+  const mn = Math.min(...c.low), mx = Math.max(...c.high), pad = (mx - mn) * 0.12;
+  const lo = mn - pad, hi = mx + pad;
   const keys = [...new Set(c.signals.map((s) => s.key))];
   const marks = keys.map((k) => {
     const ss = c.signals.filter((s) => s.key === k);
@@ -571,7 +679,8 @@ function drawEngineChart(r) {
   });
   plot("echart", [{ type: "candlestick", x: c.t, open: c.open, high: c.high, low: c.low, close: c.close, name: "MGC1!", showlegend: false,
     increasing: { line: { color: C.text2, width: 1 }, fillcolor: C.text2 }, decreasing: { line: { color: C.gold, width: 1 }, fillcolor: C.gold } }, ...marks],
-    { margin: { l: 12, r: 64, t: 30, b: 40 }, legend: { orientation: "h", y: 1.08, font: { size: 10 } }, xaxis: { rangeslider: { visible: false }, gridcolor: C.grid }, yaxis: { side: "right", gridcolor: C.grid, tickformat: ".1f" } });
+    { margin: { l: 12, r: 64, t: 70, b: 40 }, legend: { orientation: "h", y: 1.22, font: { size: 10 } }, xaxis: { rangeslider: { visible: false }, gridcolor: C.grid },
+      yaxis: { side: "right", gridcolor: C.grid, tickformat: ".1f", range: [lo, hi] }, shapes: wallShapes(lo, hi), annotations: wallLabels(lo, hi) });
 }
 
 function drawCone(cone) {

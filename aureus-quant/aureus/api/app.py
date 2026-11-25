@@ -431,6 +431,18 @@ def engine_analysis(interval: str = "5m", force: bool = False):
     return J(runner.analyse(interval, force=force))
 
 
+@app.get("/api/engine/options")
+def engine_options():
+    from ..engine import runner
+    return J(runner.options_view())
+
+
+@app.get("/api/engine/volatility")
+def engine_volatility():
+    from ..engine import runner
+    return J(runner.volatility_view())
+
+
 @app.post("/api/engine/demo")
 def engine_demo():
     from ..engine import runner

@@ -13,6 +13,9 @@ The engine tracks MGC1! by itself; no strategy, journal or TradingView indicator
 * **Validation** (`aureus/engine/evaluate.py`): forward returns at 3 horizons, de-overlapped events, excess over drift, IS/OOS 70/30 split, Benjamini–Hochberg FDR across all tests, costs in ticks, and monthly stability. Each finding gets a status: VALIDATED / PROMISING / FAILED OOS / NO EDGE / INSUFFICIENT.
 * **State** (`aureus/engine/state.py`): volatility percentile, regime, Hurst exponent, Lo–MacKinlay variance ratio, lag-1 autocorrelation, active detectors, and an empirical probability cone conditional on the volatility tercile.
 
+* **Options walls** (`aureus/engine/options.py`): from the GLD option chain (Yahoo, refreshed every ~15 min) it computes the call wall, put wall, gamma flip, max pain, net GEX and gamma regime, put/call OI, the ATM IV term structure, 25Δ skew and implied/straddle moves. All levels are mapped to MGC1! prices by the live MGC/GLD ratio. GEX uses the naive dealer convention, and that assumption is stated in the UI.
+* **Volatility models** (`aureus/engine/volmodels.py`): GARCH(1,1) forecasts (1d/5d/21d), a realised-vol cone, IV rank/percentile from CBOE ^GVZ, the volatility risk premium, and rolling 60-day correlation and beta to DXY and the US 10y yield.
+
 ### macOS
 
 Double-click `start_mac.command`. If macOS blocks it, right-click it and choose **Open**, or run `bash start_mac.command` in Terminal. It needs Python 3.10+ from python.org, creates a private environment on first run, and opens http://localhost:8001.

@@ -41,7 +41,43 @@ def _conn():
         interval TEXT, ts INTEGER, open REAL, high REAL, low REAL, close REAL, volume REAL,
         source TEXT, PRIMARY KEY(interval, ts))""")
     c.execute("CREATE TABLE IF NOT EXISTS fetch_log(ts TEXT, interval TEXT, source TEXT, rows INTEGER, error TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS aux(symbol TEXT, ts INTEGER, close REAL, PRIMARY KEY(symbol, ts))")
+    c.execute("CREATE TABLE IF NOT EXISTS snapshots(kind TEXT, ts TEXT, payload TEXT)")
     return c
+
+
+# Daily auxiliary series: name -> Yahoo symbol
+AUX = {"DXY": "DX-Y.NYB", "US10Y": "^TNX", "GVZ": "^GVZ", "GLD": "GLD"}
+
+
+def upsert_aux(name: str, s: pd.Series) -> int:
+    s = s.dropna()
+    rows = [(name, int(t.value // 10**9), float(v)) for t, v in s.items()]
+    with _lock, _conn() as c:
+        c.executemany("INSERT OR REPLACE INTO aux VALUES (?,?,?)", rows)
+    return len(rows)
+
+
+def load_aux(name: str) -> pd.Series | None:
+    with _conn() as c:
+        rows = c.execute("SELECT ts, close FROM aux WHERE symbol=? ORDER BY ts", (name,)).fetchall()
+    if not rows:
+        return None
+    return pd.Series([r[1] for r in rows], index=pd.to_datetime([r[0] for r in rows], unit="s", utc=True), name=name)
+
+
+def save_snapshot(kind: str, payload: dict) -> None:
+    import json
+    from ..core import _jsonable
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO snapshots VALUES (?,?,?)", (kind, datetime.now(timezone.utc).isoformat(), json.dumps(_jsonable(payload))))
+
+
+def last_snapshot(kind: str) -> dict | None:
+    import json
+    with _conn() as c:
+        r = c.execute("SELECT ts, payload FROM snapshots WHERE kind=? ORDER BY rowid DESC LIMIT 1", (kind,)).fetchone()
+    return None if r is None else {"saved_at": r[0], **json.loads(r[1])}
 
 
 def upsert(df: pd.DataFrame, interval: str, source: str) -> int:
@@ -153,6 +189,28 @@ def get_feed():
     except ImportError:
         return None
     return YahooFeed()
+
+
+def update_aux() -> list[dict]:
+    """Daily DXY, US 10y yield, CBOE gold volatility index (GVZ) and GLD from Yahoo."""
+    import yfinance as yf
+    out = []
+    for name, sym in AUX.items():
+        try:
+            d = yf.download(sym, period="5y", interval="1d", progress=False, auto_adjust=False, threads=False)
+            if d is None or d.empty:
+                raise RuntimeError("no data")
+            if isinstance(d.columns, pd.MultiIndex):
+                d.columns = d.columns.get_level_values(0)
+            idx = pd.DatetimeIndex(d.index)
+            close = pd.Series(d["Close"].to_numpy(), index=idx.tz_localize("UTC") if idx.tz is None else idx.tz_convert("UTC"))
+            n = upsert_aux(name, close)
+            log_fetch(f"aux:{name}", "yahoo", n, None)
+            out.append({"series": name, "rows": n})
+        except Exception as e:  # noqa: BLE001
+            log_fetch(f"aux:{name}", "yahoo", 0, str(e)[:300])
+            out.append({"series": name, "error": str(e)[:300]})
+    return out
 
 
 def update(intervals=("1m", "5m", "1h", "1d")) -> dict:
