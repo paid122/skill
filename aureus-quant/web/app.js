@@ -499,7 +499,7 @@ views.engine = async () => {
     $("#eupd").textContent = "Update data now"; renderEngine(true);
   };
   await renderEngine();
-  ENG.timer = setInterval(() => { if (location.hash.slice(1) === "engine" || !location.hash) renderEngine(); }, 60000);
+  ENG.timer = setInterval(() => { if ((location.hash.slice(1) === "engine" || !location.hash) && !document.querySelector("#tset[open]")) renderEngine(); }, 60000);
 };
 
 async function renderEngine(force = false) {
@@ -516,7 +516,8 @@ async function renderEngine(force = false) {
     return;
   }
   const s = r.state, ev = r.evaluation;
-  const [opt, vol] = await Promise.all([api("/api/engine/options").catch((e) => ({ error: e.message })), api("/api/engine/volatility").catch((e) => ({ error: e.message }))]);
+  const [opt, vol, trd] = await Promise.all([api("/api/engine/options").catch((e) => ({ error: e.message })), api("/api/engine/volatility").catch((e) => ({ error: e.message })),
+    api("/api/trade/state").catch((e) => ({ error: e.message }))]);
   ENG.opt = opt;
   ENG.horizon = ENG.horizon || ev.horizons[1] || ev.horizons[0];
   const sim = r.provenance === "SIMULATED";
@@ -536,6 +537,7 @@ async function renderEngine(force = false) {
       ${kpi("PDH / PDL", s.pdh ? `${fmt(s.pdh, 1)} / ${fmt(s.pdl, 1)}` : "—", s.vwap ? `VWAP ${fmt(s.vwap, 1)}` : "")}
     </div>
     <div class="grid g3" style="margin-top:12px">
+      ${tradeCard(trd)}
       ${card("Price & detector signals (last 600 bars)", `<div id="echart" class="plot tall"></div>`, "span2")}
       ${card("Active now (last 3 bars)", activeList(s.active))}
       ${optionsCards(opt)}
@@ -549,6 +551,7 @@ async function renderEngine(force = false) {
       ${r.seasonality ? card("Intraday seasonality — mean |move| per bar by NY hour (gold = FDR-significant mean return)", `<div id="eseas" class="plot"></div>`, "spanall") : ""}
     </div>`;
   drawEngineChart(r);
+  bindTrade(trd);
   drawOptions(opt);
   drawVol(vol);
   drawCone(s.cone);
@@ -743,6 +746,78 @@ function drawSeason(se) {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   plot("eheat", [{ type: "heatmap", x: se.heat.hour, y: se.heat.dow.map((d) => days[d]), z: se.heat.z, colorscale: [[0, "#17181b"], [0.5, "#256abf"], [1, "#cde2fb"]], hovertemplate: "%{y} %{x}:00 ET<br>|move| %{z} ticks<extra></extra>", colorbar: { thickness: 8 } }],
     { showlegend: false, margin: { l: 40, r: 10, t: 10, b: 36 }, xaxis: { title: "hour (NY)", dtick: 3 } });
+}
+
+// ------------------------------------------------------------ Paper trading --
+function tradeCard(t) {
+  if (!t || t.error) return card("Auto-trading (PAPER)", empty(t?.error || "unavailable"), "spanall");
+  const c = t.config, e = t.equity, pf = t.performance, td = t.today || { pnl: 0, trades: 0 };
+  const pos = t.open[0], pend = t.pending[0];
+  const posTxt = pos ? `${pos.direction > 0 ? '<span class="pos">LONG</span>' : '<span class="neg">SHORT</span>'} ${pos.qty} @ ${fmt(pos.entry_px, 1)} · stop ${fmt(pos.stop, 1)}${pos.target ? ` · tgt ${fmt(pos.target, 1)}` : ""} · ${pos.bars_held}/${pos.hold_bars} bars · ${sgn(pos.unrealised ?? 0, 2)}$`
+    : pend ? `order pending: ${pend.direction > 0 ? "BUY" : "SELL"} ${pend.qty} at next bar open` : "flat";
+  return card(`Auto-trading <span class="chip sim">PAPER · simulated money</span>`, `
+    <div class="row">
+      <button id="ttoggle" class="${c.enabled ? "" : "primary"}" style="${c.enabled ? "border-color:var(--good);color:var(--good)" : ""}">${c.enabled ? "● AUTO ON — click to pause" : "○ AUTO OFF — click to start"}</button>
+      <button id="tkill" style="border-color:var(--bad);color:var(--bad)">■ KILL SWITCH (flatten + off)</button>
+      <span class="grow"></span>
+      <button id="tbuy">Buy 1 (manual)</button><button id="tsell">Sell 1 (manual)</button><button id="tflat">Flatten</button>
+    </div>
+    <div class="kpis">
+      ${kpi("Equity", "$" + fmt(e.equity, 2), `start $${fmt(e.starting, 0)}`)}
+      ${kpi("Realised P&L", sgn(e.realised, 2), `unrealised ${sgn(e.unrealised, 2)}`)}
+      ${kpi("Today", sgn(td.pnl, 2), `limit −$${fmt(c.daily_loss_limit, 0)} · ${td.trades}/${c.max_trades_per_day} trades`)}
+      ${kpi("Position", `<span style="font-size:12px">${posTxt}</span>`, `last price ${fmt(t.last_price, 1)}`)}
+      ${kpi("Closed trades", pf.n || 0, pf.n ? `win ${pct(pf.win_rate, 0)} · PF ${fmt(pf.profit_factor, 2)}` : "")}
+      ${kpi("Avg R / Max DD", pf.n ? `${tk(pf.avg_r, 2)}R` : "—", pf.n ? `max DD $${fmt(pf.max_drawdown, 2)}` : "")}
+      ${kpi("Trades from", `<span style="font-size:12px">${c.allowed_status.join(" + ")}</span>`, `${esc(c.interval)} bars · hold ${esc(c.horizon)} · stop ${c.stop_atr}×ATR${c.target_r ? ` · tgt ${c.target_r}R` : ""}`)}
+    </div>
+    <details id="tset" style="margin-top:10px"><summary class="dim" style="cursor:pointer">⚙ Settings & risk limits</summary>
+      <div class="row" style="margin-top:8px">
+        <label class="f">Trade detectors with status
+          <span><label><input type="checkbox" data-st="VALIDATED" ${c.allowed_status.includes("VALIDATED") ? "checked" : ""}> VALIDATED</label>
+          <label><input type="checkbox" data-st="PROMISING" ${c.allowed_status.includes("PROMISING") ? "checked" : ""}> PROMISING (forward-test)</label></span></label>
+        <label class="f">bars<select id="t_interval">${["5m", "1h"].map((i) => `<option ${i === c.interval ? "selected" : ""}>${i}</option>`).join("")}</select></label>
+        <label class="f">hold (= tested horizon)<select id="t_horizon">${(c.interval === "1h" ? ["1h", "4h", "1d"] : ["15m", "1h", "4h"]).map((h) => `<option ${h === c.horizon ? "selected" : ""}>${h}</option>`).join("")}</select></label>
+        <label class="f">stop (× ATR)<input id="t_stop" type="number" step="0.25" value="${c.stop_atr}" style="width:70px"></label>
+        <label class="f">target (R, 0 = none)<input id="t_tgt" type="number" step="0.5" value="${c.target_r}" style="width:70px"></label>
+      </div>
+      <div class="row">
+        <label class="f">sizing<select id="t_sizing"><option value="fixed" ${c.sizing === "fixed" ? "selected" : ""}>fixed contracts</option><option value="risk_pct" ${c.sizing === "risk_pct" ? "selected" : ""}>% of equity at risk</option></select></label>
+        <label class="f">contracts<input id="t_qty" type="number" min="1" value="${c.contracts}" style="width:60px"></label>
+        <label class="f">risk %<input id="t_risk" type="number" step="0.1" value="${c.risk_pct}" style="width:60px"></label>
+        <label class="f">max contracts<input id="t_max" type="number" min="1" value="${c.max_contracts}" style="width:60px"></label>
+        <label class="f">daily loss limit $<input id="t_dll" type="number" value="${c.daily_loss_limit}" style="width:80px"></label>
+        <label class="f">max trades/day<input id="t_mtd" type="number" value="${c.max_trades_per_day}" style="width:60px"></label>
+        <label class="f">starting equity $<input id="t_eq" type="number" value="${c.starting_equity}" style="width:90px"></label>
+        <button class="primary" id="tsave">Save settings</button><button id="treset">Reset paper account</button>
+      </div>
+      <div class="explain lim">⚠ Entries fill at the NEXT bar's open + 1 tick; exits at stop (−slippage), target, or after the tested holding time; stop wins if both are touched in one bar. Commission/fees from the cost model. No entries 16:50–18:00 ET or after Fri 16:00 ET.</div>
+    </details>
+    <div class="grid g3" style="margin-top:10px">
+      <div><h2>Paper equity</h2><div id="teq" class="plot"></div></div>
+      <div><h2>Recent trades</h2>${table(t.closed.slice(0, 12), [["id", "#"], ["detector", "Detector"], ["direction", "Dir", (v) => v > 0 ? "L" : "S"], ["entry_px", "Entry", (v) => fmt(v, 1)], ["exit_px", "Exit", (v) => fmt(v, 1)], ["exit_reason", "Exit"], ["pnl", "Net $", (v) => sgn(v, 2)], ["r", "R", (v) => sgn(v, 2)]])}</div>
+      <div><h2>Decision log</h2><div class="scroll" style="max-height:260px">${t.log.map((l) => `<div style="font:11px var(--mono);padding:3px 0;border-bottom:1px solid var(--grid)"><span class="dim">${esc((l.bar_ts || l.ts).slice(5, 16))}</span> <span class="${l.kind === "exit" || l.kind === "fill" || l.kind === "order" ? "" : "dim"}">${esc(l.kind.toUpperCase())}</span> ${esc(l.msg)}</div>`).join("") || empty("No activity yet")}</div></div>
+    </div>
+    <div class="explain lim">⚠ Paper trading on DELAYED data (~10 min). Results show what the rules would have done on these bars — not fills you could have had live. No real orders are ever sent.</div>`, "spanall");
+}
+
+function bindTrade(t) {
+  if (!document.getElementById("ttoggle")) return;
+  const reload = async () => renderEngine();
+  const guardFn = (fn) => async () => { try { await fn(); } catch (e) { alert(e.message); } await reload(); };
+  $("#ttoggle").onclick = guardFn(() => api(`/api/trade/enable?on=${!t.config.enabled}`, { method: "POST" }));
+  $("#tkill").onclick = guardFn(async () => { if (confirm("KILL SWITCH: turn auto-trading off and close all paper positions?")) await api("/api/trade/kill", { method: "POST" }); });
+  $("#tbuy").onclick = guardFn(async () => { if (confirm("Paper BUY at the next bar's open?")) await api("/api/trade/order?side=buy", { method: "POST" }); });
+  $("#tsell").onclick = guardFn(async () => { if (confirm("Paper SELL at the next bar's open?")) await api("/api/trade/order?side=sell", { method: "POST" }); });
+  $("#tflat").onclick = guardFn(() => api("/api/trade/flatten", { method: "POST" }));
+  $("#treset").onclick = guardFn(async () => { if (confirm("Delete all paper trades and start over?")) await api("/api/trade/reset", { method: "POST" }); });
+  $("#tsave").onclick = guardFn(() => api("/api/trade/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+    allowed_status: [...document.querySelectorAll("[data-st]:checked")].map((x) => x.dataset.st), interval: $("#t_interval").value, horizon: $("#t_horizon").value,
+    stop_atr: +$("#t_stop").value, target_r: +$("#t_tgt").value, sizing: $("#t_sizing").value, contracts: +$("#t_qty").value, risk_pct: +$("#t_risk").value,
+    max_contracts: +$("#t_max").value, daily_loss_limit: +$("#t_dll").value, max_trades_per_day: +$("#t_mtd").value, starting_equity: +$("#t_eq").value }) }));
+  const ec = t.performance.equity_curve;
+  if (ec) plot("teq", [{ x: ec.t, y: ec.equity, mode: "lines+markers", line: { color: C.gold, width: 2 }, marker: { size: 5 }, hovertemplate: "%{x}<br>$%{y:.2f}<extra></extra>" }], { showlegend: false, yaxis: { gridcolor: C.grid } });
+  else { $("#teq").style.height = "auto"; $("#teq").innerHTML = empty("No closed paper trades yet"); }
 }
 
 // -------------------------------------------------------------- routing ---

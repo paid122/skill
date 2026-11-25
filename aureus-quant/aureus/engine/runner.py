@@ -143,10 +143,19 @@ async def background_loop():
         try:
             await asyncio.to_thread(update_now, intervals, slow)
             await asyncio.to_thread(_warm)
+            await asyncio.to_thread(_trade_step)
         except Exception as e:  # noqa: BLE001
             STATUS["last_result"] = {"error": str(e)}
         tick += 1
         await asyncio.sleep(every)
+
+
+def _trade_step():
+    from ..trading import auto, paper
+    try:
+        auto.step()
+    except Exception as e:  # noqa: BLE001 - never let trading errors stop data updates
+        paper.log("error", f"auto-trader step failed: {e}")
 
 
 def _warm():

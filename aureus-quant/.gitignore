@@ -9,3 +9,4 @@ data/journal/*.sqlite
 data/runs/webhook_token.txt
 .venv/
 data/market/*.sqlite
+data/trading/*.sqlite

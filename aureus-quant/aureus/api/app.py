@@ -456,6 +456,88 @@ def engine_clear():
     return J({"cleared": True})
 
 
+# ---------------------------------------------------------- Paper trading --
+
+@app.get("/api/trade/state")
+def trade_state():
+    from dataclasses import asdict as _asdict
+    from ..engine import store
+    from ..trading import paper
+    cfg = paper.get_config()
+    df = store.load(cfg.interval)
+    last = float(df["close"].iloc[-1]) if not df.empty else None
+    open_ = paper.trades("open")
+    for t in open_:
+        if last is not None:
+            t["unrealised"] = (last - t["entry_px"]) * t["direction"] * 10 * t["qty"]
+    today = paper.trading_day(df.index[-1]) if not df.empty else None
+    return J({"mode": "PAPER", "config": _asdict(cfg), "equity": paper.equity(last), "last_price": last,
+              "open": open_, "pending": paper.trades("pending"), "closed": paper.trades("closed")[-50:][::-1],
+              "today": paper.day_stats(today) if today else None, "performance": paper.performance(),
+              "log": paper.recent_log(80), "last_processed_bar": str(paper.last_processed() or "")})
+
+
+@app.put("/api/trade/config")
+def trade_config(body: dict):
+    from dataclasses import asdict as _asdict
+    from ..trading import paper
+    cur = _asdict(paper.get_config())
+    cfg = paper.set_config(paper.TradeConfig(**{**cur, **{k: v for k, v in body.items() if k in cur}}))
+    paper.log("config", "Settings changed: " + ", ".join(f"{k}={v}" for k, v in body.items() if k in cur))
+    return J(_asdict(cfg))
+
+
+@app.post("/api/trade/enable")
+def trade_enable(on: bool = True):
+    from dataclasses import replace
+    from ..trading import paper
+    paper.set_config(replace(paper.get_config(), enabled=on))
+    paper.log("config", f"Automatic paper trading {'ENABLED' if on else 'DISABLED'}")
+    return J({"enabled": on})
+
+
+@app.post("/api/trade/kill")
+def trade_kill():
+    from dataclasses import replace
+    from ..trading import paper
+    paper.set_config(replace(paper.get_config(), enabled=False))
+    n = paper.flatten("KILL SWITCH")
+    paper.log("kill", f"KILL SWITCH: auto-trading disabled, {n} position(s)/order(s) closed")
+    return J({"enabled": False, "closed": n})
+
+
+@app.post("/api/trade/order")
+def trade_order(side: str):
+    from ..trading import auto
+    d = 1 if side.lower() in ("buy", "long") else -1 if side.lower() in ("sell", "short") else 0
+    if d == 0:
+        raise HTTPException(400, "side must be buy or sell")
+    try:
+        tid = auto.manual_order(d)
+    except RuntimeError as e:
+        raise HTTPException(409, str(e)) from e
+    return J({"order": tid})
+
+
+@app.post("/api/trade/flatten")
+def trade_flatten():
+    from ..trading import paper
+    return J({"closed": paper.flatten("manual flatten")})
+
+
+@app.post("/api/trade/reset")
+def trade_reset():
+    from ..trading import paper
+    paper.reset_account()
+    return J({"reset": True})
+
+
+@app.post("/api/trade/step")
+def trade_step():
+    from ..trading import auto
+    return J(auto.step())
+
+
 # ------------------------------------------------------------ TradingView --
 
 @app.post("/api/tradingview/webhook")

@@ -247,3 +247,60 @@ def test_garch_recovers_persistence():
         s2 = w + a * e * e + b * s2
     g = garch11(pd.Series(np.array(r) / 100))
     assert abs(g["persistence"] - 0.98) < 0.03
+
+
+@pytest.fixture
+def paperdb(tmp_path, monkeypatch):
+    from aureus.trading import paper
+    monkeypatch.setattr(paper, "DB", tmp_path / "paper.sqlite")
+    return paper
+
+
+def _bar(o, h, l, c):
+    return pd.Series({"open": o, "high": h, "low": l, "close": c, "volume": 1.0})
+
+
+def test_paper_fill_next_open_and_stop_priority(paperdb):
+    p = paperdb
+    cfg = p.TradeConfig(stop_atr=1.0, target_r=2.0)
+    t0 = pd.Timestamp("2026-03-03 15:00", tz="UTC")
+    tid = p.create_order(source="test", detector="x", status="VALIDATED", direction=1, signal_ts=t0,
+                         close=4000.0, atr=5.0, hold_bars=12, cfg=cfg)
+    p.manage_bar(t0, _bar(4000, 4001, 3999, 4000))           # same bar as signal: must NOT fill
+    assert p.trades("pending")
+    t1 = t0 + pd.Timedelta("5min")
+    p.manage_bar(t1, _bar(4002, 4003, 4001, 4002))           # fills at open 4002 + 1 tick
+    t = p.trades("open")[0]
+    assert t["entry_px"] == pytest.approx(4002.1) and t["stop"] == pytest.approx(3997.1) and t["target"] == pytest.approx(4012.1)
+    t2 = t1 + pd.Timedelta("5min")
+    p.manage_bar(t2, _bar(4005, 4013, 3996, 4005))           # both touched → stop assumed
+    c = p.trades("closed")[0]
+    assert c["exit_reason"] == "stop" and c["exit_px"] == pytest.approx(3997.0)   # stop − 1 tick exit slippage
+    assert c["pnl"] < 0 and c["id"] == tid
+
+
+def test_paper_time_exit_and_daily_limit(paperdb):
+    p = paperdb
+    cfg = p.TradeConfig(stop_atr=10.0, daily_loss_limit=20.0)
+    t0 = pd.Timestamp("2026-03-03 15:00", tz="UTC")
+    p.create_order(source="t", detector="x", status="V", direction=-1, signal_ts=t0, close=4000, atr=5, hold_bars=2, cfg=cfg)
+    for i, px in enumerate([4000, 4004, 4006]):
+        p.manage_bar(t0 + pd.Timedelta(minutes=5 * (i + 1)), _bar(px, px + 0.5, px - 0.5, px))
+    c = p.trades("closed")[0]
+    assert c["exit_reason"] == "time exit" and c["pnl"] < -20
+    assert "daily loss limit" in p.entry_blocked(t0 + pd.Timedelta(hours=1), cfg)
+
+
+def test_auto_trader_only_uses_fresh_bars(paperdb):
+    from aureus.trading import auto
+    p = paperdb
+    cs = load_candles_csv(simulated_candles_csv(days=20, start_price=4000.0), source="t")
+    df = cs.df
+    p.set_config(p.TradeConfig(enabled=True, allowed_status=["VALIDATED"]))
+    p.set_last_processed(df.index[-400])                    # simulate a long backlog
+    stub = lambda: {d.key: {"status": "VALIDATED", "edge_direction": "as hypothesised"} for d in __import__("aureus.engine.detectors", fromlist=["REGISTRY"]).REGISTRY}
+    auto.step(df, status_fn=stub)
+    fresh = set(df.iloc[:-1].index[-auto.MAX_FRESH_BARS:])
+    for t in p.trades():
+        assert pd.Timestamp(t["signal_ts"]) in fresh
+    assert any(r["kind"] == "missed" for r in p.recent_log())
