@@ -1,0 +1,150 @@
+//@version=6
+indicator("AUREUS IV Range Zones", overlay = true, max_boxes_count = 500, max_labels_count = 100)
+
+// Implied-volatility range zones for the weekly (and optionally daily) high / low.
+//
+// σ(period) = period open × IV/100 × sqrt(days/252), IV = CBOE:GVZ close BEFORE the period starts (no repaint).
+// For a driftless random walk, P(period high ≥ open + kσ) = 2·(1 − Φ(k))  (reflection principle).
+//   k = 0.674 → 50%   k = 1.000 → 32%   k = 1.645 → 10%   k = 1.960 → 5%
+// "Normal" zone = kN1..kN2 σ from the open, "Wall" zone = kW1..kW2 σ.
+// The table measures how often MGC ACTUALLY reached each level over the last N periods,
+// so you can see whether the zones are realistic for this market.
+
+ivSym  = input.symbol("CBOE:GVZ", "IV index (annualised %)")
+showW  = input.bool(true,  "Weekly zones", group = "Periods")
+showD  = input.bool(false, "Daily zones",  group = "Periods")
+kN1    = input.float(0.674, "Normal zone from (σ)", step = 0.05, group = "Zone widths")
+kN2    = input.float(1.0,   "Normal zone to (σ)",   step = 0.05, group = "Zone widths")
+kW1    = input.float(1.645, "Wall zone from (σ)",   step = 0.05, group = "Zone widths")
+kW2    = input.float(1.96,  "Wall zone to (σ)",     step = 0.05, group = "Zone widths")
+lookN  = input.int(52, "Calibration lookback (periods)", minval = 10, group = "Calibration")
+showT  = input.bool(true, "Show calibration table", group = "Calibration")
+
+// ---------------------------------------------------------------- data --
+ivW   = request.security(ivSym, "W", close[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+ivD   = request.security(ivSym, "D", close[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+openW = request.security(syminfo.tickerid, "W", open, lookahead = barmerge.lookahead_on)
+openD = request.security(syminfo.tickerid, "D", open, lookahead = barmerge.lookahead_on)
+sigW  = openW * ivW / 100 * math.sqrt(5.0 / 252)
+sigD  = openD * ivD / 100 * math.sqrt(1.0 / 252)
+newW  = timeframe.change("W")
+newD  = timeframe.change("D")
+
+// Standard normal CDF (Abramowitz–Stegun 7.1.26 erf approximation, |error| < 1.5e-7)
+phi(float x) =>
+    z = math.abs(x) / math.sqrt(2.0)
+    tt = 1.0 / (1.0 + 0.3275911 * z)
+    y = 1.0 - (((((1.061405429 * tt - 1.453152027) * tt) + 1.421413741) * tt - 0.284496736) * tt + 0.254829592) * tt * math.exp(-z * z)
+    x >= 0 ? 0.5 * (1.0 + y) : 0.5 * (1.0 - y)
+
+theory(float k) => 2.0 * (1.0 - phi(k))
+
+// ------------------------------------------------------------ drawing --
+zone(int t0, int t1, float top, float bot, color c, string txt) =>
+    box.new(t0, top, t1, bot, xloc = xloc.bar_time, bgcolor = color.new(c, 82), border_color = color.new(c, 45), border_width = 1,
+         text = txt, text_size = size.tiny, text_color = color.new(color.white, 20), text_halign = text.align_left, text_valign = text.align_center)
+
+drawPeriod(float o, float s, int t0, int t1, string tag) =>
+    if not na(s) and s > 0
+        zone(t0, t1, o + kN2 * s, o + kN1 * s, #3987e5, tag + " Normal High")
+        zone(t0, t1, o - kN1 * s, o - kN2 * s, #3987e5, tag + " Normal Low")
+        zone(t0, t1, o + kW2 * s, o + kW1 * s, #0ca30c, tag + " Wall High")
+        zone(t0, t1, o - kW1 * s, o - kW2 * s, #e66767, tag + " Wall Low")
+
+if showW and newW
+    drawPeriod(openW, sigW, time, nz(time_close("W"), time + 7 * 86400000), "Weekly")
+if showD and newD
+    drawPeriod(openD, sigD, time, nz(time_close("D"), time + 86400000), "Daily")
+
+plot(showW ? openW : na, "Weekly open", color.new(#c9a54c, 40), 1, plot.style_stepline)
+
+// --------------------------------------------------------- calibration --
+// For each completed period store how far the high and low went from the open, in σ units.
+var float wHi = na
+var float wLo = na
+var float wO  = na
+var float wS  = na
+var array<float> wUp = array.new_float()
+var array<float> wDn = array.new_float()
+if newW
+    if not na(wS) and wS > 0
+        array.push(wUp, (wHi - wO) / wS)
+        array.push(wDn, (wO - wLo) / wS)
+        if array.size(wUp) > lookN
+            array.shift(wUp)
+            array.shift(wDn)
+    wHi := high
+    wLo := low
+    wO  := openW
+    wS  := sigW
+else
+    wHi := math.max(wHi, high)
+    wLo := math.min(wLo, low)
+
+var float dHi = na
+var float dLo = na
+var float dO  = na
+var float dS  = na
+var array<float> dUp = array.new_float()
+var array<float> dDn = array.new_float()
+if newD
+    if not na(dS) and dS > 0
+        array.push(dUp, (dHi - dO) / dS)
+        array.push(dDn, (dO - dLo) / dS)
+        if array.size(dUp) > lookN
+            array.shift(dUp)
+            array.shift(dDn)
+    dHi := high
+    dLo := low
+    dO  := openD
+    dS  := sigD
+else
+    dHi := math.max(dHi, high)
+    dLo := math.min(dLo, low)
+
+// share of period-sides (high side and low side counted separately) that reached k σ
+reached(array<float> up, array<float> dn, float k) =>
+    n = array.size(up)
+    float r = na
+    if n > 0
+        c = 0
+        for i = 0 to n - 1
+            c += array.get(up, i) >= k ? 1 : 0
+            c += array.get(dn, i) >= k ? 1 : 0
+        r := c / (2.0 * n)
+    r
+
+pctTxt(float v) => na(v) ? "—" : str.tostring(v * 100, "#") + "%"
+
+var table t = table.new(position.top_right, 4, 8, bgcolor = color.new(#17181b, 5), border_color = color.new(#33363c, 0), border_width = 1)
+put(int c, int r, string s, color col) =>
+    table.cell(t, c, r, s, text_color = col, text_size = size.small)
+
+if showT and barstate.islast
+    useW = showW
+    up = useW ? wUp : dUp
+    dn = useW ? wDn : dDn
+    n = array.size(up)
+    put(0, 0, "AUREUS IV Zones", #c9a54c)
+    put(1, 0, useW ? "weekly" : "daily", #b9b8b2)
+    put(2, 0, "IV " + (na(ivW) ? "n/a" : str.tostring(useW ? ivW : ivD, "#.0")), #b9b8b2)
+    put(3, 0, "σ " + str.tostring(useW ? sigW : sigD, "#.0"), #b9b8b2)
+    put(0, 1, "Level", #85847f)
+    put(1, 1, "Price ±", #85847f)
+    put(2, 1, "Theory", #85847f)
+    put(3, 1, "Actual (n=" + str.tostring(n) + ")", #85847f)
+    ks = array.from(kN1, kN2, kW1, kW2)
+    names = array.from("Normal from", "Normal to", "Wall from", "Wall to")
+    for i = 0 to 3
+        k = array.get(ks, i)
+        act = reached(up, dn, k)
+        th = theory(k)
+        col = na(act) ? #b9b8b2 : act > th * 1.3 ? #e66767 : act < th * 0.7 ? #3987e5 : #f0efec
+        put(0, i + 2, array.get(names, i) + " " + str.tostring(k, "#.##") + "σ", #b9b8b2)
+        put(1, i + 2, str.tostring(k * (useW ? sigW : sigD), "#.0"), #f0efec)
+        put(2, i + 2, pctTxt(th), #b9b8b2)
+        put(3, i + 2, pctTxt(act), col)
+    put(0, 6, "Red = reached more often than theory (fat tails / trend)", #85847f)
+    put(0, 7, "Blue = reached less often (IV overstates moves)", #85847f)
+    table.merge_cells(t, 0, 6, 3, 6)
+    table.merge_cells(t, 0, 7, 3, 7)
