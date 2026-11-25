@@ -25,6 +25,7 @@ Definitions (all standard, all assumptions stated):
 from __future__ import annotations
 
 import math
+import time
 from datetime import datetime, timezone
 
 import numpy as np
@@ -172,11 +173,48 @@ def analyse_chain(chains: list[dict], S: float, mgc_ratio: float | None) -> dict
     }
 
 
+def gld_spot(t) -> float:
+    """Latest GLD price. yfinance's fast_info can fail with KeyError
+    'currentTradingPeriod' when Yahoo throttles, so fall back to recent bars
+    and finally to the stored daily close."""
+    try:
+        v = float(t.fast_info["last_price"])
+        if v > 0:
+            return v
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        h = t.history(period="5d", interval="5m", prepost=True)
+        if h is not None and not h.empty:
+            return float(h["Close"].dropna().iloc[-1])
+    except Exception:  # noqa: BLE001
+        pass
+    from .store import load_aux
+    s = load_aux("GLD")
+    if s is not None and len(s):
+        return float(s.iloc[-1])
+    raise RuntimeError("Could not get a GLD price from Yahoo (rate-limited?) — will retry on the next update")
+
+
+def iv30(term: list[dict]) -> float | None:
+    """Constant-maturity 30-day ATM IV by linear interpolation in total variance."""
+    pts = sorted((t["days"], t["atm_iv"]) for t in term if t.get("atm_iv") == t.get("atm_iv") and t.get("atm_iv"))
+    if not pts:
+        return None
+    if len(pts) == 1 or pts[0][0] >= 30:
+        return float(pts[0][1])
+    for (d1, v1), (d2, v2) in zip(pts, pts[1:]):
+        if d1 <= 30 <= d2:
+            w1, w2 = v1 * v1 * d1, v2 * v2 * d2
+            return float(math.sqrt((w1 + (w2 - w1) * (30 - d1) / (d2 - d1)) / 30))
+    return float(pts[-1][1])
+
+
 def fetch_gld_chains() -> tuple[list[dict], float]:
     import yfinance as yf
 
     t = yf.Ticker("GLD")
-    spot = float(t.fast_info["last_price"])
+    spot = gld_spot(t)
     now = datetime.now(timezone.utc)
     chains = []
     for e in t.options:
@@ -187,6 +225,7 @@ def fetch_gld_chains() -> tuple[list[dict], float]:
         if days > MAX_DAYS or len(chains) >= MAX_EXPIRIES:
             break
         oc = t.option_chain(e)
+        time.sleep(0.5)   # pace requests
         chains.append({"expiry": e, "T": days / 365, "calls": oc.calls, "puts": oc.puts})
     if not chains:
         raise RuntimeError("No GLD option expiries returned by Yahoo")

@@ -81,6 +81,11 @@ def update_options() -> dict:
         mgc = latest_mgc()
         res = analyse_chain(chains, spot, (mgc / spot) if mgc else None)
         res["mgc_last"] = mgc
+        from .options import iv30
+        v = iv30(res["term"])
+        res["iv30"] = v
+        if v:   # daily constant-maturity IV history, used if ^GVZ is unavailable
+            store.upsert_aux("IV30_GLD", pd.Series([v * 100], index=[pd.Timestamp.now(tz="UTC").normalize()]))
         store.save_snapshot("options", res)
         store.log_fetch("options:GLD", "yahoo", len(res["strikes"]), None)
         return {"ok": True, "expiries": res["expiries"]}
@@ -107,7 +112,16 @@ def volatility_view() -> dict:
         out["garch"] = garch11(np.log(close).diff())
     except ValueError as e:
         out["garch"] = {"error": str(e)}
-    out["iv"] = iv_context(store.load_aux("GVZ"), close)
+    gvz = store.load_aux("GVZ")
+    if gvz is not None and len(gvz.dropna()) >= 60:
+        out["iv"] = iv_context(gvz, close)
+        if out["iv"]:
+            out["iv"]["source"] = "CBOE ^GVZ"
+    else:
+        own = store.load_aux("IV30_GLD")
+        out["iv"] = iv_context(own, close, min_points=1) if own is not None else None
+        if out["iv"]:
+            out["iv"]["source"] = f"30-day ATM IV from the GLD option chain ({len(own)} daily snapshot(s); IV rank needs ≥20)"
     daily = close.copy()
     daily.index = daily.index.normalize()
     others = {}
@@ -120,14 +134,24 @@ def volatility_view() -> dict:
     return _jsonable(out)
 
 
+_update_lock = threading.Lock()
+
+
 def update_now(intervals=("1m", "5m", "1h", "1d"), slow: bool = True) -> dict:
-    res = store.update(intervals)
-    if slow and store.get_feed() is not None and isinstance(store.get_feed(), store.YahooFeed):
-        res["aux"] = store.update_aux()
-        res["options"] = update_options()
-    STATUS["last_update"] = pd.Timestamp.now(tz="UTC").isoformat()
-    STATUS["last_result"] = res
-    return res
+    """Only one download run at a time: overlapping runs (auto-update + button)
+    double the requests and trigger Yahoo's throttling."""
+    if not _update_lock.acquire(blocking=False):
+        return {"busy": True, "results": [], "note": "An update is already running — try again in a minute."}
+    try:
+        res = store.update(intervals)
+        if slow and store.get_feed() is not None and isinstance(store.get_feed(), store.YahooFeed):
+            res["aux"] = store.update_aux()
+            res["options"] = update_options()
+        STATUS["last_update"] = pd.Timestamp.now(tz="UTC").isoformat()
+        STATUS["last_result"] = res
+        return res
+    finally:
+        _update_lock.release()
 
 
 async def background_loop():

@@ -116,7 +116,7 @@ def log_fetch(interval: str, source: str, rows: int, error: str | None):
         c.execute("INSERT INTO fetch_log VALUES (?,?,?,?,?)", (datetime.now(timezone.utc).isoformat(), interval, source, rows, error))
 
 
-def last_fetches(n: int = 10) -> list[dict]:
+def last_fetches(n: int = 20) -> list[dict]:
     with _conn() as c:
         rows = c.execute("SELECT ts, interval, source, rows, error FROM fetch_log ORDER BY rowid DESC LIMIT ?", (n,)).fetchall()
     return [dict(zip(["ts", "interval", "source", "rows", "error"], r)) for r in rows]
@@ -191,15 +191,30 @@ def get_feed():
     return YahooFeed()
 
 
+def with_retry(fn, tries: int = 3, base_sleep: float = 2.0):
+    """Call fn(); on an exception or empty result wait 2s, 4s… and retry.
+    Yahoo intermittently answers 'no data' when it is throttling."""
+    import time
+    last = None
+    for i in range(tries):
+        try:
+            out = fn()
+            if out is None or (hasattr(out, "empty") and out.empty):
+                raise RuntimeError("no data")
+            return out
+        except Exception as e:  # noqa: BLE001
+            last = e
+            time.sleep(base_sleep * (2 ** i))
+    raise last
+
+
 def update_aux() -> list[dict]:
     """Daily DXY, US 10y yield, CBOE gold volatility index (GVZ) and GLD from Yahoo."""
     import yfinance as yf
     out = []
     for name, sym in AUX.items():
         try:
-            d = yf.download(sym, period="5y", interval="1d", progress=False, auto_adjust=False, threads=False)
-            if d is None or d.empty:
-                raise RuntimeError("no data")
+            d = with_retry(lambda: yf.download(sym, period="5y", interval="1d", progress=False, auto_adjust=False, threads=False))
             if isinstance(d.columns, pd.MultiIndex):
                 d.columns = d.columns.get_level_values(0)
             idx = pd.DatetimeIndex(d.index)
@@ -207,6 +222,8 @@ def update_aux() -> list[dict]:
             n = upsert_aux(name, close)
             log_fetch(f"aux:{name}", "yahoo", n, None)
             out.append({"series": name, "rows": n})
+            import time
+            time.sleep(1.0)   # be gentle with Yahoo
         except Exception as e:  # noqa: BLE001
             log_fetch(f"aux:{name}", "yahoo", 0, str(e)[:300])
             out.append({"series": name, "error": str(e)[:300]})
@@ -220,7 +237,7 @@ def update(intervals=("1m", "5m", "1h", "1d")) -> dict:
     out = []
     for iv in intervals:
         try:
-            df = feed.fetch(iv)
+            df = with_retry(lambda: feed.fetch(iv)) if feed.info.name == "yahoo" else feed.fetch(iv)
             n = upsert(df, iv, feed.info.name)
             log_fetch(iv, feed.info.name, n, None)
             out.append({"interval": iv, "rows": n, "last": df.index.max().isoformat() if n else None})

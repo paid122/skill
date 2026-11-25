@@ -67,18 +67,19 @@ def vol_cone(close: pd.Series, windows=(5, 10, 21, 63, 126)) -> dict:
     return {"cone": out, "note": "Realised volatility (annualised %) over each window vs its own history."}
 
 
-def iv_context(gvz: pd.Series | None, close: pd.Series) -> dict | None:
+def iv_context(gvz: pd.Series | None, close: pd.Series, min_points: int = 60) -> dict | None:
     """IV rank/percentile from CBOE ^GVZ (30-day gold IV, from GLD options) and
     the volatility risk premium VRP = IV − realised 21-day vol."""
-    if gvz is None or len(gvz.dropna()) < 60:
+    if gvz is None or len(gvz.dropna()) < min_points:
         return None
     g = gvz.dropna()
     last1y = g[g.index >= g.index[-1] - pd.Timedelta(days=365)]
     cur = float(g.iloc[-1])
     rv21 = float(np.log(close).diff().dropna().iloc[-21:].std() * np.sqrt(ANN) * 100)
+    enough = len(last1y) >= 20
     return {"gvz": cur, "as_of": g.index[-1].isoformat(),
-            "iv_rank_1y": float((cur - last1y.min()) / (last1y.max() - last1y.min()) * 100) if last1y.max() > last1y.min() else None,
-            "iv_percentile_1y": float((last1y <= cur).mean() * 100),
+            "iv_rank_1y": float((cur - last1y.min()) / (last1y.max() - last1y.min()) * 100) if enough and last1y.max() > last1y.min() else None,
+            "iv_percentile_1y": float((last1y <= cur).mean() * 100) if enough else None,
             "rv21": rv21, "vrp": cur - rv21,
             "history": {"t": [t.isoformat() for t in last1y.index], "gvz": last1y.tolist()},
             "note": "IV rank = (IV − 1y low)/(1y high − 1y low). VRP > 0: options price more volatility than recently realised."}

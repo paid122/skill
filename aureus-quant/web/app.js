@@ -493,7 +493,8 @@ views.engine = async () => {
   $("#eupd").onclick = async () => {
     $("#eupd").textContent = "Updating…";
     try { const r = await api("/api/engine/update", { method: "POST" });
-      const errs = r.results.filter((x) => x.error);
+      if (r.busy) { alert(r.note); }
+      const errs = [...(r.results || []), ...(r.aux || []).map((a) => ({ interval: a.series, error: a.error })), ...(r.options && !r.options.ok ? [{ interval: "GLD options", error: r.options.error }] : [])].filter((x) => x.error);
       if (errs.length) alert("Some downloads failed:\n" + errs.map((e) => `${e.interval}: ${e.error}`).join("\n"));
     } catch (e) { alert(e.message); }
     $("#eupd").textContent = "Update data now"; renderEngine(true);
@@ -628,7 +629,7 @@ function volCards(v) {
     <div class="kpis">
       ${g.error ? kpi("GARCH(1,1)", "—", esc(g.error)) : kpi("GARCH forecast", `${fmt(g.forecast_vol_pct["1d"], 1)}%`, `5d ${fmt(g.forecast_vol_pct["5d"], 1)}% · 21d ${fmt(g.forecast_vol_pct["21d"], 1)}% (ann.)`)}
       ${g.error ? "" : kpi("Long-run vol", `${fmt(g.long_run_vol_pct, 1)}%`, `persistence ${fmt(g.persistence, 3)} · half-life ${fmt(g.half_life_days, 0)}d`)}
-      ${iv ? kpi("Gold IV (GVZ)", fmt(iv.gvz, 1), `IV rank ${fmt(iv.iv_rank_1y, 0)} · pct ${fmt(iv.iv_percentile_1y, 0)}`) : kpi("Gold IV (GVZ)", "—", "no data")}
+      ${iv ? kpi("Gold IV (30d)", fmt(iv.gvz, 1), `IV rank ${fmt(iv.iv_rank_1y, 0)} · pct ${fmt(iv.iv_percentile_1y, 0)} · ${esc(iv.source || "")}`) : kpi("Gold IV (30d)", "—", "no data yet")}
       ${iv ? kpi("Vol risk premium", `${tk(iv.vrp, 1)} pts`, `IV ${fmt(iv.gvz, 1)} − RV21 ${fmt(iv.rv21, 1)}`) : ""}
       ${Object.entries(ca).map(([k, x]) => kpi(`Corr to ${k} (60d)`, fmt(x.corr_now, 2), `β ${fmt(x.beta_now, 2)} ${esc(x.unit)} · full-sample r ${fmt(x.corr_full, 2)} (p ${fmt(x.p_full, 3)})`)).join("")}
     </div>

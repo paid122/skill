@@ -304,3 +304,34 @@ def test_auto_trader_only_uses_fresh_bars(paperdb):
     for t in p.trades():
         assert pd.Timestamp(t["signal_ts"]) in fresh
     assert any(r["kind"] == "missed" for r in p.recent_log())
+
+
+def test_yahoo_hardening(tmp_path, monkeypatch):
+    from aureus.engine import store, runner
+    from aureus.engine.options import iv30, gld_spot
+    calls = {"n": 0}
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] < 2:
+            raise RuntimeError("no data")
+        return pd.DataFrame({"x": [1]})
+    assert len(store.with_retry(flaky, base_sleep=0)) == 1 and calls["n"] == 2
+    # constant-maturity 30d IV interpolates between expiries
+    v = iv30([{"days": 16, "atm_iv": 0.18}, {"days": 44, "atm_iv": 0.22}])
+    assert 0.18 < v < 0.22
+    # GLD spot falls back to the stored daily close when Yahoo metadata fails
+    monkeypatch.setattr(store, "DB", tmp_path / "m.sqlite")
+    store.upsert_aux("GLD", pd.Series([371.5], index=[pd.Timestamp("2026-11-24", tz="UTC")]))
+    class Broken:
+        @property
+        def fast_info(self):
+            raise KeyError("currentTradingPeriod")
+        def history(self, **k):
+            raise KeyError("currentTradingPeriod")
+    assert gld_spot(Broken()) == pytest.approx(371.5)
+    # overlapping update runs are refused, not doubled
+    assert runner._update_lock.acquire(blocking=False)
+    try:
+        assert runner.update_now(("5m",))["busy"] is True
+    finally:
+        runner._update_lock.release()
