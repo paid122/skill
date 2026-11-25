@@ -32,11 +32,16 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def _lifespan(_app):
+    import asyncio
+
+    from ..engine.runner import background_loop
     try:
         WS.autoload()  # reload saved files + TradingView setups on start
     except Exception:  # noqa: BLE001 - never block startup on a bad file
         pass
+    task = asyncio.create_task(background_loop())  # autonomous MGC1! data updates
     yield
+    task.cancel()
 
 
 app = FastAPI(title="AUREUS QUANT", version=__version__, lifespan=_lifespan)
@@ -402,6 +407,41 @@ if WEB.exists():
     @app.get("/")
     def index():
         return FileResponse(WEB / "index.html")
+
+
+# ------------------------------------------------------------ Quant Engine --
+
+@app.get("/api/engine/status")
+def engine_status():
+    from ..engine import runner, store
+    feed = store.get_feed()
+    return J({"feed": feed.info.__dict__ if feed else None, "coverage": store.coverage(),
+              "fetches": store.last_fetches(8), "loop": runner.STATUS})
+
+
+@app.post("/api/engine/update")
+def engine_update():
+    from ..engine import runner
+    return J(runner.update_now())
+
+
+@app.get("/api/engine/analysis")
+def engine_analysis(interval: str = "5m", force: bool = False):
+    from ..engine import runner
+    return J(runner.analyse(interval, force=force))
+
+
+@app.post("/api/engine/demo")
+def engine_demo():
+    from ..engine import runner
+    return J({"stored": runner.load_simulated_market(), "provenance": "SIMULATED"})
+
+
+@app.post("/api/engine/clear")
+def engine_clear():
+    from ..engine import runner
+    runner.clear_market()
+    return J({"cleared": True})
 
 
 # ------------------------------------------------------------ TradingView --

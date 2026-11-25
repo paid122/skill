@@ -7,3 +7,5 @@ data/journal/*.csv
 data/events/*.csv
 data/journal/*.sqlite
 data/runs/webhook_token.txt
+.venv/
+data/market/*.sqlite

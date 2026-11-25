@@ -469,6 +469,173 @@ views.tradingview = async () => {
   });
 };
 
+// ------------------------------------------------------------ Quant Engine --
+let ENG = { interval: "5m", horizon: null, sel: null, timer: null };
+const stChip = (s) => `<span class="st ${String(s).split(" ")[0]}">${esc(s)}</span>`;
+const ST_RANK = { VALIDATED: 0, PROMISING: 1, "FAILED OOS": 2, "NO EDGE": 3, INSUFFICIENT: 4 };
+const tk = (v, d = 1) => v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(d)}`;
+
+views.engine = async () => {
+  clearInterval(ENG.timer);
+  const st = await api("/api/engine/status");
+  const feed = st.feed;
+  view.innerHTML = `
+    <div class="statusbar">
+      <span>FEED ${feed ? `<span class="chip ${feed.provenance === "LIVE" ? "ok" : "hist"}">${esc(feed.provenance)}</span> ${esc(feed.description)} · delay ${esc(feed.delay)}` : `<span class="chip sim">NONE</span> no automatic feed`}</span>
+      <span>auto-update: ${st.loop.running ? `every ${st.loop.interval_s}s` : "off"}</span>
+      <span class="grow"></span>
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px">bars<select id="eiv">${["5m", "1h", "1d", "1m"].map((i) => `<option ${i === ENG.interval ? "selected" : ""}>${i}</option>`).join("")}</select></label>
+      <button class="primary" id="eupd">Update data now</button>
+    </div>
+    ${feed && !feed.licensed ? `<div class="explain lim" style="margin:-4px 0 10px">⚠ ${esc(feed.notes.join(" "))}</div>` : ""}
+    <div id="ebody"><div class="dim">Analysing…</div></div>`;
+  $("#eiv").onchange = () => { ENG.interval = $("#eiv").value; ENG.horizon = null; renderEngine(); };
+  $("#eupd").onclick = async () => {
+    $("#eupd").textContent = "Updating…";
+    try { const r = await api("/api/engine/update", { method: "POST" });
+      const errs = r.results.filter((x) => x.error);
+      if (errs.length) alert("Some downloads failed:\n" + errs.map((e) => `${e.interval}: ${e.error}`).join("\n"));
+    } catch (e) { alert(e.message); }
+    $("#eupd").textContent = "Update data now"; renderEngine(true);
+  };
+  await renderEngine();
+  ENG.timer = setInterval(() => { if (location.hash.slice(1) === "engine" || !location.hash) renderEngine(); }, 60000);
+};
+
+async function renderEngine(force = false) {
+  const body = $("#ebody");
+  if (!body) return;
+  let r;
+  try { r = await api(`/api/engine/analysis?interval=${ENG.interval}${force ? "&force=true" : ""}`); }
+  catch (e) {
+    const st = await api("/api/engine/status");
+    body.innerHTML = empty(e.message) + `<div class="card" style="margin-top:12px"><h2>Data store</h2>${table(st.coverage, [["interval", "Bars"], ["bars", "Count"], ["first", "First (UTC)"], ["last", "Last (UTC)"], ["sources", "Source"]])}
+      <h2 style="margin-top:12px">Recent downloads</h2>${table(st.fetches, [["ts", "Time (UTC)", (v) => esc(v.slice(0, 19))], ["interval", "Bars"], ["source", "Source"], ["rows", "Rows"], ["error", "Error"]])}
+      <div class="row" style="margin-top:10px"><button id="edemo">Load SIMULATED test bars</button><span class="dim">only to preview the interface</span></div></div>`;
+    $("#edemo").onclick = async () => { await api("/api/engine/demo", { method: "POST" }); renderEngine(true); };
+    return;
+  }
+  const s = r.state, ev = r.evaluation;
+  ENG.horizon = ENG.horizon || ev.horizons[1] || ev.horizons[0];
+  const sim = r.provenance === "SIMULATED";
+  const ban = $("#banner");
+  if (sim) { ban.hidden = false; ban.textContent = "SIMULATED MARKET BARS LOADED — random data for interface testing. Nothing on this page describes the real MGC1! market."; }
+  const vr = s.variance_ratio;
+  body.innerHTML = `
+    <div class="row">${provChip(r.provenance)} <span class="dim">MGC1! · ${esc(r.interval)} bars · last bar <b>${esc(s.as_of_et)}</b> · data age ${fmt(s.data_age_min, 0)} min · ${ev.bars} bars ${esc(ev.first.slice(0, 10))} → ${esc(ev.last.slice(0, 10))} · costs ${fmt(ev.cost_ticks, 1)} ticks/round-turn · ${esc(r.engine_version)} #${esc(r.params_hash)}</span></div>
+    <div class="kpis">
+      ${kpi("Last", fmt(s.close, 1), s.change_today_ticks != null ? `${tk(s.change_today_ticks, 0)} ticks today` : "")}
+      ${kpi("ATR(14)", fmt(s.atr, 2), `${fmt(s.atr_rank, 0)}th percentile`)}
+      ${kpi("Today's range", fmt(s.today_range, 1), s.today_range_pct != null ? `${fmt(s.today_range_pct, 0)}th pct of days` : "")}
+      ${kpi("Regime", `<span style="font-size:13px">${esc(r.regime.current)}</span>`, "ATR pct · ER · ΔATR")}
+      ${kpi("Hurst exponent", fmt(s.hurst, 2), s.hurst == null ? "" : s.hurst > 0.55 ? "persistent / trending" : s.hurst < 0.45 ? "anti-persistent" : "≈ random walk")}
+      ${kpi("Variance ratio (q=4)", vr ? fmt(vr.vr, 3) : "—", vr ? `${esc(vr.reading)} · p ${fmt(vr.p, 3)}` : "")}
+      ${kpi("Lag-1 autocorr", fmt(s.autocorr_1, 3), "bar returns, last 2000")}
+      ${kpi("PDH / PDL", s.pdh ? `${fmt(s.pdh, 1)} / ${fmt(s.pdl, 1)}` : "—", s.vwap ? `VWAP ${fmt(s.vwap, 1)}` : "")}
+    </div>
+    <div class="grid g3" style="margin-top:12px">
+      ${card("Price & detector signals (last 600 bars)", `<div id="echart" class="plot tall"></div>`, "span2")}
+      ${card("Active now (last 3 bars)", activeList(s.active))}
+      ${card("Edge scanner", `<div class="row">horizon ${ev.horizons.map((h) => `<button class="${h === ENG.horizon ? "primary" : ""}" data-h="${h}">${h}</button>`).join("")}
+        <span class="dim">IS = first 70% of history (discovery, FDR-corrected) · OOS = last 30% (validation) · values are ticks of excess return per event</span></div><div id="escan"></div>`, "spanall")}
+      ${card("Detector detail", `<div id="edetail">${empty("Click a row in the edge scanner")}</div>`, "spanall")}
+      ${card(`Probability cone · ${esc(s.cone.bucket)} (ATR pct ${fmt(s.cone.atr_rank, 0)})`, `<div id="econe" class="plot"></div><div id="econet"></div><p class="dim">${esc(s.cone.note)}</p>`)}
+      ${card("Regime timeline", `<div id="ereg" class="plot"></div>`)}
+      ${r.seasonality ? card("Volatility heatmap (weekday × NY hour)", `<div id="eheat" class="plot"></div>`) : ""}
+      ${r.seasonality ? card("Intraday seasonality — mean |move| per bar by NY hour (gold = FDR-significant mean return)", `<div id="eseas" class="plot"></div>`, "spanall") : ""}
+    </div>`;
+  drawEngineChart(r);
+  drawCone(s.cone);
+  drawScanner(ev);
+  drawRegime(r.regime.timeline);
+  if (r.seasonality) drawSeason(r.seasonality);
+  body.querySelectorAll("[data-h]").forEach((b) => b.onclick = () => { ENG.horizon = b.dataset.h; renderEngine(); });
+}
+
+function activeList(a) {
+  if (!a.length) return empty("No detector fired in the last 3 bars.");
+  return a.map((x) => `<div class="msg" style="margin-bottom:6px;font-family:var(--sans)"><b>${esc(x.name)}</b> ${x.kind === "directional" ? (x.direction > 0 ? '<span class="pos">▲ up-hypothesis</span>' : '<span class="neg">▼ down-hypothesis</span>') : '<span class="dim">volatility</span>'}
+    <div class="dim" style="font-size:11px">${esc(x.time.slice(0, 16))} UTC</div>
+    <div style="margin-top:4px">${Object.entries(x.by_horizon).map(([h, v]) => `${h}: ${stChip(v.status)} <span class="dim">${tk(v.mean)}t n=${v.n}</span>`).join("<br>")}</div>
+    ${Object.values(x.by_horizon).every((v) => v.status !== "VALIDATED") ? '<div class="explain lim">⚠ Not validated at any horizon — treat as information, not an edge.</div>' : ""}</div>`).join("");
+}
+
+function drawEngineChart(r) {
+  const c = r.chart;
+  const keys = [...new Set(c.signals.map((s) => s.key))];
+  const marks = keys.map((k) => {
+    const ss = c.signals.filter((s) => s.key === k);
+    return { type: "scatter", mode: "markers", name: k, x: ss.map((s) => s.t), y: ss.map((s) => { const i = c.t.indexOf(s.t); return s.dir >= 0 ? c.low[i] : c.high[i]; }),
+      marker: { size: 9, symbol: ss.map((s) => s.dir > 0 ? "triangle-up" : s.dir < 0 ? "triangle-down" : "diamond"), color: ss.map((s) => s.dir > 0 ? C.good : s.dir < 0 ? C.bad : C.gold), line: { color: C.surface, width: 1 } },
+      hovertemplate: `${k}<br>%{x}<extra></extra>` };
+  });
+  plot("echart", [{ type: "candlestick", x: c.t, open: c.open, high: c.high, low: c.low, close: c.close, name: "MGC1!", showlegend: false,
+    increasing: { line: { color: C.text2, width: 1 }, fillcolor: C.text2 }, decreasing: { line: { color: C.gold, width: 1 }, fillcolor: C.gold } }, ...marks],
+    { margin: { l: 12, r: 64, t: 30, b: 40 }, legend: { orientation: "h", y: 1.08, font: { size: 10 } }, xaxis: { rangeslider: { visible: false }, gridcolor: C.grid }, yaxis: { side: "right", gridcolor: C.grid, tickformat: ".1f" } });
+}
+
+function drawCone(cone) {
+  const ok = cone.cones.filter((x) => !x.error);
+  if (!ok.length) { $("#econe").innerHTML = empty("Not enough history for a cone"); return; }
+  const x = ["now", ...ok.map((o) => o.horizon)], P = (k) => [cone.last_close, ...ok.map((o) => cone.last_close + o[k] * 0.1)];
+  plot("econe", [
+    { mode: "lines", x, y: P("p95"), line: { width: 0 }, showlegend: false, hoverinfo: "skip" },
+    { mode: "lines", x, y: P("p5"), fill: "tonexty", fillcolor: "rgba(57,135,229,.15)", line: { width: 0 }, name: "5–95%", hovertemplate: "p5 %{y:.1f}<extra></extra>" },
+    { mode: "lines", x, y: P("p75"), line: { width: 0 }, showlegend: false, hoverinfo: "skip" },
+    { mode: "lines", x, y: P("p25"), fill: "tonexty", fillcolor: "rgba(57,135,229,.35)", line: { width: 0 }, name: "25–75%", hovertemplate: "p25 %{y:.1f}<extra></extra>" },
+    { mode: "lines", x, y: P("p50"), line: { color: C.gold, width: 2 }, name: "median", hovertemplate: "median %{y:.1f}<extra></extra>" }],
+    { yaxis: { gridcolor: C.grid, tickformat: ".1f" }, xaxis: { gridcolor: C.grid } });
+  $("#econet").innerHTML = table(ok, [["horizon", "Horizon"], ["n", "n"], ["p5", "p5 ticks", (v) => tk(v, 0)], ["p50", "median", (v) => tk(v, 0)], ["p95", "p95", (v) => tk(v, 0)], ["p_up", "P(up)", pct]]);
+}
+
+let LAST_EV = null;
+function drawScanner(ev) {
+  LAST_EV = ev;
+  const rows = ev.rows.filter((r) => r.horizon === ENG.horizon).sort((a, b) => (ST_RANK[a.status] - ST_RANK[b.status]) || ((a.q_is ?? 1) - (b.q_is ?? 1)));
+  $("#escan").innerHTML = `<div class="scroll"><table><thead><tr><th>Detector</th><th>Status</th><th>Edge dir.</th><th>n</th><th>Mean</th><th>95% CI</th><th>Hit</th><th>IS t</th><th>q (FDR)</th><th>OOS mean (n)</th><th>OOS net ticks</th><th>Months +</th></tr></thead><tbody>${
+    rows.map((r) => `<tr class="click ${ENG.sel === r.key ? "sel" : ""}" data-k="${r.key}"><td>${esc(r.name)}</td><td>${stChip(r.status)}</td><td class="dim">${esc(r.edge_direction || "")}</td><td>${r.n}</td>
+      <td>${sgn(r.mean_ticks, 1)}</td><td>${r.ci95 ? `${tk(r.ci95[0])} … ${tk(r.ci95[1])}` : "—"}</td><td>${r.kind === "directional" ? pct(r.hit_rate, 0) : "—"}</td>
+      <td>${fmt(r.is.t, 2)}</td><td>${fmt(r.q_is, 3)}</td><td>${r.oos.n ? `${tk(r.oos.mean)} (${r.oos.n})` : "—"}</td><td>${r.net_oos_ticks == null ? "—" : sgn(r.net_oos_ticks, 1)}</td><td>${pct(r.months_positive, 0)}</td></tr>`).join("")
+  }</tbody></table></div><p class="dim">Mean = ticks per event in excess of the market's drift (directional) or of the normal move size (volatility). 1 tick = $0.10 = $1 per MGC contract. Statuses: VALIDATED = FDR-significant in-sample, same sign and significant out-of-sample, and positive after costs.</p>`;
+  document.querySelectorAll("#escan tr[data-k]").forEach((tr) => tr.onclick = () => { ENG.sel = tr.dataset.k; drawScanner(LAST_EV); drawDetail(); });
+  if (ENG.sel) drawDetail();
+}
+
+function drawDetail() {
+  const r = LAST_EV.rows.find((x) => x.key === ENG.sel && x.horizon === ENG.horizon);
+  if (!r) return;
+  $("#edetail").innerHTML = `<div class="grid g3">
+    <div><h2>${esc(r.name)} · ${esc(r.horizon)}</h2><dl class="explain"><dt>STATUS</dt><dd>${stChip(r.status)} ${esc(r.verdict)}</dd>
+      <dt>HYPOTHESIS</dt><dd>${esc(r.hypothesis)}</dd><dt>RULE (no look-ahead)</dt><dd>${esc(r.rule)}</dd>
+      <dt>SAMPLE</dt><dd>n = ${r.n}${r.kind === "directional" ? ` (${r.n_long} up / ${r.n_short} down)` : ""} · IS ${r.is.n} · OOS ${r.oos.n}</dd>
+      <dt>IN-SAMPLE</dt><dd>mean ${tk(r.is.mean)} ticks · t ${fmt(r.is.t, 2)} · p ${fmt(r.is.p, 4)} · q ${fmt(r.q_is, 4)}</dd>
+      <dt>OUT-OF-SAMPLE</dt><dd>mean ${tk(r.oos.mean)} ticks · t ${fmt(r.oos.t, 2)} · p ${fmt(r.oos.p, 4)}</dd>
+      <dt>AFTER COSTS</dt><dd>${r.kind === "directional" ? `raw ${tk(r.raw_mean_ticks)} → net ${tk(r.net_mean_ticks)} ticks/event (all) · OOS net ${tk(r.net_oos_ticks)}` : "n/a (volatility detector)"}</dd>
+      <dt>LAST SIGNAL</dt><dd>${esc(r.last_signal || "—")}</dd></dl>
+      <div class="explain lim">⚠ Entry is assumed at the signal bar's close; real fills, spreads and delays will differ. Historical association is not causation.</div></div>
+    <div><div id="emon" class="plot"></div></div><div><div id="edist" class="plot"></div></div></div>`;
+  plot("emon", [{ type: "bar", x: r.monthly.map((m) => m.month), y: r.monthly.map((m) => m.mean), text: r.monthly.map((m) => `n=${m.n}`), textposition: "outside", marker: { color: r.monthly.map((m) => m.mean >= 0 ? C.A : "#5b5e66") }, hovertemplate: "%{x}: %{y:.1f} ticks %{text}<extra></extra>" }],
+    { showlegend: false, title: { text: "Stability: mean per month", font: { size: 11 } }, yaxis: { title: "ticks", gridcolor: C.grid } });
+  plot("edist", [{ type: "histogram", x: r.distribution, marker: { color: C.A, line: { color: C.surface, width: 1 } }, hovertemplate: "%{x} ticks: %{y}<extra></extra>" }],
+    { showlegend: false, title: { text: `Distribution per event · n=${r.n} · mean ${tk(r.mean_ticks)} · median ${tk(r.median_ticks)}`, font: { size: 11 } }, shapes: vline(0, C.muted, "dot").concat(vline(r.mean_ticks, C.gold)) });
+}
+
+function drawRegime(tl) {
+  const names = { 1: "Hi-vol trend", 2: "Lo-vol trend", 3: "Hi-vol range", 4: "Lo-vol range", 5: "Vol expansion", 6: "Vol contraction", 0: "Unclassified", "-1": "Warm-up" };
+  plot("ereg", [{ type: "scatter", mode: "markers", x: tl.t, y: tl.regime.map((r) => names[r]), marker: { size: 4, color: C.A }, hovertemplate: "%{x}<br>%{y}<extra></extra>" }],
+    { showlegend: false, margin: { l: 96, r: 10, t: 10, b: 36 }, yaxis: { categoryorder: "array", categoryarray: Object.values(names).reverse(), gridcolor: C.grid } });
+}
+
+function drawSeason(se) {
+  const h = se.hours;
+  plot("eseas", [{ type: "bar", x: h.map((x) => x.hour), y: h.map((x) => x.abs_mean), marker: { color: h.map((x) => x.q != null && x.q < 0.05 ? C.gold : C.A) },
+    customdata: h.map((x) => `mean ${tk(x.mean, 2)}t · q ${fmt(x.q, 3)} · n ${x.n}`), hovertemplate: "%{x}:00 ET<br>|move| %{y:.2f} ticks<br>%{customdata}<extra></extra>" }],
+    { showlegend: false, xaxis: { title: "hour (New York)", dtick: 2, gridcolor: C.grid }, yaxis: { title: "mean |move| per bar (ticks)", gridcolor: C.grid } });
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  plot("eheat", [{ type: "heatmap", x: se.heat.hour, y: se.heat.dow.map((d) => days[d]), z: se.heat.z, colorscale: [[0, "#17181b"], [0.5, "#256abf"], [1, "#cde2fb"]], hovertemplate: "%{y} %{x}:00 ET<br>|move| %{z} ticks<extra></extra>", colorbar: { thickness: 8 } }],
+    { showlegend: false, margin: { l: 40, r: 10, t: 10, b: 36 }, xaxis: { title: "hour (NY)", dtick: 3 } });
+}
+
 // -------------------------------------------------------------- routing ---
 async function go(name) {
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.view === name));
@@ -478,5 +645,5 @@ async function go(name) {
   await guard(views[name]);
 }
 document.querySelectorAll("#nav a").forEach((a) => a.onclick = () => { location.hash = a.dataset.view; });
-window.addEventListener("hashchange", () => go(location.hash.slice(1) || "overview"));
-go(location.hash.slice(1) || "overview");
+window.addEventListener("hashchange", () => go(location.hash.slice(1) || "engine"));
+go(location.hash.slice(1) || "engine");

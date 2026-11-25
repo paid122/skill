@@ -191,3 +191,33 @@ def test_tradingview_csv_unix_time():
     csv = "time,open,high,low,close,Volume,RSI\n1767650400,2000,2001,1999,2000.5,10,50\n1767650700,2000.5,2001,2000,2000.8,12,51\n1767651000,2000.8,2002,2000.1,2001.5,9,52\n"
     cs = load_candles_csv(io.StringIO(csv), source="TradingView export")
     assert str(cs.df.index.tz) == "UTC" and cs.df.index[0] == pd.Timestamp("2026-01-05 22:00", tz="UTC")
+
+
+def test_engine_no_lookahead_and_no_false_edges(tmp_path, monkeypatch):
+    from aureus.engine import detectors, evaluate, store
+    monkeypatch.setattr(store, "DB", tmp_path / "m.sqlite")
+    cs = load_candles_csv(simulated_candles_csv(days=60, start_price=4000.0), source="t")
+    df = cs.df
+    _, full = detectors.run_all(df)
+    _, part = detectors.run_all(df.iloc[: len(df) * 2 // 3])
+    common = part["pd_break"].index[-2000:]
+    for k in part:  # signals on past bars never change when future bars are added
+        assert (full[k].loc[common] == part[k].loc[common]).all(), k
+    ev = evaluate.evaluate(df, full, "5m", cost_ticks=2.6)
+    # random-walk data: nothing directional should pass full validation
+    assert not [r for r in ev["rows"] if r["kind"] == "directional" and r["status"] == "VALIDATED"]
+    # store round-trip
+    assert store.upsert(df.iloc[:100], "5m", "simulated") == 100
+    assert len(store.load("5m")) == 100
+
+
+def test_variance_ratio_detects_momentum():
+    from aureus.engine.state import variance_ratio
+    rng = np.random.default_rng(1)
+    e = rng.standard_normal(5000)
+    r = np.empty_like(e); r[0] = e[0]
+    for i in range(1, len(e)):
+        r[i] = 0.3 * r[i - 1] + e[i]          # positively autocorrelated
+    px = pd.Series(np.exp(np.cumsum(r * 0.001)) * 4000)
+    vr = variance_ratio(px, 4)
+    assert vr["vr"] > 1.2 and vr["p"] < 0.01

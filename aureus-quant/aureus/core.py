@@ -19,6 +19,7 @@ from typing import Any
 
 class Provenance(str, Enum):
     LIVE = "LIVE"
+    DELAYED = "DELAYED"
     HISTORICAL = "HISTORICAL"
     SIMULATED = "SIMULATED"
 

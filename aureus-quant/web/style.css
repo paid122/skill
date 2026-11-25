@@ -83,3 +83,13 @@ label.f { display: flex; flex-direction: column; gap: 2px; font-size: 11px; colo
   nav a.active { border-bottom-color: var(--gold); }
   main { padding: 0 16px 40px; } .g2, .g3, .g4 { grid-template-columns: 1fr; } .span2, .span3 { grid-column: auto; }
 }
+
+.st { display: inline-block; padding: 1px 6px; border-radius: 3px; font: 500 11px var(--mono); border: 1px solid var(--line); white-space: nowrap; }
+.st.VALIDATED { color: var(--good); border-color: var(--good); }
+.st.PROMISING { color: var(--warn); border-color: var(--warn); }
+.st.FAILED { color: var(--bad); border-color: var(--bad); }
+.st.NO, .st.INSUFFICIENT { color: var(--muted); }
+tr.click { cursor: pointer; } tr.click:hover td { background: var(--surface-2); }
+tr.sel td { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--gold); }
+.statusbar { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; font: 12px var(--mono); color: var(--text-2); }
+.statusbar .grow { flex: 1; }

@@ -4,6 +4,19 @@ Quantitative research system for **COMEX Micro Gold futures (MGC1!)** and the **
 
 > Evidence over opinions. Mathematics over intuition. Validation over assumptions.
 
+## Quant Engine (autonomous MGC1! analysis — the default page)
+
+The engine tracks MGC1! by itself; no strategy, journal or TradingView indicator is needed.
+
+* **Data:** it downloads MGC=F bars from Yahoo Finance every minute (1m and 5m) and every 30 minutes (1h and 1d), and stores them in `data/market/mgc.sqlite` so history keeps growing. This is a FREE, DELAYED (≈10 min), unofficial source, fine for research and never for execution. Set `AUREUS_FEED=databento` with `DATABENTO_API_KEY` for licensed CME data, or `AUREUS_FEED=none` to disable downloads.
+* **Detectors** (`aureus/engine/detectors.py`) are 14 mechanical, look-ahead-free conditions: prior-day sweep/reject and breaks, volatility squeeze breakouts, z-score and VWAP stretch, NY opening-range and London-vs-Asia range breaks, momentum bars, volume shocks, $25 round levels, 3-bar exhaustion, session gaps, and volatility compression and extremes.
+* **Validation** (`aureus/engine/evaluate.py`): forward returns at 3 horizons, de-overlapped events, excess over drift, IS/OOS 70/30 split, Benjamini–Hochberg FDR across all tests, costs in ticks, and monthly stability. Each finding gets a status: VALIDATED / PROMISING / FAILED OOS / NO EDGE / INSUFFICIENT.
+* **State** (`aureus/engine/state.py`): volatility percentile, regime, Hurst exponent, Lo–MacKinlay variance ratio, lag-1 autocorrelation, active detectors, and an empirical probability cone conditional on the volatility tercile.
+
+### macOS
+
+Double-click `start_mac.command`. If macOS blocks it, right-click it and choose **Open**, or run `bash start_mac.command` in Terminal. It needs Python 3.10+ from python.org, creates a private environment on first run, and opens http://localhost:8001.
+
 ## Quick start
 
 ```bash
