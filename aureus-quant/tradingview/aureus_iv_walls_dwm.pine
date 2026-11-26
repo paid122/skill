@@ -12,8 +12,10 @@ indicator("AUREUS IV Walls (Day/Week/Month)", overlay = true, max_boxes_count = 
 //   Broke    = of the days that touched it, share that traded beyond the far edge of the box
 // Touch markers: ▼ = upper zone touched, ▲ = lower zone touched (first touch of each zone per day).
 
-perName  = input.string("Month", "Period", options = ["Day", "Week", "Month"])
+perName  = input.string("Week", "Period", options = ["Day", "Week", "Month"])
 ivSym    = input.symbol("CBOE:GVZ", "IV index (annualised %)")
+ivSym2   = input.symbol("TVC:GVZ", "Backup IV symbol")
+ivManual = input.float(0.0, "Manual GVZ (0 = automatic). Type e.g. 34.8 if the boxes don't show", minval = 0, step = 0.1)
 keepDays = input.int(6, "Show boxes for the last N periods", minval = 1, maxval = 100)
 kN1      = input.float(0.67, "Normal zone from (×M)", step = 0.05, group = "Zones")
 kN2      = input.float(1.00, "Normal zone to (×M)",   step = 0.05, group = "Zones")
@@ -28,15 +30,19 @@ showMk   = input.bool(true, "Show touch markers", group = "Stats")
 
 // ------------------------------------------------------------------ data --
 dOpen  = request.security(syminfo.tickerid, tf, open, lookahead = barmerge.lookahead_on)
-ivLast = request.security(ivSym, "D", close,    lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
-ivPrev = request.security(ivSym, "D", close[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+ivLastA = request.security(ivSym,  "D", close,    lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+ivPrevA = request.security(ivSym,  "D", close[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+ivLastB = request.security(ivSym2, "D", close,    lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+ivPrevB = request.security(ivSym2, "D", close[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+ivLast = ivManual > 0 ? ivManual : na(ivLastA) ? ivLastB : ivLastA
+ivPrev = ivManual > 0 ? ivManual : na(ivPrevA) ? ivPrevB : ivPrevA
 newDay = timeframe.change(tf)
 
 // The GVZ cash session ends 16:15 New York. If this chart's trading day starts after that (CME/most
 // XAUUSD brokers start ~18:00 NY) or before 09:30 NY, the latest GVZ close is already final -> use it.
 // If the day starts during US hours, use the previous close so no unfinished value is used.
 startHr  = hour(time, "America/New_York") + minute(time, "America/New_York") / 60.0
-ivForDay = (startHr >= 16.25 or startHr < 9.5) ? ivLast : ivPrev
+ivForDay = nz((startHr >= 16.25 or startHr < 9.5) ? ivLast : ivPrev, nz(ivLast, ivPrev))
 
 phi(float x) =>
     z = math.abs(x) / math.sqrt(2.0)
@@ -97,6 +103,14 @@ else
     dHi := math.max(dHi, high)
     dLo := math.min(dLo, low)
 dC := close
+
+// Warn on the chart instead of silently drawing nothing
+var label warn = na
+if barstate.islast
+    label.delete(warn)
+    if na(dM)
+        warn := label.new(bar_index, close, "AUREUS IV Walls: no GVZ data on this account.\nOpen Settings → type the GVZ value in 'Manual GVZ' (e.g. 34.8).",
+             style = label.style_label_left, color = color.new(#e66767, 0), textcolor = color.white, size = size.normal)
 
 // ------------------------------------------------------- touch markers ---
 lvNH = dO + kN1 * dM
