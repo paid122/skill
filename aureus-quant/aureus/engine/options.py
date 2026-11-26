@@ -149,9 +149,17 @@ def analyse_chain(chains: list[dict], S: float, mgc_ratio: float | None) -> dict
                    + (np.maximum(near.loc[near.type == "P", "strike"] - k, 0) * near.loc[near.type == "P", "oi"]).sum())) for k in ks]
     max_pain = float(ks[int(np.argmin(pain))]) if len(ks) else None
 
+    # daily ceiling / floor: nearest expiry only — strike with the most call OI above spot
+    # (ceiling) and the most put OI below spot (floor)
+    nc = near[(near.type == "C") & (near.strike >= S)].groupby("strike")["oi"].sum()
+    npt = near[(near.type == "P") & (near.strike <= S)].groupby("strike")["oi"].sum()
+    ceiling = float(nc.idxmax()) if len(nc) and nc.max() > 0 else None
+    floor_ = float(npt.idxmax()) if len(npt) and npt.max() > 0 else None
+
     total_gex = float(by["gex"].sum())
     pcr_oi = float(by["put_oi"].sum() / by["call_oi"].sum()) if by["call_oi"].sum() else None
-    lv = {"call_wall": call_wall, "put_wall": put_wall, "gamma_flip": flip, "max_pain": max_pain}
+    lv = {"call_wall": call_wall, "put_wall": put_wall, "gamma_flip": flip, "max_pain": max_pain,
+          "ceiling": ceiling, "floor": floor_}
     return {
         "spot_gld": S, "mgc_ratio": mgc_ratio,
         "levels_gld": lv, "levels_mgc": {k: (to_mgc(v) if v is not None else None) for k, v in lv.items()},

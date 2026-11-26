@@ -564,7 +564,7 @@ async function renderEngine(force = false) {
   body.querySelectorAll("[data-h]").forEach((b) => b.onclick = () => { ENG.horizon = b.dataset.h; renderEngine(); });
 }
 
-const WALLS = [["call_wall", "Call wall", C.good, "dash"], ["put_wall", "Put wall", C.bad, "dash"], ["gamma_flip", "Gamma flip", C.gold, "dot"], ["max_pain", "Max pain", C.muted, "dashdot"]];
+const WALLS = [["ceiling", "Daily ceiling", C.bad, "solid"], ["floor", "Daily floor", C.good, "solid"], ["call_wall", "Call wall", C.good, "dash"], ["put_wall", "Put wall", C.bad, "dash"], ["gamma_flip", "Gamma flip", C.gold, "dot"], ["max_pain", "Max pain", C.muted, "dashdot"]];
 function wallShapes(lo, hi) {
   const o = ENG.opt; if (!o || o.error || !o.levels_mgc) return [];
   return WALLS.filter(([k]) => o.levels_mgc[k] != null && o.levels_mgc[k] >= lo && o.levels_mgc[k] <= hi).map(([k, , col, dash]) => ({ type: "line", xref: "paper", x0: 0, x1: 1, y0: o.levels_mgc[k], y1: o.levels_mgc[k], line: { color: col, width: 1.5, dash } }));
@@ -584,6 +584,8 @@ function optionsCards(o) {
   const L = o.levels_mgc, near = o.term[0] || {};
   return card(`Options walls · GLD options mapped to MGC1! ${o.provenance ? provChip(o.provenance) : provChip("DELAYED")}`, `
     <div class="kpis">
+      ${kpi("Daily ceiling", fmt(L.ceiling, 1), `GLD ${fmt(o.levels_gld.ceiling, 0)} · nearest expiry, max call OI above`)}
+      ${kpi("Daily floor", fmt(L.floor, 1), `GLD ${fmt(o.levels_gld.floor, 0)} · nearest expiry, max put OI below`)}
       ${kpi("Call wall", fmt(L.call_wall, 1), `GLD ${fmt(o.levels_gld.call_wall, 0)} · max call OI above`)}
       ${kpi("Put wall", fmt(L.put_wall, 1), `GLD ${fmt(o.levels_gld.put_wall, 0)} · max put OI below`)}
       ${kpi("Gamma flip", fmt(L.gamma_flip, 1), "net GEX changes sign")}

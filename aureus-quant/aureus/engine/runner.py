@@ -105,7 +105,8 @@ def options_view() -> dict:
 def tradingview_levels(snap: dict) -> str:
     """Compact string pasted into the AUREUS IV Walls TradingView indicator."""
     L = snap.get("levels_mgc") or {}
-    parts = [f"{k}={L[v]:.1f}" for k, v in (("CW", "call_wall"), ("PW", "put_wall"), ("GF", "gamma_flip"), ("MP", "max_pain"))
+    parts = [f"{k}={L[v]:.1f}" for k, v in (("CEIL", "ceiling"), ("FLOOR", "floor"), ("CW", "call_wall"), ("PW", "put_wall"),
+                                            ("GF", "gamma_flip"), ("MP", "max_pain"))
              if L.get(v) is not None]
     term = snap.get("term") or []
     if term and term[0].get("expected_move_pct") and snap.get("mgc_last"):
