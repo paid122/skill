@@ -541,6 +541,7 @@ async function renderEngine(force = false) {
       ${tradeCard(trd)}
       ${card("Price & detector signals (last 600 bars)", `<div id="echart" class="plot tall"></div>`, "span2")}
       ${card("Active now (last 3 bars)", activeList(s.active))}
+      ${ivLabCard()}
       ${optionsCards(opt)}
       ${volCards(vol)}
       ${card("Edge scanner", `<div class="row">horizon ${ev.horizons.map((h) => `<button class="${h === ENG.horizon ? "primary" : ""}" data-h="${h}">${h}</button>`).join("")}
@@ -553,6 +554,7 @@ async function renderEngine(force = false) {
     </div>`;
   drawEngineChart(r);
   bindTrade(trd);
+  drawIvLab();
   drawOptions(opt);
   drawVol(vol);
   drawCone(s.cone);
@@ -754,6 +756,77 @@ function drawSeason(se) {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   plot("eheat", [{ type: "heatmap", x: se.heat.hour, y: se.heat.dow.map((d) => days[d]), z: se.heat.z, colorscale: [[0, "#17181b"], [0.5, "#256abf"], [1, "#cde2fb"]], hovertemplate: "%{y} %{x}:00 ET<br>|move| %{z} ticks<extra></extra>", colorbar: { thickness: 8 } }],
     { showlegend: false, margin: { l: 40, r: 10, t: 10, b: 36 }, xaxis: { title: "hour (NY)", dtick: 3 } });
+}
+
+// ------------------------------------------------------------- IV Walls Lab --
+ENG.ivp = ENG.ivp || "W";
+function ivLabCard() {
+  return card(`IV Walls Lab · does trading the IV zones actually work? <span class="dim" style="text-transform:none;letter-spacing:0">(tests the exact formula from your notes on years of history)</span>`, `
+    <div class="row">period
+      <button data-ivp="W" class="${ENG.ivp === "W" ? "primary" : ""}">Weekly</button><button data-ivp="D" class="${ENG.ivp === "D" ? "primary" : ""}">Daily</button>
+      <span class="grow"></span>
+      <a id="ivcsv" href="/api/engine/ivwalls.csv?period=${ENG.ivp}" style="color:var(--gold)">⬇ Download all periods as a spreadsheet (CSV)</a>
+      <form id="gvzup" class="row" style="margin:0"><input type="file" name="file" accept=".csv" required style="max-width:200px"><button>Upload GVZ CSV</button></form>
+    </div>
+    <div id="ivlab"><div class="dim">Running the test…</div></div>`, "spanall");
+}
+
+async function drawIvLab() {
+  const box = document.getElementById("ivlab");
+  if (!box) return;
+  document.querySelectorAll("[data-ivp]").forEach((b) => b.onclick = () => { ENG.ivp = b.dataset.ivp; renderEngine(); });
+  $("#gvzup").onsubmit = async (e) => { e.preventDefault();
+    try { const r = await api("/api/engine/gvz-upload", { method: "POST", body: new FormData(e.target) }); alert(`GVZ loaded: ${r.rows} days (${r.first.slice(0, 10)} → ${r.last.slice(0, 10)})`); renderEngine(); }
+    catch (err) { alert(err.message); } };
+  let r;
+  try { r = await api(`/api/engine/ivwalls?period=${ENG.ivp}`); }
+  catch (e) { box.innerHTML = empty(e.message) + `<p class="dim">GVZ CSV from TradingView: open CBOE:GVZ on the 1D chart → ⋯ menu (top) → <b>Export chart data</b>, then upload the file here.</p>`; return; }
+  const per = r.freq === "W" ? "weeks" : "days";
+  const cur = r.current, z = cur.zones;
+  const rules = Object.entries(r.rules);
+  box.innerHTML = `
+    <div class="row">${provChip(r.provenance)} <span class="dim">${r.periods} ${per} tested · ${esc(r.first.slice(0, 10))} → ${esc(r.last.slice(0, 10))} · out-of-sample from ${esc(r.split.slice(0, 10))} · costs ${fmt(r.cost_points, 2)} pts/trade</span></div>
+    <div class="kpis">
+      ${kpi(`This ${r.freq === "W" ? "week" : "day"}'s open`, fmt(cur.open, 1), `${esc(cur.start.slice(0, 10))}`)}
+      ${kpi("GVZ used", fmt(cur.iv, 1), "close before the period")}
+      ${kpi("M (normal move)", fmt(cur.M, 1), "open × GVZ × " + (r.freq === "W" ? "0.00141" : "0.00063"))}
+      ${kpi("🟩 Wall High", `${fmt(z["up_1.65"], 1)} – ${fmt(z["up_1.96"], 1)}`, "")}
+      ${kpi("🟦 Normal High", `${fmt(z["up_0.67"], 1)} – ${fmt(z["up_1.0"], 1)}`, "")}
+      ${kpi("🟦 Normal Low", `${fmt(z["dn_0.67"], 1)} – ${fmt(z["dn_1.0"], 1)}`, "")}
+      ${kpi("🟥 Wall Low", `${fmt(z["dn_1.65"], 1)} – ${fmt(z["dn_1.96"], 1)}`, "")}
+    </div>
+    <div class="grid g3" style="margin-top:10px">
+      <div><h2>Question 1 · how often is each zone reached? (theory vs gold)</h2><div id="ivhit" class="plot"></div>
+        ${table(r.hit_rates, [["k", "Level (× M)", (v) => v.toFixed(2)], ["theory", "Theory", (v) => pct(v, 0)], ["actual", "Gold actual", (v) => pct(v, 1)], ["ci", "95% CI", (v) => `${pct(v[0], 0)}–${pct(v[1], 0)}`], ["hits", "Hits"], ["n_sides", "Sides"]])}
+        <p class="dim">If "actual" is clearly above theory, gold moves further than the options market prices (fat tails) → walls break more often.</p></div>
+      <div><h2>Question 2 · how far do ${per} really travel? (in M)</h2><div id="ivexc" class="plot"></div>
+        <p class="dim">Each bar = how far the high (blue) or low (orange) got from the open, measured in M. Dotted lines = 0.67 / 1.0 / 1.65 / 1.96.</p></div>
+      <div><h2>Question 3 · does fading the zones make money?</h2>
+        ${rules.map(([k, x]) => `<div class="msg" style="font-family:var(--sans);margin-bottom:8px"><b>${esc(x.name)}</b> ${stChip(x.status)}
+          <div class="dim" style="font-size:11px">sell at open + ${x.entry_k}M / buy at open − ${x.entry_k}M · stop ${x.stop_k}M · exit at period close</div>
+          <div style="font:12px var(--mono);margin-top:4px">trades ${x.all.n} · avg ${x.all.mean == null ? "—" : sgn(x.all.mean, 2) + "R"} · win ${pct(x.all.win_rate, 0)} · 95% CI ${x.ci95 ? `${tk(x.ci95[0], 2)} … ${tk(x.ci95[1], 2)}R` : "—"}<br>
+          in-sample ${x.is.n ? sgn(x.is.mean, 2) + "R (n " + x.is.n + ")" : "—"} · out-of-sample ${x.oos.n ? sgn(x.oos.mean, 2) + "R (n " + x.oos.n + ")" : "—"} · max DD ${fmt(x.max_drawdown_r, 1)}R</div>
+          <div class="dim" style="margin-top:4px">${esc(x.verdict)}</div></div>`).join("")}
+        <div id="ivequity" class="plot" style="height:200px"></div></div>
+    </div>
+    <h2 style="margin-top:12px">Recent ${per} (check any row against your own calculation)</h2>
+    ${table(r.recent.slice(0, 12), [["start", "Start"], ["open", "Open", (v) => fmt(v, 1)], ["iv", "GVZ", (v) => fmt(v, 1)], ["M", "M", (v) => fmt(v, 1)], ["high", "High", (v) => fmt(v, 1)], ["low", "Low", (v) => fmt(v, 1)],
+      ["close", "Close", (v) => fmt(v, 1)], ["up_k", "High went (×M)", (v) => `<span class="${v >= 1.65 ? "pos" : ""}">${fmt(v, 2)}</span>`], ["dn_k", "Low went (×M)", (v) => `<span class="${v >= 1.65 ? "neg" : ""}">${fmt(v, 2)}</span>`]])}
+    ${r.assumptions.map((a) => `<div class="explain lim">⚠ ${esc(a)}</div>`).join("")}`;
+  const h = r.hit_rates;
+  plot("ivhit", [
+    { type: "bar", name: "Theory", x: h.map((x) => x.k.toFixed(2) + "M"), y: h.map((x) => x.theory * 100), marker: { color: "#5b5e66" }, hovertemplate: "%{x}: theory %{y:.0f}%<extra></extra>" },
+    { type: "bar", name: "Gold actual", x: h.map((x) => x.k.toFixed(2) + "M"), y: h.map((x) => x.actual * 100), marker: { color: C.gold },
+      error_y: { type: "data", symmetric: false, array: h.map((x) => (x.ci[1] - x.actual) * 100), arrayminus: h.map((x) => (x.actual - x.ci[0]) * 100), color: C.text2, thickness: 1 }, hovertemplate: "%{x}: actual %{y:.1f}%<extra></extra>" }],
+    { barmode: "group", yaxis: { title: "% of sides reaching it", gridcolor: C.grid }, legend: { orientation: "h", y: 1.15 } });
+  const lines = [0.67, 1, 1.65, 1.96].flatMap((k) => vline(k, C.muted, "dot"));
+  plot("ivexc", [
+    { type: "histogram", x: r.excursions.up, name: "High (up)", opacity: 0.6, xbins: { size: 0.1 }, marker: { color: C.A } },
+    { type: "histogram", x: r.excursions.dn, name: "Low (down)", opacity: 0.6, xbins: { size: 0.1 }, marker: { color: C.B } }],
+    { barmode: "overlay", shapes: lines, xaxis: { title: "distance from open (× M)", range: [0, 3.5], gridcolor: C.grid }, yaxis: { title: per, gridcolor: C.grid }, legend: { orientation: "h", y: 1.15 } });
+  plot("ivequity", rules.map(([k, x], i) => ({ y: x.equity, mode: "lines", name: x.name, line: { color: [C.A, C.B][i], width: 2 }, hovertemplate: "trade %{x}: %{y:.1f}R<extra></extra>" })),
+    { margin: { l: 40, r: 10, t: 24, b: 30 }, legend: { orientation: "h", y: 1.2, font: { size: 10 } }, xaxis: { title: "trade #", gridcolor: C.grid }, yaxis: { title: "cumulative R", gridcolor: C.grid },
+      shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: C.muted, width: 1 } }] });
 }
 
 // ------------------------------------------------------------ Paper trading --

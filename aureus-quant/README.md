@@ -24,6 +24,13 @@ The engine tracks MGC1! by itself; no strategy, journal or TradingView indicator
   * A bar backlog (app was off) is never used for new entries, which prevents look-ahead.
   * No broker is connected and no real orders are sent.
 
+* **IV Walls Lab** (`aureus/engine/ivwalls.py`): applies the manual IV-zone formula (M = open × GVZ × √(days/252) ÷ 100; zones at 0.67/1.0/1.65/1.96 M) to every past week or day.
+  * Hit rates vs theory 2·(1−Φ(k)) with Wilson CIs.
+  * Excursion distribution.
+  * Normal-zone and wall fade rules, with fills at the zone, an ATR-free stop at 1.65 M / 2.3 M, and exit at the period close. Same-period stop ordering is resolved with 1h bars, otherwise the stop is assumed. Results are in R after costs, IS/OOS 70/30, with a status.
+  * CSV download of every period.
+  * GVZ comes from Yahoo, then the CBOE history CSV, or a TradingView export upload.
+
 ### macOS
 
 Double-click `start_mac.command`. If macOS blocks it, right-click it and choose **Open**, or run `bash start_mac.command` in Terminal. It needs Python 3.10+ from python.org, creates a private environment on first run, and opens http://localhost:8001.

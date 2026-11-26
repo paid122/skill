@@ -18,6 +18,7 @@ bars and the status endpoint reports the error and the data age.
 """
 from __future__ import annotations
 
+import io
 import os
 import sqlite3
 import threading
@@ -227,7 +228,27 @@ def update_aux() -> list[dict]:
         except Exception as e:  # noqa: BLE001
             log_fetch(f"aux:{name}", "yahoo", 0, str(e)[:300])
             out.append({"series": name, "error": str(e)[:300]})
+            if name == "GVZ":
+                out.append(fetch_gvz_cboe())
     return out
+
+
+CBOE_GVZ_URL = "https://cdn.cboe.com/api/global/us_indices/daily_prices/GVZ_History.csv"
+
+
+def fetch_gvz_cboe() -> dict:
+    """Fallback: CBOE's own published GVZ daily history (the index publisher)."""
+    try:
+        import urllib.request
+        from .ivwalls import load_iv_csv
+        with urllib.request.urlopen(CBOE_GVZ_URL, timeout=30) as r:
+            s = load_iv_csv(io.StringIO(r.read().decode()))
+        n = upsert_aux("GVZ", s)
+        log_fetch("aux:GVZ", "cboe", n, None)
+        return {"series": "GVZ (CBOE)", "rows": n}
+    except Exception as e:  # noqa: BLE001
+        log_fetch("aux:GVZ", "cboe", 0, str(e)[:300])
+        return {"series": "GVZ (CBOE)", "error": str(e)[:300]}
 
 
 def update(intervals=("1m", "5m", "1h", "1d")) -> dict:

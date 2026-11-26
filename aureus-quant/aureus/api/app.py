@@ -443,6 +443,35 @@ def engine_volatility():
     return J(runner.volatility_view())
 
 
+@app.get("/api/engine/ivwalls")
+def engine_ivwalls(period: str = "W"):
+    from ..engine import runner
+    return J(runner.ivwalls_view("D" if period.upper().startswith("D") else "W"))
+
+
+@app.get("/api/engine/ivwalls.csv")
+def engine_ivwalls_csv(period: str = "W"):
+    from fastapi.responses import PlainTextResponse
+    from ..engine import store
+    from ..engine.ivwalls import periods_csv
+    freq = "D" if period.upper().startswith("D") else "W"
+    gvz = store.load_aux("GVZ")
+    if gvz is None:
+        raise InsufficientData("No GVZ history yet")
+    return PlainTextResponse(periods_csv(store.load("1d"), gvz, freq), media_type="text/csv",
+                             headers={"Content-Disposition": f"attachment; filename=iv_walls_{'weekly' if freq == 'W' else 'daily'}.csv"})
+
+
+@app.post("/api/engine/gvz-upload")
+async def engine_gvz_upload(file: UploadFile = File(...)):
+    from ..engine import store
+    from ..engine.ivwalls import load_iv_csv
+    s = load_iv_csv(io.BytesIO(await file.read()))
+    n = store.upsert_aux("GVZ", s)
+    store.log_fetch("aux:GVZ", "upload", n, None)
+    return J({"rows": n, "first": s.index.min().isoformat(), "last": s.index.max().isoformat()})
+
+
 @app.post("/api/engine/demo")
 def engine_demo():
     from ..engine import runner

@@ -342,3 +342,42 @@ def test_tradingview_levels_string():
     snap = {"levels_mgc": {"call_wall": 3627.63, "put_wall": 3348.58, "gamma_flip": None, "max_pain": 3441.6},
             "term": [{"expected_move_pct": 0.0126}], "mgc_last": 3441.6, "saved_at": "2026-11-25T14:34:00"}
     assert tradingview_levels(snap) == "CW=3627.6;PW=3348.6;MP=3441.6;EM=43.4;D=2026-11-25"
+
+
+def _sim_daily_with_iv(n_days=1500, iv=20.0, seed=4):
+    """Random-walk daily bars whose true volatility equals the quoted IV, with intraday
+    highs/lows from a 24-step path — so theory and reality should agree."""
+    rng = np.random.default_rng(seed)
+    idx = pd.bdate_range("2019-01-01", periods=n_days, tz="UTC")
+    sig_step = iv / 100 / np.sqrt(252) / np.sqrt(24)
+    px, rows = 2000.0, []
+    for t in idx:
+        path = px * np.exp(np.cumsum(rng.standard_normal(24) * sig_step))
+        rows.append((px, max(px, path.max()), min(px, path.min()), path[-1]))
+        px = path[-1]
+    d = pd.DataFrame(rows, index=idx, columns=["open", "high", "low", "close"])
+    return d, pd.Series(iv, index=idx)
+
+
+def test_ivwalls_theory_matches_random_walk_and_no_fake_edge():
+    from aureus.engine.ivwalls import run, build_periods, theory
+    d, gvz = _sim_daily_with_iv()
+    p = build_periods(d, gvz, "W")
+    assert p["M"].iloc[5] == pytest.approx(p["open"].iloc[5] * 20 / 100 * np.sqrt(5 / 252))
+    res = run(d, gvz, "W", cost_points=0.26)
+    for h in res["hit_rates"]:                      # actual within its CI of theory (allow discretisation)
+        assert abs(h["actual"] - theory(h["k"])) < 0.07, h
+    for r in res["rules"].values():                 # fading a random walk must not be VALIDATED
+        assert r["status"] != "VALIDATED"
+    resd = run(d, gvz, "D", cost_points=0.26)
+    assert resd["periods"] > 1000
+
+
+def test_ivwalls_uses_iv_from_before_period():
+    from aureus.engine.ivwalls import build_periods
+    d, gvz = _sim_daily_with_iv(60)
+    gvz.iloc[:] = 20.0
+    gvz.loc[d.index[30]:] = 40.0                    # IV jumps on day 30
+    p = build_periods(d, gvz, "D")
+    assert p.loc[d.index[30], "iv"] == 20.0         # the day it jumps still uses the PRIOR close
+    assert p.loc[d.index[31], "iv"] == 40.0

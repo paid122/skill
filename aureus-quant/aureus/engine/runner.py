@@ -242,3 +242,21 @@ def clear_market() -> None:
         c.execute("DELETE FROM snapshots")
     _cache.clear()
     time.sleep(0)
+
+
+def ivwalls_view(freq: str = "W") -> dict:
+    from .ivwalls import run
+    d = store.load("1d")
+    gvz = store.load_aux("GVZ")
+    if d.empty:
+        raise InsufficientData("Need daily MGC1! bars — press 'Update data now'.")
+    if gvz is None or len(gvz) < 30:
+        raise InsufficientData("Need GVZ history. Press 'Update data now' (Yahoo / CBOE), or upload a GVZ CSV exported from TradingView (CBOE:GVZ, 1D → Export chart data).")
+    hourly = store.load("1h")
+    try:
+        res = run(d, gvz, freq, cost_ticks() * MGC.tick_size, hourly if not hourly.empty else None)
+    except ValueError as e:
+        raise InsufficientData(str(e)) from e
+    sources = sorted(set(d["source"].dropna())) if "source" in d else []
+    res["provenance"] = "SIMULATED" if "simulated" in sources else "HISTORICAL (Yahoo daily bars + GVZ)"
+    return _jsonable(res)
