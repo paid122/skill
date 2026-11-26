@@ -4,6 +4,9 @@ indicator("AUREUS IV Walls (Day/Week/Month)", overlay = true, max_labels_count =
 // Implied-volatility walls for the day, week or month, that track themselves.
 //   M      = period open × GVZ/100 × sqrt(days/252)   days = 1 (day), 5 (week), 21 (month)
 //            GVZ = last close available when the period starts (no look-ahead)
+//   Volatility source: Manual GVZ (type it weekly) · GVZ symbol (if your account has CBOE:GVZ) ·
+//   Realised vol (21-day historical volatility of the chart — a stand-in, NOT implied volatility).
+//   With Manual GVZ every period uses the same value, so past periods and the stats table are approximate.
 //   Normal = open ± 0.67..1.00 M    Wall = open ± 1.65..1.96 M
 // Every day the script records how far the high and low travelled (in M) and where the day closed,
 // and the table shows, over the last N days:
@@ -13,8 +16,9 @@ indicator("AUREUS IV Walls (Day/Week/Month)", overlay = true, max_labels_count =
 // Touch markers: ▼ = upper zone touched, ▲ = lower zone touched (first touch of each zone per day).
 
 perName  = input.string("Week", "Period", options = ["Day", "Week", "Month"])
-ivSym    = input.string("CBOE:GVZ", "IV index symbol (annualised %)")
-ivManual = input.float(0.0, "Manual GVZ (0 = automatic). Type e.g. 34.8 if the boxes don't show", minval = 0, step = 0.1)
+src      = input.string("Manual GVZ", "Volatility source", options = ["Manual GVZ", "GVZ symbol", "Realised vol (no GVZ needed)"])
+ivManual = input.float(0.0, "Manual GVZ value (e.g. 34.8 — last Friday's GVZ close)", minval = 0, step = 0.1)
+ivSym    = input.string("CBOE:GVZ", "GVZ symbol (only used with 'GVZ symbol')")
 kN1      = input.float(0.67, "Normal zone from (×M)", step = 0.05, group = "Zones")
 kN2      = input.float(1.00, "Normal zone to (×M)",   step = 0.05, group = "Zones")
 kW1      = input.float(1.65, "Wall zone from (×M)",   step = 0.05, group = "Zones")
@@ -28,10 +32,15 @@ showMk   = input.bool(true, "Show touch markers", group = "Stats")
 
 // ------------------------------------------------------------------ data --
 dOpen  = request.security(syminfo.tickerid, tf, open, lookahead = barmerge.lookahead_on)
-ivLastA = request.security(ivSym,  "D", close,    lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
-ivPrevA = request.security(ivSym,  "D", close[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
-ivLast = ivManual > 0 ? ivManual : ivLastA
-ivPrev = ivManual > 0 ? ivManual : ivPrevA
+// Only request the GVZ symbol when it is selected; otherwise request the chart's own symbol (always valid).
+symUse  = src == "GVZ symbol" ? ivSym : syminfo.tickerid
+ivLastA = request.security(symUse, "D", close,    lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+ivPrevA = request.security(symUse, "D", close[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
+// Realised volatility proxy: 21-day stdev of daily log returns, annualised %, from COMPLETED days only.
+rv21 = request.security(syminfo.tickerid, "D", (ta.stdev(math.log(close / close[1]), 21) * math.sqrt(252) * 100)[1], lookahead = barmerge.lookahead_on)
+manualIV = ivManual > 0 ? ivManual : na
+ivLast = src == "Manual GVZ" ? manualIV : src == "GVZ symbol" ? ivLastA : rv21
+ivPrev = src == "Manual GVZ" ? manualIV : src == "GVZ symbol" ? ivPrevA : rv21
 newDay = timeframe.change(tf)
 
 // The GVZ cash session ends 16:15 New York. If this chart's trading day starts after that (CME/most
@@ -118,7 +127,7 @@ var label warn = na
 if barstate.islast
     label.delete(warn)
     if na(dM)
-        warn := label.new(bar_index, close, "AUREUS IV Walls: no GVZ data on this account.\nOpen Settings → type the GVZ value in 'Manual GVZ' (e.g. 34.8).",
+        warn := label.new(bar_index, close, src == "Manual GVZ" ? "AUREUS IV Walls: type this week's GVZ in Settings → 'Manual GVZ value' (e.g. 34.8)." : src == "GVZ symbol" ? "AUREUS IV Walls: GVZ symbol has no data on this account.\nSettings → Volatility source → 'Manual GVZ' or 'Realised vol'." : "AUREUS IV Walls: not enough history for realised vol yet.",
              style = label.style_label_left, color = color.new(#e66767, 0), textcolor = color.white, size = size.normal)
 
 // ------------------------------------------------------- touch markers ---
@@ -188,7 +197,7 @@ if showT and barstate.islast
     [nTr, nHr, nBr, nTo] = stats(kN1, kN2)
     [wTr, wHr, wBr, wTo] = stats(kW1, kW2)
     put(0, 0, "AUREUS IV Walls · " + perName, #c9a54c)
-    put(1, 0, "GVZ " + (na(dIV) ? "n/a" : str.tostring(dIV, "#.0")), #b9b8b2)
+    put(1, 0, (src == "Realised vol (no GVZ needed)" ? "RV " : "GVZ ") + (na(dIV) ? "n/a" : str.tostring(dIV, "#.0")), #b9b8b2)
     put(2, 0, "M " + (na(dM) ? "—" : str.tostring(dM, "#.0")), #b9b8b2)
     put(3, 0, "open " + (na(dO) ? "—" : str.tostring(dO, format.mintick)), #b9b8b2)
     put(4, 0, str.tostring(n) + " periods", #b9b8b2)
