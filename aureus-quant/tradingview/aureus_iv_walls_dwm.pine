@@ -1,5 +1,5 @@
 //@version=6
-indicator("AUREUS IV Walls (Day/Week/Month)", overlay = true, max_boxes_count = 500, max_labels_count = 500)
+indicator("AUREUS IV Walls (Day/Week/Month)", overlay = true, max_labels_count = 500)
 
 // Implied-volatility walls for the day, week or month, that track themselves.
 //   M      = period open × GVZ/100 × sqrt(days/252)   days = 1 (day), 5 (week), 21 (month)
@@ -16,7 +16,6 @@ perName  = input.string("Week", "Period", options = ["Day", "Week", "Month"])
 ivSym    = input.symbol("CBOE:GVZ", "IV index (annualised %)")
 ivSym2   = input.symbol("TVC:GVZ", "Backup IV symbol")
 ivManual = input.float(0.0, "Manual GVZ (0 = automatic). Type e.g. 34.8 if the boxes don't show", minval = 0, step = 0.1)
-keepDays = input.int(6, "Show boxes for the last N periods", minval = 1, maxval = 100)
 kN1      = input.float(0.67, "Normal zone from (×M)", step = 0.05, group = "Zones")
 kN2      = input.float(1.00, "Normal zone to (×M)",   step = 0.05, group = "Zones")
 kW1      = input.float(1.65, "Wall zone from (×M)",   step = 0.05, group = "Zones")
@@ -61,15 +60,10 @@ var float dIV = na
 var array<float> upK = array.new_float()
 var array<float> dnK = array.new_float()
 var array<float> clK = array.new_float()
-var array<box> boxes = array.new_box()
 var bool tNH = false
 var bool tNL = false
 var bool tWH = false
 var bool tWL = false
-
-zone(int t0, int t1, float top, float bot, color c, string txt) =>
-    box.new(t0, top, t1, bot, xloc = xloc.bar_time, bgcolor = color.new(c, 84), border_color = color.new(c, 45),
-         text = txt, text_size = size.tiny, text_color = color.new(c, 0), text_halign = text.align_right, text_valign = text.align_center)
 
 if newDay
     // 1) finalise the day that just ended
@@ -91,18 +85,36 @@ if newDay
     tNL := false
     tWH := false
     tWL := false
-    if not na(dM) and dM > 0
-        t1 = nz(time_close(tf), time + int(nDays * 1.45) * 86400000)
-        array.push(boxes, zone(time, t1, dO + kW2 * dM, dO + kW1 * dM, #0ca30c, perName + " Wall High"))
-        array.push(boxes, zone(time, t1, dO + kN2 * dM, dO + kN1 * dM, #3987e5, perName + " Normal High"))
-        array.push(boxes, zone(time, t1, dO - kN1 * dM, dO - kN2 * dM, #3987e5, perName + " Normal Low"))
-        array.push(boxes, zone(time, t1, dO - kW1 * dM, dO - kW2 * dM, #e66767, perName + " Wall Low"))
-        while array.size(boxes) > keepDays * 4
-            box.delete(array.shift(boxes))
 else
     dHi := math.max(dHi, high)
     dLo := math.min(dLo, low)
 dC := close
+
+// ------------------------------------------------- zones as shaded bands ---
+// (plots + fills always render; a gap at each new period separates the boxes)
+ok = not na(dM) and dM > 0 and not newDay
+pWHt = plot(ok ? dO + kW2 * dM : na, "Wall High top",    color.new(#0ca30c, 30), 1, plot.style_linebr)
+pWHb = plot(ok ? dO + kW1 * dM : na, "Wall High bottom", color.new(#0ca30c, 30), 1, plot.style_linebr)
+pNHt = plot(ok ? dO + kN2 * dM : na, "Normal High top",    color.new(#3987e5, 30), 1, plot.style_linebr)
+pNHb = plot(ok ? dO + kN1 * dM : na, "Normal High bottom", color.new(#3987e5, 30), 1, plot.style_linebr)
+pNLt = plot(ok ? dO - kN1 * dM : na, "Normal Low top",    color.new(#3987e5, 30), 1, plot.style_linebr)
+pNLb = plot(ok ? dO - kN2 * dM : na, "Normal Low bottom", color.new(#3987e5, 30), 1, plot.style_linebr)
+pWLt = plot(ok ? dO - kW1 * dM : na, "Wall Low top",    color.new(#e66767, 30), 1, plot.style_linebr)
+pWLb = plot(ok ? dO - kW2 * dM : na, "Wall Low bottom", color.new(#e66767, 30), 1, plot.style_linebr)
+fill(pWHt, pWHb, color.new(#0ca30c, 82), "Wall High")
+fill(pNHt, pNHb, color.new(#3987e5, 82), "Normal High")
+fill(pNLt, pNLb, color.new(#3987e5, 82), "Normal Low")
+fill(pWLt, pWLb, color.new(#e66767, 82), "Wall Low")
+
+// names on the current period
+var label[] names = array.new_label()
+if barstate.islast and not na(dM)
+    while array.size(names) > 0
+        label.delete(array.pop(names))
+    array.push(names, label.new(bar_index + 2, dO + (kW1 + kW2) / 2 * dM, perName + " Wall High " + str.tostring(dO + kW1 * dM, "#.0") + "–" + str.tostring(dO + kW2 * dM, "#.0"), style = label.style_label_left, color = color.new(#0ca30c, 70), textcolor = color.white, size = size.small))
+    array.push(names, label.new(bar_index + 2, dO + (kN1 + kN2) / 2 * dM, perName + " Normal High " + str.tostring(dO + kN1 * dM, "#.0") + "–" + str.tostring(dO + kN2 * dM, "#.0"), style = label.style_label_left, color = color.new(#3987e5, 70), textcolor = color.white, size = size.small))
+    array.push(names, label.new(bar_index + 2, dO - (kN1 + kN2) / 2 * dM, perName + " Normal Low " + str.tostring(dO - kN1 * dM, "#.0") + "–" + str.tostring(dO - kN2 * dM, "#.0"), style = label.style_label_left, color = color.new(#3987e5, 70), textcolor = color.white, size = size.small))
+    array.push(names, label.new(bar_index + 2, dO - (kW1 + kW2) / 2 * dM, perName + " Wall Low " + str.tostring(dO - kW1 * dM, "#.0") + "–" + str.tostring(dO - kW2 * dM, "#.0"), style = label.style_label_left, color = color.new(#e66767, 70), textcolor = color.white, size = size.small))
 
 // Warn on the chart instead of silently drawing nothing
 var label warn = na
