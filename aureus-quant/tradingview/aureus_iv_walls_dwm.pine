@@ -13,8 +13,7 @@ indicator("AUREUS IV Walls (Day/Week/Month)", overlay = true, max_labels_count =
 // Touch markers: ▼ = upper zone touched, ▲ = lower zone touched (first touch of each zone per day).
 
 perName  = input.string("Week", "Period", options = ["Day", "Week", "Month"])
-ivSym    = input.symbol("CBOE:GVZ", "IV index (annualised %)")
-ivSym2   = input.symbol("TVC:GVZ", "Backup IV symbol")
+ivSym    = input.string("CBOE:GVZ", "IV index symbol (annualised %)")
 ivManual = input.float(0.0, "Manual GVZ (0 = automatic). Type e.g. 34.8 if the boxes don't show", minval = 0, step = 0.1)
 kN1      = input.float(0.67, "Normal zone from (×M)", step = 0.05, group = "Zones")
 kN2      = input.float(1.00, "Normal zone to (×M)",   step = 0.05, group = "Zones")
@@ -31,10 +30,8 @@ showMk   = input.bool(true, "Show touch markers", group = "Stats")
 dOpen  = request.security(syminfo.tickerid, tf, open, lookahead = barmerge.lookahead_on)
 ivLastA = request.security(ivSym,  "D", close,    lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
 ivPrevA = request.security(ivSym,  "D", close[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
-ivLastB = request.security(ivSym2, "D", close,    lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
-ivPrevB = request.security(ivSym2, "D", close[1], lookahead = barmerge.lookahead_on, ignore_invalid_symbol = true)
-ivLast = ivManual > 0 ? ivManual : na(ivLastA) ? ivLastB : ivLastA
-ivPrev = ivManual > 0 ? ivManual : na(ivPrevA) ? ivPrevB : ivPrevA
+ivLast = ivManual > 0 ? ivManual : ivLastA
+ivPrev = ivManual > 0 ? ivManual : ivPrevA
 newDay = timeframe.change(tf)
 
 // The GVZ cash session ends 16:15 New York. If this chart's trading day starts after that (CME/most
