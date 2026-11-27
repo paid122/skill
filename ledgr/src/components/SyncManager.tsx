@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { updateSettings } from "@/lib/actions";
+import { importTrades, updateSettings, validateTrade } from "@/lib/actions";
+import { apiTradeToTrade, type ApiTradeInput } from "@/lib/apiTrade";
 import { getState, replaceState, setBlobSync, subscribeState, getBlob } from "@/lib/store";
 import { ATTACHMENT_BUCKET, supabase, useSession } from "@/lib/supabase";
 import { decideSync, hasUserData, readMeta, referencedBlobs, writeMeta } from "@/lib/sync";
@@ -73,6 +74,28 @@ export function SyncManager() {
       setStatus({ state: "synced", at: data.updated_at, email });
     };
 
+    /** Trades sent in through the LEDGR API wait in the cloud inbox; add them to the journal, then clear them. */
+    const drainInbox = async () => {
+      const { data, error } = await sb.from("api_trade_inbox").select("id, trade").eq("user_id", uid).order("created_at").limit(200);
+      if (error || !data?.length) return;
+      const st = getState();
+      const seen = new Set(st.trades.map((t) => t.importKey).filter(Boolean) as string[]);
+      const accounts = new Set(st.accounts.map((a) => a.id));
+      const add = [];
+      for (const r of data as { id: string; trade: ApiTradeInput }[]) {
+        try {
+          const t = apiTradeToTrade(r.trade, r.id);
+          if (!t.accountId || !accounts.has(t.accountId)) t.accountId = st.accounts.find((a) => a.status === "active")?.id ?? null;
+          if (seen.has(t.importKey!)) continue;
+          validateTrade(t);
+          seen.add(t.importKey!);
+          add.push(t);
+        } catch { /* a trade the journal can't take is dropped */ }
+      }
+      if (add.length) importTrades(add);
+      await sb.from("api_trade_inbox").delete().in("id", data.map((r) => r.id));
+    };
+
     const reconcile = async () => {
       if (busy.current) return;
       busy.current = true;
@@ -84,6 +107,7 @@ export function SyncManager() {
         else if (decision === "pull") await pull();
         else if (decision === "conflict") { setConflict({ remoteAt: data!.updated_at }); setStatus({ state: "conflict", email }); }
         else setStatus({ state: "synced", at: readMeta()?.remoteUpdatedAt ?? undefined, email });
+        if (decision !== "conflict") await drainInbox().catch(() => undefined);
       } finally { busy.current = false; }
     };
 

@@ -8,18 +8,14 @@
 import { useEffect, useState } from "react";
 import { loadBadges } from "./community";
 import { getMatrixxKey } from "./matrixxClient";
-import type { PlanId } from "./plus";
+import { planFromMatrixx, type PlanId } from "./plus";
 import { supabase } from "./supabase";
 
 const KEY = "ledgr.plan";
 const RANK: Record<PlanId, number> = { free: 0, plus: 1, pro: 2 };
 let pending: Promise<PlanId> | null = null;
 
-export const planFromMatrixx = (p: { paid?: boolean; tier?: string; period_end?: string | null } | null | undefined): PlanId => {
-  if (!p || !p.tier || p.tier === "free") return "free";
-  if (p.period_end && new Date(p.period_end).getTime() <= Date.now()) return "free";
-  return p.tier === "starter" ? "plus" : "pro";
-};
+export { planFromMatrixx };
 
 async function check(): Promise<PlanId> {
   try {

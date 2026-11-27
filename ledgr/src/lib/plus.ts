@@ -43,10 +43,18 @@ export const PRO = {
     "AI trade reviews, weekly reviews and chat about your own records",
     "Start your own crews in the Community, public or private",
     "More saved backgrounds",
+    "The LEDGR API: your own API keys to read your journal and send in trades",
   ],
 } as const;
 
 export const PAID_PLANS = [PLUS, PRO] as const;
+
+/** A MatrixX plan as LEDGR sees it: Starter → LEDGR+, Plus or higher → LEDGR Pro, while it hasn't ended. */
+export const planFromMatrixx = (p: { paid?: boolean; tier?: string; period_end?: string | null } | null | undefined): PlanId => {
+  if (!p || !p.tier || p.tier === "free") return "free";
+  if (p.period_end && new Date(p.period_end).getTime() <= Date.now()) return "free";
+  return p.tier === "starter" ? "plus" : "pro";
+};
 export const planName = (p: PlanId) => (p === "pro" ? PRO.name : p === "plus" ? PLUS.name : "Free");
 
 export const FREE_INCLUDES = [
@@ -87,6 +95,7 @@ export const PLAN_COMPARE: { group: string; rows: { label: string; free: Cell; p
     { label: "Prop firm rules and Compare table", free: true, plus: true, pro: true },
     { label: "Copy trading accounts", free: false, plus: true, pro: true },
     { label: "CSV import from your broker", free: true, plus: true, pro: true },
+    { label: "LEDGR API: your own keys, read your journal, send in trades", free: false, plus: false, pro: true },
   ] },
   { group: "Sharing", rows: [
     { label: "Trade cards as pictures or count-up videos", free: true, plus: true, pro: true },
