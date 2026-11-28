@@ -77,6 +77,22 @@ export class LedgrSettingTab extends PluginSettingTab {
       .addToggle((t) => t.setValue(s.intro).onChange((v) => void this.plugin.updateSettings({ intro: v })));
     new Setting(el).setName("Live TradingView widgets").setDesc("Ticker tape, quote, charts, news and sentiment from tradingview.com, in sandboxed frames. Off: no connection to TradingView.")
       .addToggle((t) => t.setValue(s.tvWidgets).onChange((v) => void this.plugin.updateSettings({ tvWidgets: v })));
+
+    // ------------------------------------------------------------------ trades as notes
+    new Setting(el).setName("Trades as notes").setHeading();
+    el.createEl("p", {
+      cls: "setting-item-description",
+      text: "Each trade becomes a note, linked to its day, setup, mistakes and tags, so the graph shows your patterns. LEDGR rewrites the part above \"<!-- your notes -->\" on every sync; whatever you write below it is never changed.",
+    });
+    new Setting(el).setName("Folder").setDesc("Where the notes go: Trades, Days, Setups, Mistakes and Tags folders inside it.")
+      .addText((t) => t.setPlaceholder("LEDGR").setValue(s.notesFolder).onChange((v) => void this.plugin.updateSettings({ notesFolder: v.trim() || "LEDGR" })));
+    new Setting(el).setName("Sync automatically").setDesc("While Obsidian is open. Off: use the button or the command \"LEDGR: Sync trades to notes\".")
+      .addDropdown((d) => d.addOptions({ "0": "Off", "15": "Every 15 minutes", "30": "Every 30 minutes", "60": "Every hour", "240": "Every 4 hours" })
+        .setValue(String(s.notesAuto)).onChange((v) => void this.plugin.updateSettings({ notesAuto: Number(v) })));
+    new Setting(el).setName("Sync now").setDesc("Downloads new trades and updates the notes.")
+      .addButton((b) => b.setButtonText("Sync trades to notes").setCta().setDisabled(!connected).onClick(async () => { b.setDisabled(true).setButtonText("Syncing…"); await this.plugin.syncToNotes(true); b.setDisabled(false).setButtonText("Sync trades to notes"); }));
+    new Setting(el).setName("Starter vault").setDesc("Home dashboard (updates on sync), PARA folders and a daily trading-note template. Existing files are never changed.")
+      .addButton((b) => b.setButtonText("Create starter vault").onClick(() => void this.plugin.starter()));
   }
 
   private async test() {

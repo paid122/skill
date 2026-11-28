@@ -4,6 +4,8 @@ import type { CcSettings, SyncOutcome } from "./cc/app";
 import { toEvents, type CalendarAnswer, type CalendarState } from "./cc/calendar";
 import { EMPTY_CACHE, syncTrades, type TradeCache } from "./cc/sync";
 import { LedgrSettingTab } from "./settings";
+import type { PublicTrade } from "./notes/build";
+import { createStarter, syncNotes, type NoteSyncResult } from "./notes/sync";
 import type { LastFetch } from "./state";
 import type { MeResponse } from "./types";
 import { CommandCenterView, VIEW_TYPE } from "./view";
@@ -14,7 +16,7 @@ export const VIDEO_FILE = "operator.mp4";
 /** Where the plugin downloads the intro video from on first run (the plugin's GitHub release). Empty: no download. */
 export const VIDEO_URL = "";
 
-export const DEFAULT_SETTINGS: CcSettings = { timezone: "", symbol: "AUTO", sound: true, intro: true, tvWidgets: true };
+export const DEFAULT_SETTINGS: CcSettings = { timezone: "", symbol: "AUTO", sound: true, intro: true, tvWidgets: true, notesFolder: "LEDGR", notesAuto: 0 };
 
 interface PluginData {
   settings: CcSettings;
@@ -22,8 +24,12 @@ interface PluginData {
   /** Command-center state the prototype kept in localStorage: checklist, guard limits, sizer inputs, instrument. */
   cc: Record<string, unknown>;
   calendar: { answer: CalendarAnswer; at: number } | null;
+  /** Account id → name, for trade notes. */
+  accounts: Record<string, string>;
+  /** The starter-vault question was answered (yes or no), so it isn't asked again. */
+  starterAsked: boolean;
 }
-const DEFAULT_DATA: PluginData = { settings: DEFAULT_SETTINGS, me: null, cc: {}, calendar: null };
+const DEFAULT_DATA: PluginData = { settings: DEFAULT_SETTINGS, me: null, cc: {}, calendar: null, accounts: {}, starterAsked: false };
 
 /** Obsidian's requestUrl (no CORS, works on desktop and mobile), adapted for the API client. */
 const transport: Transport = async (req) => {
@@ -52,10 +58,13 @@ export default class LedgrPlugin extends Plugin {
     this.addRibbonIcon("activity", "Open LEDGR Command Center", () => void this.openView());
     this.addCommand({ id: "open-command-center", name: "Open Command Center", callback: () => void this.openView() });
     this.addCommand({ id: "sync", name: "Sync trades now", callback: () => void this.sync(true) });
+    this.addCommand({ id: "sync-notes", name: "Sync trades to notes", callback: () => void this.syncToNotes(true) });
+    this.addCommand({ id: "create-starter", name: "Create starter trading vault", callback: () => void this.starter() });
+    this.scheduleNotes();
     this.addSettingTab(new LedgrSettingTab(this.app, this));
   }
 
-  onunload() { this.listeners.clear(); window.clearTimeout(this.saveTimer); }
+  onunload() { this.listeners.clear(); window.clearTimeout(this.saveTimer); window.clearInterval(this.notesTimer); }
 
   // ------------------------------------------------------------------ key
 
@@ -91,6 +100,7 @@ export default class LedgrPlugin extends Plugin {
   async updateSettings(patch: Partial<CcSettings>) {
     this.data.settings = { ...this.data.settings, ...patch };
     await this.saveData(this.data);
+    if ("notesAuto" in patch) this.scheduleNotes();
     this.emit("settings");
   }
 
@@ -158,6 +168,65 @@ export default class LedgrPlugin extends Plugin {
       }
     })();
     return this.running;
+  }
+
+  // ------------------------------------------------------------------ trades as notes
+
+  private notesTimer = 0;
+  private notesRunning: Promise<NoteSyncResult | null> | null = null;
+
+  /** Automatic note sync every N minutes (setting), while Obsidian is open. */
+  private scheduleNotes() {
+    window.clearInterval(this.notesTimer);
+    const m = this.data.settings.notesAuto;
+    if (m > 0) { this.notesTimer = window.setInterval(() => void this.syncToNotes(false), m * 60_000); this.registerInterval(this.notesTimer); }
+  }
+
+  private notesFolder() { return normalizePath(this.data.settings.notesFolder.trim() || "LEDGR"); }
+
+  private async noteCtx() {
+    try {
+      const a = await this.client.get<{ accounts: { id: string; name: string }[] }>("/accounts", { fresh: true });
+      this.data.accounts = Object.fromEntries(a.accounts.map((x) => [x.id, x.name]));
+    } catch { /* offline: last known names */ }
+    const tz = this.data.settings.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    return { root: this.notesFolder(), tz, accounts: this.data.accounts, currency: this.data.me?.journal?.currency ?? "USD" };
+  }
+
+  /** Syncs trades from LEDGR, then writes them as notes. loud: show a notice with the result. */
+  syncToNotes(loud: boolean): Promise<NoteSyncResult | null> {
+    if (this.notesRunning) return this.notesRunning;
+    this.notesRunning = (async () => {
+      try {
+        if (!this.getKey()) { if (loud) new Notice("LEDGR: connect your API key in Settings → LEDGR first."); return null; }
+        const s = await this.sync(false);
+        if (!s.ok && !s.trades) { if (loud) new Notice(`LEDGR: ${s.message}`); return null; }
+        const trades = (s.ok ? s.trades : s.trades!) as unknown as PublicTrade[];
+        const ctx = await this.noteCtx();
+        const today = isoDate(new Date());
+        const r = await syncNotes(this.app, trades, ctx, today);
+        await this.saveData(this.data);
+        if (loud) new Notice(`LEDGR: ${r.trades} trades · ${r.created} notes created, ${r.updated} updated${r.deleted ? `, ${r.deleted} marked deleted` : ""}${s.ok ? "" : " (from the offline copy)"}.`);
+        if (loud && !this.data.starterAsked) { this.data.starterAsked = true; await this.saveData(this.data); new StarterModal(this.app, () => void this.starter()).open(); }
+        return r;
+      } catch (e) {
+        if (loud) new Notice(`LEDGR: couldn't write the notes (${(e as Error).message}).`);
+        return null;
+      } finally {
+        this.notesRunning = null;
+      }
+    })();
+    return this.notesRunning;
+  }
+
+  /** Creates the starter vault (asks first when run from the command palette). */
+  async starter() {
+    const ctx = await this.noteCtx();
+    const trades = (this.cachedTrades()?.trades ?? []) as unknown as PublicTrade[];
+    const made = await createStarter(this.app, trades, ctx, isoDate(new Date()));
+    this.data.starterAsked = true;
+    await this.saveData(this.data);
+    new Notice(made.length ? `LEDGR: created ${made.join(", ")}. Set Settings → Templates → Template folder location to "${ctx.root}/Templates" to use the daily template.` : "LEDGR: the starter files are already there.");
   }
 
   // ------------------------------------------------------------------ calendar
@@ -242,4 +311,18 @@ class AskModal extends Modal {
     }).addButton((b) => b.setButtonText("Add").setCta().onClick(submit));
   }
   onClose() { if (!this.done) this.resolve(null); this.contentEl.empty(); }
+}
+
+/** Asked once, after the first note sync. */
+class StarterModal extends Modal {
+  constructor(app: App, private onYes: () => void) { super(app); }
+  onOpen() {
+    this.setTitle("Set up a trading vault?");
+    this.contentEl.createEl("p", { text: "LEDGR can add a starter structure: a Home dashboard that updates on every sync, PARA folders (Projects, Areas, Resources, Archive) and a daily trading-note template. Nothing that already exists is changed." });
+    new Setting(this.contentEl)
+      .addButton((b) => b.setButtonText("Create it").setCta().onClick(() => { this.close(); this.onYes(); }))
+      .addButton((b) => b.setButtonText("No thanks").onClick(() => this.close()));
+    this.contentEl.createEl("p", { cls: "setting-item-description", text: "You can create it later with the command \"LEDGR: Create starter trading vault\"." });
+  }
+  onClose() { this.contentEl.empty(); }
 }

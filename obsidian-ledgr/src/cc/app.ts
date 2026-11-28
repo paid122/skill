@@ -26,7 +26,11 @@ import { Sound } from "./sound";
 import { TEMPLATE } from "./template";
 import { chartUrl, mountChart, mountWidget, TV_ATTRIBUTION } from "./tradingview";
 
-export interface CcSettings { timezone: string; symbol: string; sound: boolean; intro: boolean; tvWidgets: boolean }
+export interface CcSettings {
+  timezone: string; symbol: string; sound: boolean; intro: boolean; tvWidgets: boolean;
+  /** Trades as notes: vault folder, and minutes between automatic note syncs (0 = only when asked). */
+  notesFolder: string; notesAuto: number;
+}
 
 export type SyncOutcome =
   | { ok: true; trades: ApiTrade[]; at: number }

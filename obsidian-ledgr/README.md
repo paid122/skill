@@ -2,7 +2,7 @@
 
 Your [LEDGR](https://www.ledgrjournal.app) trading journal as a sci-fi command center inside Obsidian. Requires **LEDGR Pro**.
 
-> Status: **phase 2**. The Command Center is a native Obsidian view, a panel-by-panel port of the LEDGR command-center prototype (`spec/`).
+> Status: **phase 3**. The Command Center (a native port of the LEDGR command-center prototype in `spec/`), plus your trades as linked notes.
 
 ## Install (development build)
 
@@ -29,6 +29,21 @@ Tabs: **MAIN, MARKETS, JOURNAL, PERFORMANCE, CHART, RISK, NEWS, BRAIN** (keys 1â
 - Risk: daily checklist with an automatic news check, risk guard (CLEAR / CAUTION / STOP with an alarm), position sizer using the instrument's point value (MGC $10/point, $1/tick) with fees and 1R/2R/3R targets.
 - Instrument menu built from your journal's symbols, driving the specs table, the sizer and the market widgets.
 - Cinematic intro (setting), synthesised sound (setting).
+
+## Trades as notes (the second brain)
+
+**LEDGR: Sync trades to notes** (command, or the button in Settings â†’ LEDGR, or automatically every 15 min â€“ 4 h) writes:
+
+| Note | What's in it |
+|---|---|
+| `LEDGR/Trades/YYYY-MM-DD SYMBOL Direction Setup.md` | Frontmatter: `id, symbol, direction, qty, entry, exit, net, R, setup, account, tags, opened, closed, date, status, result, ledgr` (link to the trade in LEDGR). Body: result table, review, trade notes, emotions, links. |
+| `LEDGR/Days/YYYY-MM-DD.md` | The day's P&L, win rate, average R and its trades. |
+| `LEDGR/Setups/<setup>.md`, `Mistakes/<m>.md`, `Tags/<t>.md` | Hub notes with stats and every trade, so the graph view shows your patterns. |
+
+- **Your notes are safe.** LEDGR rewrites the part above `<!-- your notes -->` on every sync; text below it is never touched. Frontmatter keys you add are kept. If you delete the marker, your text is kept below a new one.
+- **Idempotent.** Notes are matched by the trade's `id`, wherever you move or rename them. Unchanged notes aren't rewritten. A second trade with the same name gets ` (2)`.
+- **Deleted in LEDGR?** The note stays (it may hold your notes) and gets `status: deleted in LEDGR`.
+- **Starter vault** (asked once after the first sync, or **LEDGR: Create starter trading vault**): `LEDGR/Home.md` dashboard whose LEDGR section refreshes on sync, PARA folders (Projects, Areas, Resources, Archive) and `LEDGR/Templates/Daily trading note.md`. Existing files are never changed.
 
 ## Data and offline
 
@@ -63,7 +78,7 @@ Tabs: **MAIN, MARKETS, JOURNAL, PERFORMANCE, CHART, RISK, NEWS, BRAIN** (keys 1â
 
 ```bash
 npm run dev     # rebuild on change
-npm test        # stats, risk guard, sizing, sync, TradingView URLs, view states
+npm test        # stats, risk guard, sizing, sync, notes (in a fake vault), TradingView URLs, view states
 npm run build   # styles.css (scoped prototype CSS + fonts), type check, main.js
 ```
 
