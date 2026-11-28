@@ -1,5 +1,6 @@
 import { Modal, normalizePath, Notice, Platform, Plugin, requestUrl, Setting, TFile, type App, type WorkspaceLeaf } from "obsidian";
 import { isoDate, LedgrApiError, LedgrClient, type Transport } from "./api";
+import { pollConnect, startConnect, waitForKey, type DeviceCode } from "./connect";
 import type { CcSettings, SyncOutcome } from "./cc/app";
 import { toEvents, type CalendarAnswer, type CalendarState } from "./cc/calendar";
 import { EMPTY_CACHE, syncTrades, type TradeCache } from "./cc/sync";
@@ -298,6 +299,24 @@ export default class LedgrPlugin extends Plugin {
     new Notice("No Home note in this vault yet.");
   }
 
+  /** "Connect with LEDGR": shows a code, opens LEDGR to approve it, and saves the key it gets. Resolves true when connected. */
+  connectWithLedgr(): Promise<boolean> {
+    return new Promise((resolve) => new ConnectModal(this.app, this, resolve).open());
+  }
+
+  /** Steps of the connect flow, for the modal. */
+  connectSteps = {
+    start: () => startConnect(transport, `Obsidian (${this.app.vault.getName()})`.slice(0, 40)),
+    wait: (code: DeviceCode, cancelled: () => boolean) =>
+      waitForKey({ code, poll: (d) => pollConnect(transport, d), sleep: (ms) => new Promise((r) => window.setTimeout(r, ms)), now: Date.now, cancelled }),
+    finish: async (key: string) => {
+      this.setKey(key);
+      this.data.me = await this.client.me({ fresh: true });
+      await this.saveData(this.data);
+      void this.sync(false);
+    },
+  };
+
   ask(title: string): Promise<string | null> {
     return new Promise((resolve) => new AskModal(this.app, title, resolve).open());
   }
@@ -332,4 +351,42 @@ class StarterModal extends Modal {
     this.contentEl.createEl("p", { cls: "setting-item-description", text: "You can create it later with the command \"LEDGR: Create starter trading vault\"." });
   }
   onClose() { this.contentEl.empty(); }
+}
+
+/** Shows the code to approve in LEDGR and waits for the approval. */
+class ConnectModal extends Modal {
+  private cancelled = false;
+  private ok = false;
+  constructor(app: App, private plugin: LedgrPlugin, private resolve: (ok: boolean) => void) { super(app); }
+
+  async onOpen() {
+    this.setTitle("Connect with LEDGR");
+    const el = this.contentEl;
+    const status = el.createEl("p", { text: "Getting a code…" });
+    try {
+      const code = await this.plugin.connectSteps.start();
+      if (this.cancelled) return;
+      status.setText("Approve this code in LEDGR. It's opening in your browser now:");
+      const box = el.createDiv({ cls: "ledgr-connect-code", text: code.user_code });
+      box.setAttr("aria-label", `Code ${code.user_code.split("").join(" ")}`);
+      const waiting = el.createEl("p", { cls: "setting-item-description", text: "Waiting for you to approve… (the code works for 15 minutes)" });
+      new Setting(el)
+        .addButton((b) => b.setButtonText("Open LEDGR again").onClick(() => window.open(code.verification_uri_complete)))
+        .addButton((b) => b.setButtonText("Cancel").onClick(() => this.close()));
+      window.open(code.verification_uri_complete);
+      const key = await this.plugin.connectSteps.wait(code, () => this.cancelled);
+      if (!key) return;
+      waiting.setText("Approved. Connecting…");
+      await this.plugin.connectSteps.finish(key);
+      this.ok = true;
+      new Notice("LEDGR: connected.");
+      this.close();
+    } catch (e) {
+      if (this.cancelled) return;
+      status.setText((e as Error).message || "Couldn't connect.");
+      status.addClass("mod-warning");
+    }
+  }
+
+  onClose() { this.cancelled = true; this.contentEl.empty(); this.resolve(this.ok); }
 }

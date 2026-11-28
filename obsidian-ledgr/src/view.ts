@@ -54,7 +54,7 @@ export class CommandCenterView extends ItemView {
       return;
     }
     const box = el.createDiv({ cls: "ledgr-lock" });
-    if (m.kind === "connect") return this.screen(box, "plug", "Connect LEDGR", "Add your LEDGR API key to load your journal into the Command Center.", [["Open settings", () => this.plugin.openSettings()]]);
+    if (m.kind === "connect") return this.screen(box, "plug", "Connect LEDGR", "Connect your LEDGR account to load your journal into the Command Center.", [["Connect with LEDGR", () => void this.plugin.connectWithLedgr().then(() => this.render())], ["Open settings", () => this.plugin.openSettings()]]);
     if (m.kind === "no_journal") return this.screen(box, "cloud-off", "No journal in the cloud yet", m.message, [["Try again", () => void this.retry()]]);
     const invalid = m.reason === "invalid_key";
     this.screen(box, "lock", invalid ? "API key not accepted" : "LEDGR Pro required",

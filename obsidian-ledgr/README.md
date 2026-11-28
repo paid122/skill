@@ -15,8 +15,8 @@ Copy `main.js`, `manifest.json`, `styles.css` and `assets/operator.mp4` into `<y
 
 ## Connect
 
-1. In LEDGR, go to **Settings → API** and create a key (LEDGR Pro).
-2. In Obsidian, go to **Settings → LEDGR**, paste the key and press **Test connection**.
+1. You need LEDGR Pro.
+2. In Obsidian, go to **Settings → LEDGR** and press **Connect with LEDGR**. Approve the code in your browser (ledgrjournal.app/connect). Or paste an API key from LEDGR → Settings → API.
 3. Open the Command Center from the ribbon (pulse icon) or the command palette: **LEDGR: Open Command Center**.
 
 ## What's in it
@@ -47,7 +47,7 @@ Tabs: **MAIN, MARKETS, JOURNAL, PERFORMANCE, CHART, RISK, NEWS, BRAIN** (keys 1�
 
 ## Data and offline
 
-- Trades sync from LEDGR when the view opens and every 5 minutes: the first sync downloads everything, later ones only trades dated from a few days before the last sync. **SYNC** (or **LEDGR: Sync trades now**) and a daily run download everything again, so edits to older trades show up.
+- Trades sync from LEDGR when the view opens and every 5 minutes. The first sync downloads everything; later ones only trades created or edited since the last sync (`?updatedSince=`), plus the list of trade ids, so edits and deletions come through straight away. **SYNC** (or **LEDGR: Sync trades now**) and a daily run download everything again.
 - The last sync is kept in `trades-cache.json` in the plugin folder. Offline, the Command Center shows it with a **STALE** status and when it was cached.
 - A wrong or revoked key, or an account without LEDGR Pro, shows a locked screen with an upgrade link. LEDGR checks Pro on the server for every API request.
 
@@ -55,7 +55,7 @@ Tabs: **MAIN, MARKETS, JOURNAL, PERFORMANCE, CHART, RISK, NEWS, BRAIN** (keys 1�
 
 | To | When | What |
 |---|---|---|
-| `www.ledgrjournal.app` | sync, calendar | Your API key (in a header). Answers: your profile name, plan, trades, calendar. |
+| `www.ledgrjournal.app` | connect, sync, calendar | Your API key (in a header). When you use **Connect with LEDGR**, the app name "Obsidian (your vault's name)" is shown on the approval page. Answers: your profile name, plan, trades, calendar. |
 | `tradingview.com` (`www.tradingview-widget.com`, `s.tradingview.com` and the hosts their widgets use) | when **Live TradingView widgets** is on | The widgets' settings: the instrument symbol (e.g. OANDA:XAUUSD), time zone and colours. No journal data and no key. |
 
 - The API key is kept in Obsidian's **secret storage** on this device, not in your vault or `data.json`.

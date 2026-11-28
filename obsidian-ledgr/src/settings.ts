@@ -20,7 +20,7 @@ export class LedgrSettingTab extends PluginSettingTab {
     new Setting(el).setName("Connect LEDGR").setHeading();
     el.createEl("p", {
       cls: "setting-item-description",
-      text: "Paste an API key from LEDGR → Settings → API (needs LEDGR Pro). The key is kept in Obsidian's secret storage on this device. It isn't written into your vault, and it's only sent to ledgrjournal.app.",
+      text: "Needs LEDGR Pro. The plugin's key is kept in Obsidian's secret storage on this device: it isn't written into your vault, and it's only sent to ledgrjournal.app.",
     });
 
     const me = this.plugin.data.me;
@@ -32,14 +32,21 @@ export class LedgrSettingTab extends PluginSettingTab {
     statusEl.setText(line.text);
 
     new Setting(el)
-      .setName("API key")
-      .setDesc(connected ? "A key is saved. Paste a new one to replace it." : "Starts with ledgr_sk_.")
+      .setName("Connect with LEDGR")
+      .setDesc("Approve this device in your browser. No key to copy. You can disconnect it any time in LEDGR → Settings → API.")
+      .addButton((b) => b.setButtonText(connected ? "Connect again" : "Connect with LEDGR").setCta().onClick(async () => {
+        if (await this.plugin.connectWithLedgr()) { this.status = null; this.display(); }
+      }));
+
+    new Setting(el)
+      .setName("Or paste an API key")
+      .setDesc(connected ? "A key is saved. Paste a new one to replace it." : "From LEDGR → Settings → API. Starts with ledgr_sk_.")
       .addText((t) => {
         t.inputEl.type = "password";
         t.inputEl.autocomplete = "off";
         t.setPlaceholder(connected ? "ledgr_sk_… (saved)" : "ledgr_sk_…").setValue(this.draft).onChange((v) => { this.draft = v.trim(); });
       })
-      .addButton((b) => b.setButtonText("Test connection").setCta().onClick(() => void this.test()))
+      .addButton((b) => b.setButtonText("Test connection").onClick(() => void this.test()))
       .addButton((b) => b.setButtonText("Disconnect").setWarning().setDisabled(!connected).onClick(async () => {
         await this.plugin.disconnect();
         this.draft = "";

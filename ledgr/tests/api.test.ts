@@ -87,3 +87,20 @@ describe("reading the journal", () => {
     expect(p).not.toHaveProperty("activity");
   });
 });
+
+describe("Connect with LEDGR codes", async () => {
+  const { newUserCode, normalizeUserCode, cleanClient, newDeviceCode } = await import("../src/lib/deviceConnect");
+  it("makes readable user codes and accepts them however they're typed", () => {
+    for (let i = 0; i < 50; i++) expect(newUserCode()).toMatch(/^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/);
+    expect(normalizeUserCode("k7qx 3mrt")).toBe("K7QX-3MRT");
+    expect(normalizeUserCode("K7QX-3MRT")).toBe("K7QX-3MRT");
+    expect(normalizeUserCode("K7QX-3MR")).toBeNull();
+    expect(normalizeUserCode("K0QX-3MRT")).toBeNull(); // 0 isn't used
+  });
+  it("makes long secret device codes and cleans app names", () => {
+    expect(newDeviceCode().length).toBeGreaterThan(40);
+    expect(newDeviceCode()).not.toBe(newDeviceCode());
+    expect(cleanClient("Obsidian <script>")).toBe("Obsidian script");
+    expect(cleanClient("")).toBe("App");
+  });
+});

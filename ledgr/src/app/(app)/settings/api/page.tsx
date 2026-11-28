@@ -45,7 +45,7 @@ function Code({ children }: { children: string }) {
 const ENDPOINTS: { method: "GET" | "POST"; path: string; what: string }[] = [
   { method: "GET", path: "/me", what: "Your key, plan, and what's in your journal" },
   { method: "GET", path: "/accounts", what: "Accounts with balance, P&L and drawdown" },
-  { method: "GET", path: "/trades", what: "Trades, newest first: net, R, review. ?from ?to ?account ?symbol ?status ?limit ?offset" },
+  { method: "GET", path: "/trades", what: "Trades, newest first: net, R, review. ?from ?to ?account ?symbol ?status ?limit ?offset ?updatedSince (only changed trades, plus every id)" },
   { method: "GET", path: "/stats", what: "Win rate, net, profit factor, R, drawdown, daily P&L. Same filters as /trades" },
   { method: "POST", path: "/trades", what: "Send in one trade or up to 50. They're added the next time LEDGR is open" },
 ];
@@ -181,7 +181,7 @@ export default function ApiSettingsPage() {
           <section className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-10">
             <div>
               <h2 className="text-[15px] font-semibold text-text">API keys</h2>
-              <p className="mt-1 text-[13px] leading-relaxed text-muted">Each key can read your journal and add trades. Give each script its own key, so you can revoke one without the others.</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-muted">Each key can read your journal and add trades. Give each script its own key, so you can revoke one without the others. Apps you connect with "Connect with LEDGR" (like the Obsidian plugin) show here too.</p>
             </div>
             <div className="min-w-0">{pro ? <Keys /> : <p className="text-[13px] text-muted">API keys come with LEDGR Pro.</p>}</div>
           </section>

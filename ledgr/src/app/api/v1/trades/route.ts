@@ -8,6 +8,8 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/v1/trades: your trades, newest first, with net P&L, R and the review.
  *   ?from=&to=&account=&symbol=&status=open|closed|draft&limit=100 (max 500)&offset=0
+ *   ?updatedSince=<ISO time>: only trades created or edited since then, plus `ids` (every trade id the other
+ *   filters match, on the first page), so a client can mirror the journal exactly, deletions included.
  */
 export async function GET(req: Request) {
   const a = await keyAuth(req);
@@ -19,10 +21,15 @@ export async function GET(req: Request) {
   if (error) return error;
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 100, 1), 500);
   const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
-  const sorted = chronological(list).reverse();
+  const sinceRaw = url.searchParams.get("updatedSince");
+  const since = sinceRaw ? Date.parse(sinceRaw) : NaN;
+  if (sinceRaw && !isFinite(since)) return apiError(400, "bad_time", "updatedSince is a date and time, e.g. 2026-11-28T10:00:00Z.");
+  const picked = sinceRaw ? list.filter((x) => (Date.parse(x.trade.updatedAt) || 0) >= since) : list;
+  const sorted = chronological(picked).reverse();
   return apiJson({
     trades: sorted.slice(offset, offset + limit).map((x) => publicTrade(x, j.state.strategies)),
     total: sorted.length, limit, offset, syncedAt: j.syncedAt,
+    ...(sinceRaw && offset === 0 ? { ids: list.map((x) => x.trade.id) } : {}),
   });
 }
 

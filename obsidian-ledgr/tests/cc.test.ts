@@ -163,16 +163,23 @@ describe("trade sync", () => {
     expect(c.trades).toHaveLength(PAGE + 20);
     expect(c.lastFull).toBe(T0);
   });
-  it("then fetches only from a few days before the last sync, and merges by date window", async () => {
-    const old = [api({ id: "a", date: "2026-11-10" }), api({ id: "b", date: "2026-11-25", net: 1 }), api({ id: "gone", date: "2026-11-26" })];
+  it("then fetches only changed trades, and mirrors edits and deletions exactly", async () => {
+    const old = [api({ id: "a", date: "2026-10-01" }), api({ id: "b", date: "2026-10-02", net: 1 }), api({ id: "gone", date: "2026-11-26" })];
     const cache = { trades: old, lastSync: T0, lastFull: T0, syncedDay: "2026-11-27" };
     const calls: string[] = [];
-    const get = async <T,>(p: string) => { calls.push(p); return { trades: [api({ id: "b", date: "2026-11-25", net: 99 }), api({ id: "new", date: "2026-11-28" })], total: 2 } as T; };
+    const get = async <T,>(p: string) => { calls.push(p); return { trades: [api({ id: "b", date: "2026-10-02", net: 99 }), api({ id: "new", date: "2026-11-28" })], total: 2, ids: ["a", "b", "new"] } as T; };
     const c = await syncTrades(get, cache, T0 + 3600e3, "2026-11-28");
-    expect(calls).toEqual([`/trades?limit=${PAGE}&offset=0&from=2026-11-24`]);
+    expect(calls).toEqual([`/trades?limit=${PAGE}&offset=0&updatedSince=${encodeURIComponent(new Date(T0 - 10 * 60e3).toISOString())}`]);
     expect(c.trades.map((t) => t.id).sort()).toEqual(["a", "b", "new"]); // "gone" was deleted in LEDGR
-    expect(c.trades.find((t) => t.id === "b")!.net).toBe(99); // edits inside the window come through
+    expect(c.trades.find((t) => t.id === "b")!.net).toBe(99); // an edit to an old trade comes straight through
     expect(c.lastFull).toBe(T0);
+  });
+  it("treats an older LEDGR's answer (no ids) as the full journal", async () => {
+    const cache = { trades: [api({ id: "x" })], lastSync: T0, lastFull: T0, syncedDay: "2026-11-27" };
+    const get = async <T,>() => ({ trades: [api({ id: "y" })], total: 1 }) as T;
+    const c = await syncTrades(get, cache, T0 + 3600e3, "2026-11-28");
+    expect(c.trades.map((t) => t.id)).toEqual(["y"]);
+    expect(c.lastFull).toBe(T0 + 3600e3);
   });
   it("does a full sync when asked, or once a day", () => {
     const c = { trades: [], lastSync: T0, lastFull: T0, syncedDay: "2026-11-27" };

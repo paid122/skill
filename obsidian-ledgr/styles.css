@@ -73,6 +73,9 @@ body.is-popout-window .workspace-tabs:has(.workspace-leaf-content[data-type="led
 /* Inside the main window: no view header strip above it either. */
 .workspace-leaf-content[data-type="ledgr-command-center"] > .view-header { display: none; }
 
+/* "Connect with LEDGR": the code to approve */
+.ledgr-connect-code { margin: 14px 0; text-align: center; font-family: var(--font-monospace); font-size: 30px; letter-spacing: 0.2em; font-weight: 600; padding: 14px; border: 1px solid var(--background-modifier-border); border-radius: 10px; user-select: all; }
+
 
 /* ---- LEDGR Command Center (scoped port of command-center.html) ---- */
 .workspace-leaf-content[data-type="ledgr-command-center"] .view-content{padding:0;overflow:hidden}
