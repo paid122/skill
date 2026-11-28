@@ -202,3 +202,20 @@ describe("TradingView iframes", () => {
     expect([h.symbol, h.frameElementId, h.allow_symbol_change, h.timezone]).toEqual(["COMEX:MGC1!", "tradingview_x", "1", "Asia/Dubai"]);
   });
 });
+
+describe("canvas sizing", () => {
+  it("keeps a fixed-height canvas the same size on a 2× screen, redraw after redraw", async () => {
+    const { fit } = await import("../src/cc/canvas/fit");
+    const attrs: Record<string, string> = { height: "70" };
+    const parent = { clientWidth: 258, offsetHeight: 120, offsetTop: 0 }; // 260 wide with a 1px border
+    const cv = {
+      dataset: {} as Record<string, string>, style: {} as Record<string, string>, offsetTop: 30, nextElementSibling: null, parentElement: parent,
+      ownerDocument: { defaultView: { devicePixelRatio: 2, getComputedStyle: () => ({ borderLeftWidth: "1px", borderRightWidth: "1px", paddingLeft: "12px", paddingRight: "12px" }) } },
+      getAttribute: (k: string) => attrs[k] ?? null,
+      set width(v: number) { attrs.width = String(v); }, set height(v: number) { attrs.height = String(v); },
+      getContext: () => ({ setTransform: () => undefined }),
+    } as unknown as HTMLCanvasElement;
+    for (let i = 0; i < 5; i++) expect(fit(cv)).toMatchObject({ w: 234, h: 70 });
+    expect(attrs.height).toBe("140");
+  });
+});

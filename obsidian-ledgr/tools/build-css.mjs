@@ -63,7 +63,10 @@ ast.walkDecls((d) => {
 const rootCss = `
 /* ---- LEDGR Command Center (scoped port of command-center.html) ---- */
 .workspace-leaf-content[data-type="ledgr-command-center"] .view-content{padding:0;overflow:hidden}
-${R}{position:relative;width:100%;height:100%;overflow:hidden;container:ledgr-cc/size;contain:strict;isolation:isolate}
+${R}{position:relative;width:100%;height:100%;overflow:hidden;contain:strict;isolation:isolate}
+/* The stage holds the command center; it's the size container (so 100vh → 100cqh means "the stage") and the
+   containing block for the prototype's position:fixed overlays. app.ts sizes and scales it to fit the pane. */
+${R} .ledgr-cc-stage{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;container:ledgr-cc/size;contain:layout paint}
 /* Obsidian styles inputs, selects and buttons globally: put them back to the browser's own look first,
    so only the prototype's rules apply (they come after and are more specific). */
 ${R} :is(input,select,button,textarea,a){all:revert;box-sizing:border-box}

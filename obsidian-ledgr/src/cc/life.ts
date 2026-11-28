@@ -3,6 +3,8 @@
  * the view stops all of it. The prototype owned the whole window; inside Obsidian it must clean up after itself.
  */
 export class Life {
+  /** The window the command center lives in (its own window when opened as a popout). */
+  constructor(readonly win: Window = window) {}
   private offs: (() => void)[] = [];
   alive = true;
 
@@ -14,18 +16,18 @@ export class Life {
     this.offs.push(() => t.removeEventListener(type, h, opts));
   }
 
-  every(ms: number, fn: () => void) { const id = window.setInterval(fn, ms); this.offs.push(() => window.clearInterval(id)); return id; }
+  every(ms: number, fn: () => void) { const id = this.win.setInterval(fn, ms); this.offs.push(() => this.win.clearInterval(id)); return id; }
   after(ms: number, fn: () => void) {
-    const id = window.setTimeout(() => { this.timeouts.delete(id); if (this.alive) fn(); }, ms);
+    const id = this.win.setTimeout(() => { this.timeouts.delete(id); if (this.alive) fn(); }, ms);
     this.timeouts.add(id);
     return id;
   }
-  clear(id: number) { window.clearTimeout(id); this.timeouts.delete(id); }
+  clear(id: number) { this.win.clearTimeout(id); this.timeouts.delete(id); }
   private timeouts = new Set<number>();
 
   /** requestAnimationFrame that stops once the view is closed. */
   frame(fn: FrameRequestCallback) {
-    const id = window.requestAnimationFrame((t) => { this.frames.delete(id); if (this.alive) fn(t); });
+    const id = this.win.requestAnimationFrame((t) => { this.frames.delete(id); if (this.alive) fn(t); });
     this.frames.add(id);
   }
   private frames = new Set<number>();
@@ -33,9 +35,9 @@ export class Life {
   /** Timeouts made with after() are tracked until they fire or the view closes. */
   dispose() {
     this.alive = false;
-    this.frames.forEach((id) => window.cancelAnimationFrame(id));
+    this.frames.forEach((id) => this.win.cancelAnimationFrame(id));
     this.frames.clear();
-    this.timeouts.forEach((id) => window.clearTimeout(id));
+    this.timeouts.forEach((id) => this.win.clearTimeout(id));
     this.timeouts.clear();
     this.offs.splice(0).forEach((f) => f());
   }

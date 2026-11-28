@@ -2,12 +2,29 @@
 
 type Cv = HTMLCanvasElement & { _w?: number; _h?: number };
 
-export function fit(cv: Cv) {
-  const r = cv.parentElement!.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
-  const h = cv.getAttribute("height") && !cv.dataset.flex
-    ? +cv.getAttribute("height")!
-    : Math.max(120, r.height - (cv.offsetTop - cv.parentElement!.offsetTop) - (cv.nextElementSibling ? 60 : 12));
-  const w = Math.max(100, r.width - 24);
+/** The window an element is in (Obsidian popout windows have their own). */
+export const winOf = (el: Element): Window => el.ownerDocument.defaultView ?? window;
+
+/** Canvas sized to its panel's inner area (inside the border and padding), so it never spills over the frame. */
+export function fit(cv: Cv, heightOverride?: number) {
+  // Layout sizes (offset/client), not getBoundingClientRect: the stage may be scaled to fit the window.
+  const p = cv.parentElement!, win = winOf(cv), cs = win.getComputedStyle(p), dpr = Math.min(2, win.devicePixelRatio || 1);
+  const px = (v: string) => parseFloat(v) || 0;
+  const r = { height: p.offsetHeight };
+  const inner = p.clientWidth - px(cs.paddingLeft) - px(cs.paddingRight);
+  // The fixed height from the markup (70 for the P&L curve, 210 for the radar), read once: after the first
+  // draw the canvas's height attribute holds the pixel size (× devicePixelRatio), and reading that back made
+  // these canvases grow on every redraw on Retina screens.
+  if (cv.dataset.h === undefined) cv.dataset.h = cv.dataset.flex ? "" : cv.getAttribute("height") ?? "";
+  const h = cv.dataset.h
+    ? +cv.dataset.h
+    : Math.max(120, r.height - (cv.offsetTop - p.offsetTop) - (cv.nextElementSibling ? 60 : 12));
+  const w = Math.max(100, Math.floor(inner));
+  if (heightOverride !== undefined) return size(cv, w, heightOverride, dpr);
+  return size(cv, w, h, dpr);
+}
+
+function size(cv: Cv, w: number, h: number, dpr: number) {
   if (cv._w !== w || cv._h !== h) { cv._w = w; cv._h = h; cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + "px"; cv.style.height = h + "px"; }
   const g = cv.getContext("2d")!;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -15,7 +32,7 @@ export function fit(cv: Cv) {
 }
 
 export function cvFit(cv: HTMLCanvasElement) {
-  const dpr = Math.min(2, window.devicePixelRatio || 1), r = cv.getBoundingClientRect();
+  const dpr = Math.min(2, winOf(cv).devicePixelRatio || 1), r = { width: cv.clientWidth, height: cv.clientHeight };
   if (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr)) { cv.width = r.width * dpr; cv.height = r.height * dpr; }
   const g = cv.getContext("2d")!;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -41,3 +58,6 @@ export function rot(p: number[], ay: number, ax: number): [number, number, numbe
 }
 
 export const RED = "255,255,255";
+
+/** How much the stage is scaled on screen (1 = not scaled), from any element inside it. */
+export const scaleOf = (el: HTMLElement) => (el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1);

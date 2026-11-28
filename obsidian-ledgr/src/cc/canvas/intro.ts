@@ -6,7 +6,7 @@ import type { Instrument } from "../instruments";
 import type { Life } from "../life";
 import { esc, money } from "../logic";
 import type { Sound } from "../sound";
-import { cvFit } from "./fit";
+import { cvFit, scaleOf } from "./fit";
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
 const eout = (v: number) => 1 - Math.pow(1 - clamp(v), 3);
@@ -120,9 +120,9 @@ export function createIntro(d: IntroDeps) {
       for (let q = 0; q < 60; q++) { const a = (q / 60) * 6.283, L = q % 5 ? 4 : 10; g.beginPath(); g.moveTo(Math.cos(a) * R * 1.08, Math.sin(a) * R * 1.08); g.lineTo(Math.cos(a) * (R * 1.08 + L), Math.sin(a) * (R * 1.08 + L)); g.stroke(); }
       g.restore();
       // floor ring ignite (stage rect relative to the boot layer)
-      const fk = eout((s - TL.reveal - 0.6) / 0.8), rb = st.getBoundingClientRect(), bb = boot().getBoundingClientRect();
+      const fk = eout((s - TL.reveal - 0.6) / 0.8), rb = st.getBoundingClientRect(), bb = boot().getBoundingClientRect(), ks = scaleOf(boot());
       g.save(); g.strokeStyle = `rgba(255,255,255,${fk})`; g.shadowColor = "#ffffff"; g.shadowBlur = 20; g.lineWidth = 2;
-      g.beginPath(); g.ellipse(cx, rb.bottom - bb.top - rb.height * 0.03, rb.width * 0.42 * fk, 10 * fk, 0, 0, 7); g.stroke(); g.restore();
+      g.beginPath(); g.ellipse(cx, (rb.bottom - bb.top - rb.height * 0.03) / ks, (rb.width / ks) * 0.42 * fk, 10 * fk, 0, 0, 7); g.stroke(); g.restore();
       once("reveal", S_.whoosh);
     }
     // title + stats
@@ -172,11 +172,11 @@ export function createIntro(d: IntroDeps) {
     b.style.transition = "background-color .8s"; b.style.backgroundColor = "rgba(3,3,3,0)";
     $("bootCv").style.transition = "opacity .5s"; $("bootCv").style.opacity = "0";
     if (fig) {
-      const a = st.getBoundingClientRect(), z = fig.getBoundingClientRect(), bb = b.getBoundingClientRect(), sc = Math.min(z.width / a.width, z.height / a.height);
+      const a = st.getBoundingClientRect(), z = fig.getBoundingClientRect(), bb = b.getBoundingClientRect(), k = scaleOf(b), sc = Math.min(z.width / a.width, z.height / a.height);
       st.style.transition = "transform .9s cubic-bezier(.7,0,.2,1), left .9s cubic-bezier(.7,0,.2,1), top .9s cubic-bezier(.7,0,.2,1)";
       st.style.clipPath = "none";
-      st.style.left = z.left - bb.left + z.width / 2 + "px";
-      st.style.top = z.top - bb.top + z.height / 2 + "px";
+      st.style.left = (z.left - bb.left + z.width / 2) / k + "px";
+      st.style.top = (z.top - bb.top + z.height / 2) / k + "px";
       st.style.transform = `translate(-50%,-50%) scale(${sc.toFixed(3)})`;
     }
   }

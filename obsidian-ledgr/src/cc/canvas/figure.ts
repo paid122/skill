@@ -1,9 +1,10 @@
 /** The OPERATOR panel overlay: scan beam, scanlines, glitch jolts and corner brackets over the statue video (prototype's drawFig). */
 import type { Life } from "../life";
+import { winOf } from "./fit";
 
 export function createFigure(cv: HTMLCanvasElement, video: HTMLVideoElement, life: Life) {
   return function draw(t: number) {
-    const r = cv.parentElement!.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1), w = r.width, h = r.height;
+    const r = { width: cv.parentElement!.clientWidth, height: cv.parentElement!.clientHeight }, dpr = Math.min(2, winOf(cv).devicePixelRatio || 1), w = r.width, h = r.height;
     if (w < 10) return;
     if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = w * dpr; cv.height = h * dpr; }
     const g = cv.getContext("2d")!;

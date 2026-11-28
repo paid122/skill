@@ -1,6 +1,6 @@
 {
   "name": "obsidian-ledgr",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "LEDGR for Obsidian: your LEDGR trading journal as a command center in your vault (LEDGR Pro).",
   "main": "main.js",
   "private": true,

@@ -54,12 +54,14 @@ export interface Host {
   ask(title: string): Promise<string | null>;
 }
 
+/** Smallest layout size before the command center is scaled down (the prototype was built for 1600x900). */
+const DESIGN_H = 900, DESIGN_W = 1400;
 const TABS = ["main", "markets", "journal", "perf", "chart", "risk", "news", "brain"];
 const CK_DEF = ["Higher-timeframe bias marked", "Key levels drawn", "Setup is in my playbook", "Stop and target set before entry", "Size from the calculator, not a guess", "Calm, not chasing or revenge trading"];
 const TV_LINK = `<a class="tvattr" href="${TV_ATTRIBUTION}" target="_blank" rel="noopener">TRADINGVIEW</a>`;
 
 export class CommandCenter {
-  readonly life = new Life();
+  readonly life: Life;
   private sound = new Sound();
   private $ = (id: string) => this.root.querySelector<HTMLElement>("#" + id)!;
 
@@ -96,6 +98,7 @@ export class CommandCenter {
   private intro!: ReturnType<typeof createIntro>;
 
   constructor(private root: HTMLElement, private host: Host) {
+    this.life = new Life(root.ownerDocument.defaultView ?? window);
     const s = host.settings();
     this.TZN = s.timezone && okTZ(s.timezone) ? s.timezone : Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     this.Z = zone(this.TZN);
@@ -114,18 +117,22 @@ export class CommandCenter {
     root.empty();
     root.addClass("ledgr-cc");
     root.tabIndex = -1; // focusable, so keyboard shortcuts only apply while the command center has focus
+    // Everything sits on a "stage" laid out at the design size or larger, and scaled down to fit smaller windows,
+    // so every panel fits its frame like the 1600x900 original instead of being cut off.
+    this.stage = root.createDiv({ cls: "ledgr-cc-stage" });
     const doc = new DOMParser().parseFromString(`<div>${TEMPLATE}</div>`, "text/html");
-    for (const n of Array.from(doc.body.firstElementChild!.childNodes)) root.appendChild(document.adoptNode(n));
+    for (const n of Array.from(doc.body.firstElementChild!.childNodes)) this.stage.appendChild(root.ownerDocument.adoptNode(n));
+    this.fitStage();
     ["figCv", "brainCv", "globeCv", "eqCv", "sessCv", "setupCv"].forEach((id) => (this.$(id).dataset.flex = "1"));
 
     const tipEl = this.$("tip");
     const tip = {
       show: (e: MouseEvent, html: string) => {
-        const r = root.getBoundingClientRect();
+        const r = this.stage.getBoundingClientRect(), k = r.width / (this.stage.offsetWidth || r.width);
         tipEl.innerHTML = html; // callers escape journal text
         tipEl.style.display = "block";
-        tipEl.style.left = Math.min(r.width - 220, e.clientX - r.left + 12) + "px";
-        tipEl.style.top = e.clientY - r.top + 12 + "px";
+        tipEl.style.left = Math.min(this.stage.offsetWidth - 220, (e.clientX - r.left) / k + 12) + "px";
+        tipEl.style.top = (e.clientY - r.top) / k + 12 + "px";
       },
       hide: () => { tipEl.style.display = "none"; },
     };
@@ -408,7 +415,7 @@ export class CommandCenter {
     root.querySelectorAll<HTMLElement>(".fffil .chip[data-c]").forEach((c) => (c.onclick = () => { this.FFC = c.dataset.c!; root.querySelectorAll(".fffil .chip[data-c]").forEach((x) => x.classList.toggle("on", x === c)); this.ffRunKey = ""; this.ffRender(); this.ffList(); }));
     root.querySelectorAll<HTMLElement>(".fffil .chip[data-i]").forEach((c) => (c.onclick = () => { this.FFI = +c.dataset.i!; root.querySelectorAll(".fffil .chip[data-i]").forEach((x) => x.classList.toggle("on", x === c)); this.ffRunKey = ""; this.ffRender(); this.ffList(); }));
     // sound unlocks on the first gesture; focus so the number keys work
-    life.on(root, "pointerdown", () => { this.sound.unlock(); if (!root.contains(document.activeElement)) root.focus({ preventScroll: true }); }, true);
+    life.on(root, "pointerdown", () => { this.sound.unlock(); if (!root.contains(root.ownerDocument.activeElement)) root.focus({ preventScroll: true }); }, true);
     life.on(root, "keydown", (e) => {
       const target = e.target as HTMLElement;
       if (target.closest("input,textarea,select") || this.intro.isRunning() || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -417,13 +424,22 @@ export class CommandCenter {
     });
     // redraw charts when the pane changes size; widgets back when the connection returns
     let rz = 0;
-    const ro = new ResizeObserver(() => { life.clear(rz); rz = life.after(150, () => this.drawStatic()); });
+    const ro = new (life.win as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver(() => { this.fitStage(); life.clear(rz); rz = life.after(150, () => this.drawStatic()); });
     ro.observe(root);
-    life.on(window, "online", () => this.refreshMarket(true));
-    life.on(window, "offline", () => this.refreshMarket(true));
+    life.on(life.win, "online", () => this.refreshMarket(true));
+    life.on(life.win, "offline", () => this.refreshMarket(true));
     this.disconnectObserver = () => ro.disconnect();
   }
   private disconnectObserver: (() => void) | null = null;
+  private stage!: HTMLElement;
+
+  /** Scale the stage so the layout never gets shorter than 900 px or narrower than 1400 px. */
+  private fitStage() {
+    const W = this.root.clientWidth, H = this.root.clientHeight;
+    if (!W || !H) return;
+    const k = Math.min(1, H / DESIGN_H, W / DESIGN_W);
+    this.stage.setCssStyles({ width: `${W / k}px`, height: `${H / k}px`, transform: k < 1 ? `scale(${k})` : "" });
+  }
 
   private openTab(t: HTMLElement) {
     const { root } = this;

@@ -1,7 +1,7 @@
 /** The neural map: a point-cloud brain with firing synapses and labelled insight nodes (prototype's drawBrain/SYN). */
 import type { Life } from "../life";
 import { esc } from "../logic";
-import { fit, RED, rot, seeded } from "./fit";
+import { fit, RED, rot, scaleOf, seeded } from "./fit";
 
 export const NODES: [string, [number, number, number]][] = [
   ["PSYCHE", [-0.55, 0.45, 0.55]], ["STRATEGY", [0.6, 0.4, 0.45]], ["RULES", [0.0, 0.7, 0.0]], ["PERFORMANCE", [0.75, 0.05, -0.55]],
@@ -35,16 +35,16 @@ export function createBrain(cv: HTMLCanvasElement, chips: HTMLElement, life: Lif
 
   let hoverNode: Proj | null = null;
   life.on(cv, "pointerdown", (e) => { B.drag = [e.clientX, e.clientY]; });
-  life.on(window, "pointerup", () => { B.drag = null; });
-  life.on(window, "pointermove", (e) => {
+  life.on(life.win, "pointerup", () => { B.drag = null; });
+  life.on(life.win, "pointermove", (e) => {
     if (!B.drag) return;
     B.ay += (e.clientX - B.drag[0]) * 0.008;
     B.ax = Math.max(-1, Math.min(1, B.ax + (e.clientY - B.drag[1]) * 0.006));
     B.drag = [e.clientX, e.clientY];
   });
   life.on(cv, "mousemove", (e) => {
-    const b = cv.getBoundingClientRect();
-    const hit = B.proj.filter((n) => Math.hypot(e.clientX - b.left - n.x, e.clientY - b.top - n.y) < 16).pop() ?? null;
+    const b = cv.getBoundingClientRect(), k = scaleOf(cv);
+    const hit = B.proj.filter((n) => Math.hypot((e.clientX - b.left) / k - n.x, (e.clientY - b.top) / k - n.y) < 16).pop() ?? null;
     hoverNode = hit;
     if (hit) tip.show(e, `<b>${esc(hit.k)}</b><br>${esc(B.labels[hit.k] || "")}`); else tip.hide();
   });
