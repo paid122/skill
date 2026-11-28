@@ -172,7 +172,7 @@ export function createIntro(d: IntroDeps) {
     b.style.transition = "background-color .8s"; b.style.backgroundColor = "rgba(3,3,3,0)";
     $("bootCv").style.transition = "opacity .5s"; $("bootCv").style.opacity = "0";
     if (fig) {
-      const a = st.getBoundingClientRect(), z = fig.getBoundingClientRect(), bb = b.getBoundingClientRect(), k = scaleOf(b), sc = Math.min(z.width / a.width, z.height / a.height);
+      const a = st.getBoundingClientRect(), z = fig.getBoundingClientRect(), bb = b.getBoundingClientRect(), k = scaleOf(b), sc = Math.max(z.width / a.width, z.height / a.height); // the panel's statue fills its frame (cover)
       st.style.transition = "transform .9s cubic-bezier(.7,0,.2,1), left .9s cubic-bezier(.7,0,.2,1), top .9s cubic-bezier(.7,0,.2,1)";
       st.style.clipPath = "none";
       st.style.left = (z.left - bb.left + z.width / 2) / k + "px";

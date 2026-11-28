@@ -249,3 +249,8 @@ body.is-popout-window .workspace-tabs:has(.workspace-leaf-content[data-type="led
 @keyframes lcc-gridmove{to{transform:translate(40px,40px)}}
 
 .ledgr-cc.ledgr-cc #tip{position:fixed;pointer-events:none;z-index:80;border:1px solid var(--r);background:#141414;padding:5px 8px;font-size:11.5px;display:none}
+
+
+/* ---- changes from the prototype ---- */
+/* The statue fills the OPERATOR frame top to bottom (the prototype letterboxed it). */
+.ledgr-cc.ledgr-cc .figwrap video{object-fit:cover;object-position:50% 100%}

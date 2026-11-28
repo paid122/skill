@@ -1,7 +1,7 @@
 {
   "id": "ledgr",
   "name": "LEDGR",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "minAppVersion": "1.11.4",
   "description": "Your LEDGR trading journal as a sci-fi command center in your vault: stats, P&L, risk guard, position sizer, news alerts and live markets. Requires LEDGR Pro.",
   "author": "LEDGR",
