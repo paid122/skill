@@ -1,0 +1,59 @@
+/* LEDGR Command Center (phase 1). Everything is scoped to .ledgr-cc / .ledgr-settings-*. */
+.ledgr-cc {
+  --ledgr-pos: #3fbf7f;
+  --ledgr-neg: #f0605d;
+  --ledgr-line: var(--background-modifier-border);
+  font-family: var(--font-monospace);
+  padding: 16px;
+}
+
+.ledgr-cc .pos { color: var(--ledgr-pos); }
+.ledgr-cc .neg { color: var(--ledgr-neg); }
+.ledgr-cc-muted { color: var(--text-muted); font-size: 12px; }
+.ledgr-cc-small { font-size: 12px; }
+
+.ledgr-cc-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--ledgr-line); }
+.ledgr-cc-title { display: flex; align-items: baseline; gap: 10px; }
+.ledgr-cc-logo { font-weight: 700; letter-spacing: 0.3em; font-size: 16px; color: var(--text-normal); }
+.ledgr-cc-sub { font-size: 11px; letter-spacing: 0.15em; color: var(--text-muted); }
+.ledgr-cc-header-right { display: flex; align-items: center; gap: 10px; }
+.ledgr-cc-chip { font-size: 10.5px; letter-spacing: 0.15em; padding: 2px 8px; border: 1px solid var(--ledgr-line); border-radius: 999px; }
+.ledgr-cc-chip.is-live { color: var(--ledgr-pos); border-color: color-mix(in srgb, var(--ledgr-pos) 50%, transparent); }
+.ledgr-cc-chip.is-stale { color: var(--text-warning, #e0a83a); border-color: color-mix(in srgb, #e0a83a 50%, transparent); }
+.ledgr-cc-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; }
+.ledgr-cc-btn.is-spinning svg { animation: ledgr-spin 0.9s linear infinite; }
+@keyframes ledgr-spin { to { transform: rotate(360deg); } }
+
+.ledgr-cc-warning { margin-bottom: 12px; padding: 8px 12px; border: 1px solid color-mix(in srgb, #e0a83a 45%, transparent); border-radius: 8px; color: var(--text-warning, #e0a83a); font-size: 12px; }
+
+.ledgr-cc-panel { border: 1px solid var(--ledgr-line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+.ledgr-cc-panel-title { font-size: 10.5px; letter-spacing: 0.2em; color: var(--text-muted); margin-bottom: 10px; }
+.ledgr-cc { container-type: inline-size; }
+.ledgr-cc-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@container (max-width: 520px) { .ledgr-cc-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ledgr-cc-tile { border: 1px solid var(--ledgr-line); border-radius: 8px; padding: 10px 12px; }
+.ledgr-cc-tile-label { font-size: 10px; letter-spacing: 0.15em; color: var(--text-muted); }
+.ledgr-cc-tile-value { margin-top: 4px; font-size: 18px; font-weight: 600; color: var(--text-normal); font-variant-numeric: tabular-nums; }
+.ledgr-cc-tile-value.pos { color: var(--ledgr-pos); }
+.ledgr-cc-tile-value.neg { color: var(--ledgr-neg); }
+
+.ledgr-cc-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--ledgr-line); }
+.ledgr-cc-row:first-of-type { border-top: 0; }
+.ledgr-cc-row-name { color: var(--text-normal); font-size: 13px; }
+.ledgr-cc-row-right { text-align: right; }
+.ledgr-cc-row-value { font-variant-numeric: tabular-nums; font-size: 13px; }
+
+.ledgr-cc-footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--text-muted); font-size: 11px; margin-top: 4px; }
+
+.ledgr-cc-screen { max-width: 420px; margin: 48px auto; text-align: center; border: 1px solid var(--ledgr-line); border-radius: 12px; padding: 28px 24px; }
+.ledgr-cc-screen.locked { border-color: color-mix(in srgb, var(--ledgr-neg) 35%, var(--ledgr-line)); }
+.ledgr-cc-screen-icon { display: inline-flex; color: var(--text-muted); }
+.ledgr-cc-screen-icon svg { width: 28px; height: 28px; }
+.ledgr-cc-screen h3 { margin: 12px 0 6px; font-size: 16px; }
+.ledgr-cc-screen p { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+.ledgr-cc-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+
+.ledgr-settings-status { margin: 8px 0 12px; padding: 8px 12px; border-radius: 8px; font-size: 13px; border: 1px solid var(--background-modifier-border); }
+.ledgr-settings-status.is-ok { color: #3fbf7f; border-color: color-mix(in srgb, #3fbf7f 40%, transparent); }
+.ledgr-settings-status.is-bad { color: #f0605d; border-color: color-mix(in srgb, #f0605d 40%, transparent); }
+.ledgr-settings-status.is-info { color: var(--text-muted); }

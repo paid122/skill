@@ -1,0 +1,27 @@
+{
+  "name": "obsidian-ledgr",
+  "version": "0.1.0",
+  "description": "LEDGR for Obsidian: your LEDGR trading journal as a command center in your vault (LEDGR Pro).",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "obsidian",
+    "trading",
+    "journal"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "builtin-modules": "3.3.0",
+    "esbuild": "0.25.0",
+    "obsidian": "^1.14.4",
+    "tslib": "2.6.2",
+    "typescript": "5.5.4",
+    "vitest": "2.1.9"
+  }
+}
