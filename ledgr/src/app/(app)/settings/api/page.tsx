@@ -1,5 +1,6 @@
 "use client";
-import { Check, Copy, KeyRound, Plus, Trash2 } from "lucide-react";
+import { Check, Copy, KeyRound, Link2, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { PageIntro } from "@/components/blocks";
 import { PlanWall, PlusTag } from "@/components/PlusGate";
@@ -174,7 +175,8 @@ export default function ApiSettingsPage() {
   const pro = atLeast(plan, "pro");
   return (
     <div className="flex flex-col gap-6">
-      <PageIntro title={<span className="flex items-center gap-2">API <PlusTag level="pro" /></span>} sub="Connect LEDGR to your own scripts, spreadsheets and trading platforms." />
+      <PageIntro title={<span className="flex items-center gap-2">API <PlusTag level="pro" /></span>} sub="Connect LEDGR to your own scripts, spreadsheets and trading platforms."
+        actions={<Link href="/connect" className="inline-flex items-center gap-2 rounded-xl border border-line px-3.5 py-2 text-[13.5px] font-medium text-text hover:bg-card-2"><Link2 size={14} /> Connect an app</Link>} />
       <SettingsNav />
       <PlanWall level="pro" feature="The LEDGR API" sub="Your own API keys: read your trades, accounts and stats from anywhere, and send trades in automatically from your platform or scripts.">
         <Card className="flex flex-col gap-8">
