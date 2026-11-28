@@ -1,40 +1,23 @@
 /**
- * What the command center should show, worked out from the last fetch and the saved snapshot.
- * Pure (no Obsidian imports) so it can be tested.
+ * Which screen the view shows (pure, tested): connect, locked, no journal, or the command center.
+ * The command center itself works offline from cached trades and marks them stale.
  */
 import type { ErrorKind } from "./api";
-import type { Dashboard, Snapshot } from "./types";
-
-export const STALE_AFTER_MS = 15 * 60_000; // older than this, the data is marked stale
-
-export type ViewState =
-  | { kind: "connect" } // no key yet
-  | { kind: "loading" }
-  | { kind: "locked"; reason: "invalid_key" | "not_pro"; message: string } // can't show data
-  | { kind: "no_journal"; message: string }
-  | { kind: "error"; message: string } // nothing to show at all
-  | { kind: "data"; data: Dashboard; fetchedAt: number; live: boolean; stale: boolean; warning: string | null };
 
 export interface LastFetch { ok: boolean; at: number; errorKind?: ErrorKind; message?: string }
 
-export function viewState(hasKey: boolean, snap: Snapshot | null, last: LastFetch | null, loading: boolean, now: number): ViewState {
+export type Mode =
+  | { kind: "connect" }
+  | { kind: "locked"; reason: "invalid_key" | "not_pro"; message: string }
+  | { kind: "no_journal"; message: string }
+  | { kind: "cc" };
+
+export function mode(hasKey: boolean, last: LastFetch | null): Mode {
   if (!hasKey) return { kind: "connect" };
-  // A wrong key or a plan without Pro must lock the view, even if old data is saved.
-  if (last && !last.ok && (last.errorKind === "invalid_key" || last.errorKind === "not_pro")) {
-    return { kind: "locked", reason: last.errorKind, message: last.message ?? "" };
-  }
+  // A wrong or revoked key, or an account without LEDGR Pro, locks the view even if trades are cached.
+  if (last && !last.ok && (last.errorKind === "invalid_key" || last.errorKind === "not_pro")) return { kind: "locked", reason: last.errorKind, message: last.message ?? "" };
   if (last && !last.ok && last.errorKind === "no_journal") return { kind: "no_journal", message: last.message ?? "" };
-  if (!snap) {
-    if (loading || !last) return { kind: "loading" };
-    return { kind: "error", message: last.message ?? "Something went wrong." };
-  }
-  const failed = !!last && !last.ok;
-  const stale = failed || now - snap.fetchedAt > STALE_AFTER_MS;
-  return {
-    kind: "data", data: snap.data, fetchedAt: snap.fetchedAt,
-    live: !failed && !stale, stale,
-    warning: failed ? (last!.errorKind === "offline" ? "Offline: showing saved data." : last!.message ?? "Couldn't refresh: showing saved data.") : null,
-  };
+  return { kind: "cc" };
 }
 
 /** "just now", "4 min ago", "3 h ago", "2 days ago". */

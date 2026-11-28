@@ -1,0 +1,118 @@
+<body>
+<div id="boot"><canvas id="bootCv"></canvas>
+  <div id="introStage"><video id="introVid" muted playsinline loop preload="auto"></video><canvas id="introFx"></canvas></div>
+  <div id="introTitle"><div id="iT1"></div><div id="iT2"></div></div>
+  <div id="introL" class="istat"></div><div id="introR" class="istat"></div>
+  <div id="introMsg"></div>
+  <div id="gate"><div class="gring"><div class="gbtn" id="engage">ENGAGE</div></div><div class="ghint">CLICK OR PRESS ENTER · SOUND ON</div><div class="gskip" id="gskip">SKIP INTRO ›</div></div>
+  <div id="skipBtn">SKIP ›</div>
+  <div id="bootTxt"><small id="bootSub"></small></div></div>
+
+<div id="keyBox"><div class="panel"><div class="ph">ACCESS KEY REQUIRED <span>LEDGR API</span></div>
+  <div class="note">Paste your LEDGR API key. It stays in this browser on this computer and is only sent to ledgrjournal.app. (If you connected the Trading Dashboard, this uses the same key.)</div>
+  <input id="keyIn" type="password" placeholder="ledgr_sk_…" autocomplete="off"><div class="err" id="keyErr"></div>
+  <div style="display:flex;gap:8px"><button class="btn" id="keyGo">CONNECT</button><button class="btn g" id="keySkip">VIEW OFFLINE</button></div></div></div>
+
+<div class="app">
+  <div class="top">
+    <div class="brand">LEDGR</div>
+    <div class="tabs" id="tabs" style="flex:none">
+      <div class="tab on" data-v="main">MAIN</div><div class="tab" data-v="markets">MARKETS</div><div class="tab" data-v="journal">JOURNAL</div>
+      <div class="tab" data-v="perf">PERFORMANCE</div><div class="tab" data-v="chart">CHART</div><div class="tab" data-v="risk">RISK</div><div class="tab" data-v="news">NEWS</div><div class="tab" data-v="brain">BRAIN</div>
+    </div>
+    <div id="ff"><a id="ffLogo" href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener">FF</a><div id="ffTick"><span class="ffmut">FOREX FACTORY · LOADING…</span></div><div id="ffBtn" title="This week's calendar">▾</div></div>
+    <div id="guardChip" class="gchip" title="Risk guard (RISK tab)">GUARD · —</div><div id="sndBtn" class="sndb" title="Sound on/off">SND ON</div>
+    <div class="stat"><span class="dot" id="linkDot"></span><span id="linkTxt">LINK OFFLINE</span></div>
+  </div>
+  <div id="tape" class="tvw"></div>
+
+  <div class="main">
+    <!-- LEFT -->
+    <div class="col">
+      <div class="panel"><div class="ph"><b data-tzl="@" style="font-weight:inherit">LOCAL</b> <span id="dateTxt"></span></div><div class="clock" id="clock">00:00:00</div>
+        <div class="kv" style="margin-top:8px"><span class="k">NEW YORK</span><span class="v" id="nyT"></span><span class="k">LONDON</span><span class="v" id="ldT"></span><span class="k">TOKYO</span><span class="v" id="tkT"></span></div></div>
+      <div class="panel"><div class="ph">ACCOUNT <select id="insSel" title="Instrument from your journal" style="background:#0b0b0b;color:inherit;border:1px solid rgba(122,122,122,.5);font:inherit;font-size:10px;letter-spacing:.08em;padding:1px 4px;max-width:150px;cursor:pointer"><option value="AUTO">AUTO</option></select></div>
+        <div class="sub">NET P&amp;L · ALL TIME</div><div class="big" id="kNet">—</div>
+        <div class="kv" style="margin-top:8px"><span class="k">WIN RATE</span><span class="v" id="kWin">—</span><span class="k">PROFIT FACTOR</span><span class="v" id="kPF">—</span><span class="k">AVG R</span><span class="v" id="kR">—</span><span class="k">MAX DRAWDOWN</span><span class="v" id="kDD">—</span><span class="k">TRADES</span><span class="v" id="kN">—</span></div></div>
+      <div class="panel"><div class="ph">P&amp;L CURVE <span>30D</span></div><canvas id="spark" height="70"></canvas></div>
+      <div class="panel"><div class="ph">ORDER FLOW <span>LONG / SHORT</span></div>
+        <div class="kv"><span class="k">LONG</span><span class="v" id="lsL">—</span><span class="k">SHORT</span><span class="v" id="lsS">—</span></div>
+        <div class="bar"><i id="lsBarL" style="background:var(--ok);width:50%"></i><i id="lsBarS" style="background:var(--r);width:50%"></i></div></div>
+      <div class="panel"><div class="ph">TODAY <span id="todayDate"></span></div>
+        <div class="kv"><span class="k">TRADES</span><span class="v" id="tdN">0</span><span class="k">NET</span><span class="v" id="tdNet">$0.00</span><span class="k">NET R</span><span class="v" id="tdR">—</span></div></div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="center">
+      <div class="view on" id="v-main"><div class="hud-grid" style="grid-template-columns:minmax(260px,30%) minmax(0,1fr)">
+        <div class="panel figure"><div class="ph">OPERATOR <span>SCAN</span></div><div class="figwrap"><video id="figVid" autoplay muted loop playsinline preload="auto" src="DATAURI"></video><canvas id="figCv"></canvas></div><div class="fname">OPERATOR</div><div class="sub" id="opSub" style="text-align:center;letter-spacing:.2em">TRADER</div></div>
+        <div class="mainR"><div class="panel" style="flex:1.35;min-height:0"><div class="ph">NEURAL MAP <span>DRAG TO ROTATE · HOVER A NODE</span></div><canvas id="brainCv"></canvas>
+          <div class="chips" id="brainChips"></div></div>
+        <div class="panel" style="flex:1;min-height:0;padding:8px 10px 6px"><div class="ph" id="liveHd">LIVE <span>5M · TRADINGVIEW</span></div><div id="liveChart" class="tvw" style="height:calc(100% - 22px)"><div class="note">Connecting to live market…</div></div></div></div>
+      </div></div>
+      <div class="view" id="v-markets"><div class="panel" style="height:100%"><div class="ph">GLOBAL MARKET UPLINK <span id="mkLocal"></span></div><canvas id="globeCv"></canvas>
+        <div class="chips"><span class="chip on">TOKYO</span><span class="chip on">LONDON</span><span class="chip on">NEW YORK</span><span class="chip on">CHICAGO · CME</span><span class="chip on" data-tzl="@">LOCAL</span></div></div></div>
+      <div class="view" id="v-journal"><div class="hud-grid" style="grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)">
+        <div class="panel" style="height:100%"><div class="ph">TRADE LOG <span id="logCount"></span></div><div class="scroll"><table id="logT"></table></div></div>
+        <div class="panel" style="height:100%"><div class="ph">CALENDAR <span><a id="calPrev" style="cursor:pointer">◀</a> <span id="calTitle"></span> <a id="calNext" style="cursor:pointer">▶</a></span></div><div class="cal" id="cal"></div></div>
+      </div></div>
+      <div class="view" id="v-perf"><div class="hud-grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:1fr 1fr">
+        <div class="panel" style="grid-column:span 2"><div class="ph">EQUITY <span>CLOSED TRADES</span></div><canvas id="eqCv"></canvas></div>
+        <div class="panel"><div class="ph">BY SESSION <span data-tzl="@ TIME">LOCAL TIME</span></div><canvas id="sessCv"></canvas></div>
+        <div class="panel"><div class="ph">BY SETUP <span>NET</span></div><canvas id="setupCv"></canvas></div>
+      </div></div>
+      <div class="view" id="v-chart"><div class="panel" style="height:100%;padding:6px"><div class="ph" id="chartHd" style="margin:2px 6px 6px">CHART <span>TRADINGVIEW</span></div><div id="tvbox" style="height:calc(100% - 28px)"><div class="note" style="padding:20px">Loading chart…</div></div></div></div>
+      <div class="view" id="v-risk"><div class="hud-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <div class="panel" style="height:100%"><div class="ph">PRE-TRADE CHECKLIST <span id="ckState"></span></div><div class="scroll" id="ckList"></div></div>
+        <div class="panel" style="height:100%"><div class="ph">RISK GUARD <span data-tzl="TODAY · @">TODAY</span></div><div class="scroll">
+          <div class="gbig" id="gBig">—</div><div class="sub" id="gWhy" style="text-align:center;margin-bottom:10px"></div>
+          <div id="gBars"></div>
+          <div class="sec2">LIMITS</div>
+          <div class="frm"><label>Daily loss limit ($)<input class="inp" id="gLoss" type="number" min="0" step="10"></label><label>Max trades / day<input class="inp" id="gTrades" type="number" min="1" step="1"></label>
+          <label>Max losses in a row<input class="inp" id="gConsec" type="number" min="1" step="1"></label><label>Cool-down after a loss (min)<input class="inp" id="gCool" type="number" min="0" step="1"></label></div></div></div>
+        <div class="panel" style="height:100%"><div class="ph" id="posHd">POSITION SIZE</div><div class="scroll">
+          <div class="frm"><label>Account ($)<input class="inp" id="pAcc" type="number" step="100"></label><label>Risk per trade (%)<input class="inp" id="pPct" type="number" step="0.1"></label>
+          <label>Entry<input class="inp" id="pEn" type="number" step="0.1" placeholder="e.g. 2650.0"></label><label>Stop<input class="inp" id="pSt" type="number" step="0.1" placeholder="e.g. 2646.5"></label>
+          <label>Fees / contract round trip ($)<input class="inp" id="pFee" type="number" step="0.01"></label><label>Max contracts<input class="inp" id="pMax" type="number" step="1"></label></div>
+          <div id="pOut"></div></div></div>
+      </div></div>
+      <div class="view" id="v-news"><div class="hud-grid" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)">
+        <div class="panel" style="height:100%;padding:8px 10px"><div class="ph" id="newsHd">NEWS FEED <span>TRADINGVIEW · LIVE</span></div><div id="newsFeed" class="tvw" style="height:calc(100% - 22px)"><div class="note">Loading headlines…</div></div></div>
+        <div style="display:grid;grid-template-rows:minmax(0,1.1fr) minmax(0,1fr);gap:8px;min-height:0">
+          <div class="panel" style="padding:8px 10px"><div class="ph" id="sentHd">SENTIMENT <span>TECHNICAL RATING</span></div><div id="sentiment" class="tvw" style="height:calc(100% - 22px)"></div></div>
+          <div class="panel"><div class="ph">HIGH-IMPACT AHEAD <span>FOREX FACTORY</span></div><div class="scroll" id="hiList"></div></div>
+        </div></div></div>
+      <div class="view" id="v-brain"><div class="panel" style="height:100%"><div class="ph">PSYCHE REPORT <span>FROM YOUR JOURNAL</span></div><div class="scroll" id="psyche"></div></div></div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="col right">
+      <div class="panel" style="padding:8px 10px 2px"><div class="ph" id="quoteHd">LIVE</div><div id="goldQuote" class="tvw" style="height:92px"><div class="note">Connecting…</div></div></div>
+      <div class="panel"><div class="ph">RISK GUARD <span id="rgSub">TODAY</span></div><div class="gmini" id="gMini">—</div><div id="gMiniBars"></div></div>
+      <div class="panel"><div class="ph">MARKET STATUS <span>CME GLOBEX</span></div>
+        <div class="big" id="cmeState">—</div><div class="sub" id="cmeNext"></div>
+        <div class="kv" id="specK" style="margin-top:8px"></div></div>
+      <div class="panel"><div class="ph">SESSION RADAR <span id="sessNow"></span></div><canvas id="radarCv" height="210"></canvas></div>
+      <div class="panel"><div class="ph">ACTIVITY FEED <span>LATEST</span></div><div class="feed" id="feed"><div class="note">No trades yet.</div></div></div>
+      <div class="panel"><div class="ph">LEDGR SYNC <span id="syncT"></span></div><div class="big" id="syncState" style="font-size:18px">OFFLINE</div><div class="sub" id="syncSub">Connect a key to load your journal.</div></div>
+    </div>
+  </div>
+
+  <div class="dock">
+    <a class="ic" href="https://www.ledgrjournal.app/dashboard" target="_blank" rel="noopener"><b>◈</b>LEDGR</a>
+    <a class="ic" href="https://www.ledgrjournal.app/journal" target="_blank" rel="noopener"><b>☰</b>JOURNAL</a>
+    <a class="ic" href="Trading%20Dashboard.html"><b>▦</b>DASHBOARD</a>
+    <a class="ic" href="obsidian://open?vault=claude&amp;file=00%20Home"><b>◉</b>VAULT</a>
+    <a class="ic" href="Universe%20View.html"><b>✺</b>UNIVERSE</a>
+    <div class="ic" id="refreshBtn"><b>↻</b>SYNC</div>
+    <div class="ic" id="replayBtn"><b>▶</b>BOOT</div>
+    <div class="ic" id="keyBtn"><b>⚿</b>KEY</div>
+  </div>
+</div>
+<div id="ffPanel" class="panel"><div class="ph">FOREX FACTORY · THIS WEEK <span id="ffUpd"></span></div>
+  <div class="fffil"><span class="chip on" data-c="USD">USD</span><span class="chip" data-c="ALL">ALL</span><span style="width:12px"></span><span class="chip on" data-i="2">HIGH + MED</span><span class="chip" data-i="3">HIGH</span><span class="chip" data-i="1">ALL IMPACT</span>
+  <a class="chip" href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener" style="margin-left:auto">OPEN FOREXFACTORY.COM ↗</a></div>
+  <div class="scroll" id="ffList"></div></div>
+<div id="toasts"></div>
+<div id="tip"></div>
+

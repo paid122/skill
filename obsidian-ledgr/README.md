@@ -1,8 +1,8 @@
 # LEDGR for Obsidian
 
-Your [LEDGR](https://www.ledgrjournal.app) trading journal as a command center inside Obsidian. Requires **LEDGR Pro**.
+Your [LEDGR](https://www.ledgrjournal.app) trading journal as a sci-fi command center inside Obsidian. Requires **LEDGR Pro**.
 
-> Status: **phase 1 prototype**. Connects to LEDGR, shows your stats and accounts, works offline with saved data.
+> Status: **phase 2**. The Command Center is a native Obsidian view, a panel-by-panel port of the LEDGR command-center prototype (`spec/`).
 
 ## Install (development build)
 
@@ -11,7 +11,7 @@ npm install
 npm run build
 ```
 
-Copy `main.js`, `manifest.json` and `styles.css` into `<your vault>/.obsidian/plugins/ledgr/`, then in Obsidian go to **Settings → Community plugins**, turn on community plugins if needed, and enable **LEDGR**.
+Copy `main.js`, `manifest.json`, `styles.css` and `assets/operator.mp4` into `<your vault>/.obsidian/plugins/ledgr/`. In Obsidian: **Settings → Community plugins** → enable **LEDGR**. Needs Obsidian 1.11.4 or newer.
 
 ## Connect
 
@@ -19,22 +19,53 @@ Copy `main.js`, `manifest.json` and `styles.css` into `<your vault>/.obsidian/pl
 2. In Obsidian, go to **Settings → LEDGR**, paste the key and press **Test connection**.
 3. Open the Command Center from the ribbon (pulse icon) or the command palette: **LEDGR: Open Command Center**.
 
-## What it does now
+## What's in it
 
-- Shows all-time and last-30-days stats (net P&L, win rate, profit factor, average R, max drawdown, trades) and your active accounts.
-- Refreshes when opened, every 5 minutes while open, and with the refresh button or **LEDGR: Refresh data**. Answers are cached for 60 seconds, and requests stay under LEDGR's limit (120 a minute per key).
-- Works offline: the last good data is saved and shown with a **STALE** badge and the time it was fetched.
-- Locks with a clear message if the key is wrong or revoked, or the account doesn't have LEDGR Pro.
+Tabs: **MAIN, MARKETS, JOURNAL, PERFORMANCE, CHART, RISK, NEWS, BRAIN** (keys 1–8 while the view has focus).
 
-## Privacy
+- Clocks in your time zone plus New York, London and Tokyo; account stats; 30-day P&L curve; long vs short; today's trades; activity feed.
+- Neural map with insight nodes (best setup, losses beyond -1.2R, quick re-entries after a loss, drawdown); globe of open markets; session radar.
+- Trade log and P&L calendar; equity curve; results by session and by setup; the Psyche report.
+- Risk: daily checklist with an automatic news check, risk guard (CLEAR / CAUTION / STOP with an alarm), position sizer using the instrument's point value (MGC $10/point, $1/tick) with fees and 1R/2R/3R targets.
+- Instrument menu built from your journal's symbols, driving the specs table, the sizer and the market widgets.
+- Cinematic intro (setting), synthesised sound (setting).
 
-- Your API key is kept in Obsidian's **secret storage** on this device. It is not written to your vault or to the plugin's `data.json`, so it isn't synced or committed with your notes.
-- The plugin only talks to `https://www.ledgrjournal.app/api/v1`. It sends your API key and asks for your stats, accounts and plan. Nothing else leaves your device, and there is no telemetry.
-- The last fetched stats and account balances are saved in the plugin's `data.json` (inside `.obsidian/plugins/ledgr/`) so the view works offline. **Disconnect** removes both the key and this data.
+## Data and offline
+
+- Trades sync from LEDGR when the view opens and every 5 minutes: the first sync downloads everything, later ones only trades dated from a few days before the last sync. **SYNC** (or **LEDGR: Sync trades now**) and a daily run download everything again, so edits to older trades show up.
+- The last sync is kept in `trades-cache.json` in the plugin folder. Offline, the Command Center shows it with a **STALE** status and when it was cached.
+- A wrong or revoked key, or an account without LEDGR Pro, shows a locked screen with an upgrade link. LEDGR checks Pro on the server for every API request.
+
+## Privacy: what goes over the network
+
+| To | When | What |
+|---|---|---|
+| `www.ledgrjournal.app` | sync, calendar | Your API key (in a header). Answers: your profile name, plan, trades, calendar. |
+| `tradingview.com` (`www.tradingview-widget.com`, `s.tradingview.com` and the hosts their widgets use) | when **Live TradingView widgets** is on | The widgets' settings: the instrument symbol (e.g. OANDA:XAUUSD), time zone and colours. No journal data and no key. |
+
+- The API key is kept in Obsidian's **secret storage** on this device, not in your vault or `data.json`.
+- `data.json` holds settings and Command Center state (checklist, risk limits, sizer inputs, your LEDGR profile and the last calendar). `trades-cache.json` holds your synced trades. **Disconnect** removes the key, the trade cache, the profile and the calendar.
+- No telemetry. No code is loaded from other sites: fonts are bundled, TradingView runs only inside sandboxed iframes on TradingView's own domains (they can't reach the plugin, your vault or your key).
+- TradingView widgets are subject to [TradingView's terms](https://www.tradingview.com/policies/); their attribution stays visible.
+
+## Assets and licences
+
+- **Fonts**: Share Tech Mono (Carrois Type Design) and Rajdhani (Indian Type Foundry), SIL Open Font License 1.1, bundled in `styles.css`. Licence texts in `fonts/`.
+- **Intro video** `assets/operator.mp4`: loaded from the plugin folder. Obsidian's plugin store only installs `main.js`, `manifest.json` and `styles.css`, so for store installs the plugin downloads it once on first run from the plugin's GitHub release (`VIDEO_URL` in `src/main.ts`, empty until the release repo exists). **Check the video's licence allows commercial use before release.**
+
+## Not built yet (needs LEDGR changes)
+
+- **Economic calendar**: the plugin calls `GET /api/v1/calendar` and shows "calendar not connected" until LEDGR serves it. Expected answer:
+  `{ "events": [{ "title", "country", "date" (ISO), "impact": "High"|"Medium"|"Low"|"Holiday", "forecast", "previous" }], "updatedAt", "source": { "name", "url" } }`.
+  Forex Factory's feed isn't licensed for redistribution; use a provider whose terms allow it.
 
 ## Develop
 
 ```bash
-npm run dev    # rebuild on change
-npm test       # unit tests (API client, rate limit, cache, offline/locked states, formatting)
+npm run dev     # rebuild on change
+npm test        # stats, risk guard, sizing, sync, TradingView URLs, view states
+npm run build   # styles.css (scoped prototype CSS + fonts), type check, main.js
 ```
+
+- `spec/` holds the prototype's CSS and markup. `tools/build-css.mjs` scopes the CSS under `.ledgr-cc`; `tools/make-template.py` makes `src/cc/template.ts` and lists every change from the prototype.
+- `tools/harness/compare.cjs` renders the prototype and the plugin side by side at 1600×900 with the same sample data.

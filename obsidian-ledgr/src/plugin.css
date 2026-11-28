@@ -1,0 +1,59 @@
+/* Plugin UI outside the command center: connect / locked screens (.ledgr-lock) and the settings tab. */
+.ledgr-lock {
+  --ledgr-pos: #3fbf7f;
+  --ledgr-neg: #f0605d;
+  --ledgr-line: var(--background-modifier-border);
+  font-family: var(--font-monospace);
+  padding: 16px;
+}
+
+.ledgr-lock .pos { color: var(--ledgr-pos); }
+.ledgr-lock .neg { color: var(--ledgr-neg); }
+.ledgr-lock-muted { color: var(--text-muted); font-size: 12px; }
+.ledgr-lock-small { font-size: 12px; }
+
+.ledgr-lock-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--ledgr-line); }
+.ledgr-lock-title { display: flex; align-items: baseline; gap: 10px; }
+.ledgr-lock-logo { font-weight: 700; letter-spacing: 0.3em; font-size: 16px; color: var(--text-normal); }
+.ledgr-lock-sub { font-size: 11px; letter-spacing: 0.15em; color: var(--text-muted); }
+.ledgr-lock-header-right { display: flex; align-items: center; gap: 10px; }
+.ledgr-lock-chip { font-size: 10.5px; letter-spacing: 0.15em; padding: 2px 8px; border: 1px solid var(--ledgr-line); border-radius: 999px; }
+.ledgr-lock-chip.is-live { color: var(--ledgr-pos); border-color: color-mix(in srgb, var(--ledgr-pos) 50%, transparent); }
+.ledgr-lock-chip.is-stale { color: var(--text-warning, #e0a83a); border-color: color-mix(in srgb, #e0a83a 50%, transparent); }
+.ledgr-lock-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; }
+.ledgr-lock-btn.is-spinning svg { animation: ledgr-spin 0.9s linear infinite; }
+@keyframes ledgr-spin { to { transform: rotate(360deg); } }
+
+.ledgr-lock-warning { margin-bottom: 12px; padding: 8px 12px; border: 1px solid color-mix(in srgb, #e0a83a 45%, transparent); border-radius: 8px; color: var(--text-warning, #e0a83a); font-size: 12px; }
+
+.ledgr-lock-panel { border: 1px solid var(--ledgr-line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+.ledgr-lock-panel-title { font-size: 10.5px; letter-spacing: 0.2em; color: var(--text-muted); margin-bottom: 10px; }
+.ledgr-lock { container-type: inline-size; }
+.ledgr-lock-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@container (max-width: 520px) { .ledgr-lock-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ledgr-lock-tile { border: 1px solid var(--ledgr-line); border-radius: 8px; padding: 10px 12px; }
+.ledgr-lock-tile-label { font-size: 10px; letter-spacing: 0.15em; color: var(--text-muted); }
+.ledgr-lock-tile-value { margin-top: 4px; font-size: 18px; font-weight: 600; color: var(--text-normal); font-variant-numeric: tabular-nums; }
+.ledgr-lock-tile-value.pos { color: var(--ledgr-pos); }
+.ledgr-lock-tile-value.neg { color: var(--ledgr-neg); }
+
+.ledgr-lock-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--ledgr-line); }
+.ledgr-lock-row:first-of-type { border-top: 0; }
+.ledgr-lock-row-name { color: var(--text-normal); font-size: 13px; }
+.ledgr-lock-row-right { text-align: right; }
+.ledgr-lock-row-value { font-variant-numeric: tabular-nums; font-size: 13px; }
+
+.ledgr-lock-footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--text-muted); font-size: 11px; margin-top: 4px; }
+
+.ledgr-lock-screen { max-width: 420px; margin: 48px auto; text-align: center; border: 1px solid var(--ledgr-line); border-radius: 12px; padding: 28px 24px; }
+.ledgr-lock-screen.locked { border-color: color-mix(in srgb, var(--ledgr-neg) 35%, var(--ledgr-line)); }
+.ledgr-lock-screen-icon { display: inline-flex; color: var(--text-muted); }
+.ledgr-lock-screen-icon svg { width: 28px; height: 28px; }
+.ledgr-lock-screen h3 { margin: 12px 0 6px; font-size: 16px; }
+.ledgr-lock-screen p { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+.ledgr-lock-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+
+.ledgr-settings-status { margin: 8px 0 12px; padding: 8px 12px; border-radius: 8px; font-size: 13px; border: 1px solid var(--background-modifier-border); }
+.ledgr-settings-status.is-ok { color: #3fbf7f; border-color: color-mix(in srgb, #3fbf7f 40%, transparent); }
+.ledgr-settings-status.is-bad { color: #f0605d; border-color: color-mix(in srgb, #f0605d 40%, transparent); }
+.ledgr-settings-status.is-info { color: var(--text-muted); }
