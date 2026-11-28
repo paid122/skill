@@ -44,7 +44,7 @@ const RIGHT: Entry[] = [
 const ALL = [...LEFT, ...RIGHT];
 /** Most important first: tier, then position in the bar. */
 const PRIORITY = [...ALL].sort((a, b) => a.tier - b.tier || ALL.indexOf(a) - ALL.indexOf(b));
-const ALWAYS_MORE = [find("/weekly-review"), find("/performance-score"), find("/account-history"), find("/verses"), find("/plus")];
+const ALWAYS_MORE = [find("/weekly-review"), find("/performance-score"), find("/account-history"), find("/verses"), find("/connect"), find("/plus")];
 
 /** Which pages fit in the bar. Starts with all of them (to measure), then keeps only what fits. */
 function useFit() {

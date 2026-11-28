@@ -1,6 +1,6 @@
 import {
   BarChart3, BookMarked, ShieldCheck, BookOpen, Brain, CalendarDays, ClipboardList, FileText, Gauge, GraduationCap, History,
-  Gem, LayoutDashboard, type LucideIcon, NotebookPen, Settings, Sparkles, SquareLibrary, Trophy, Users, Wallet,
+  Gem, LayoutDashboard, Link2, type LucideIcon, NotebookPen, Settings, Sparkles, SquareLibrary, Trophy, Users, Wallet,
 } from "lucide-react";
 
 export interface NavItem { href: string; label: string; icon: LucideIcon; match?: string[] }
@@ -42,7 +42,7 @@ export const NAV: NavGroup[] = [
       { href: "/verses", label: "Verse Library", icon: BookOpen },
     ],
   },
-  { label: "Intelligence", items: [{ href: "/ai", label: "MatrixX AI", icon: Sparkles }, { href: "/plus", label: "LEDGR+", icon: Gem }] },
+  { label: "Intelligence", items: [{ href: "/ai", label: "MatrixX AI", icon: Sparkles }, { href: "/plus", label: "LEDGR+", icon: Gem }, { href: "/connect", label: "Connected apps", icon: Link2 }] },
   {
     label: "Personal",
     items: [
@@ -74,4 +74,4 @@ export function titleFor(pathname: string) {
 export { BookMarked };
 
 /** Pages that need a paid plan (shown with a small tag in the menu for Free users). */
-export const PLAN_PAGES: Record<string, "plus" | "pro"> = { "/analytics": "plus", "/psychology": "plus", "/performance-score": "plus", "/weekly-review": "plus" };
+export const PLAN_PAGES: Record<string, "plus" | "pro"> = { "/connect": "pro", "/analytics": "plus", "/psychology": "plus", "/performance-score": "plus", "/weekly-review": "plus" };
