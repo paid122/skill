@@ -30,6 +30,8 @@ export interface CcSettings {
   timezone: string; symbol: string; sound: boolean; intro: boolean; tvWidgets: boolean;
   /** Trades as notes: vault folder, and minutes between automatic note syncs (0 = only when asked). */
   notesFolder: string; notesAuto: number;
+  /** Desktop: open the Command Center in its own window, with no Obsidian tabs or sidebars around it. */
+  ownWindow: boolean;
 }
 
 export type SyncOutcome =

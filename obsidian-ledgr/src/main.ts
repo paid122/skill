@@ -1,4 +1,4 @@
-import { Modal, normalizePath, Notice, Plugin, requestUrl, Setting, TFile, type App, type WorkspaceLeaf } from "obsidian";
+import { Modal, normalizePath, Notice, Platform, Plugin, requestUrl, Setting, TFile, type App, type WorkspaceLeaf } from "obsidian";
 import { isoDate, LedgrApiError, LedgrClient, type Transport } from "./api";
 import type { CcSettings, SyncOutcome } from "./cc/app";
 import { toEvents, type CalendarAnswer, type CalendarState } from "./cc/calendar";
@@ -16,7 +16,7 @@ export const VIDEO_FILE = "operator.mp4";
 /** Where the plugin downloads the intro video from on first run (the plugin's GitHub release). Empty: no download. */
 export const VIDEO_URL = "";
 
-export const DEFAULT_SETTINGS: CcSettings = { timezone: "", symbol: "AUTO", sound: true, intro: true, tvWidgets: true, notesFolder: "LEDGR", notesAuto: 0 };
+export const DEFAULT_SETTINGS: CcSettings = { timezone: "", symbol: "AUTO", sound: true, intro: true, tvWidgets: true, notesFolder: "LEDGR", notesAuto: 0, ownWindow: true };
 
 interface PluginData {
   settings: CcSettings;
@@ -268,11 +268,18 @@ export default class LedgrPlugin extends Plugin {
   subscribe(fn: (what: "state" | "settings") => void): () => void { this.listeners.add(fn); return () => this.listeners.delete(fn); }
   private emit(what: "state" | "settings") { this.listeners.forEach((fn) => fn(what)); }
 
+  /**
+   * Opens the Command Center clean, like the standalone version: on desktop in its own window with no tabs or
+   * sidebars (setting "Open in its own window"); otherwise as a tab with the side panels folded away.
+   */
   async openView() {
-    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE)[0];
-    const leaf = existing ?? this.app.workspace.getLeaf("tab");
-    if (!existing) await leaf.setViewState({ type: VIEW_TYPE, active: true });
-    await this.app.workspace.revealLeaf(leaf);
+    const ws = this.app.workspace, existing = ws.getLeavesOfType(VIEW_TYPE)[0];
+    if (existing) { await ws.revealLeaf(existing); return; }
+    const ownWindow = Platform.isDesktopApp && this.data.settings.ownWindow;
+    const leaf = ws.getLeaf(ownWindow ? "window" : "tab");
+    await leaf.setViewState({ type: VIEW_TYPE, active: true });
+    if (!ownWindow) { ws.leftSplit.collapse(); ws.rightSplit.collapse(); }
+    await ws.revealLeaf(leaf);
   }
 
   openSettings() {

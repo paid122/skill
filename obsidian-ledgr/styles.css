@@ -67,6 +67,12 @@
 .ledgr-settings-status.is-bad { color: #f0605d; border-color: color-mix(in srgb, #f0605d 40%, transparent); }
 .ledgr-settings-status.is-info { color: var(--text-muted); }
 
+/* The Command Center's own window: no tab bar, nothing around it. */
+body.is-popout-window .workspace-tabs:has(.workspace-leaf-content[data-type="ledgr-command-center"]) > .workspace-tab-header-container { display: none; }
+body.is-popout-window .workspace-tabs:has(.workspace-leaf-content[data-type="ledgr-command-center"]) .view-header { display: none; }
+/* Inside the main window: no view header strip above it either. */
+.workspace-leaf-content[data-type="ledgr-command-center"] > .view-header { display: none; }
+
 
 /* ---- LEDGR Command Center (scoped port of command-center.html) ---- */
 .workspace-leaf-content[data-type="ledgr-command-center"] .view-content{padding:0;overflow:hidden}

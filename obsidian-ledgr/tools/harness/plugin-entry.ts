@@ -4,7 +4,7 @@ import { CommandCenter, type CcSettings } from "../../src/cc/app";
 import { toEvents } from "../../src/cc/calendar";
 
 const H = (window as unknown as { HARNESS: { trades: never[]; calendar: { events: never[]; updatedAt: string }; tz: string; name: string } }).HARNESS;
-const settings: CcSettings = { timezone: H.tz, symbol: "AUTO", sound: true, intro: (window as unknown as { INTRO?: boolean }).INTRO ?? false, tvWidgets: true, notesFolder: "LEDGR", notesAuto: 0 };
+const settings: CcSettings = { timezone: H.tz, symbol: "AUTO", sound: true, intro: (window as unknown as { INTRO?: boolean }).INTRO ?? false, tvWidgets: true, notesFolder: "LEDGR", notesAuto: 0, ownWindow: true };
 const mem: Record<string, unknown> = {};
 const cc = new CommandCenter(document.getElementById("view")!, {
   settings: () => settings,

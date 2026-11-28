@@ -71,6 +71,8 @@ export class LedgrSettingTab extends PluginSettingTab {
         d.setValue(s.symbol || "AUTO").onChange(async (v) => { await this.plugin.updateSettings({ symbol: v }); this.plugin.store.set("cc_ins", v); });
       });
 
+    new Setting(el).setName("Open in its own window").setDesc("Desktop: the Command Center opens full-window with no Obsidian tabs or sidebars around it (use the green button for full screen). Off: it opens as a tab and the side panels fold away.")
+      .addToggle((t) => t.setValue(s.ownWindow).onChange((v) => void this.plugin.updateSettings({ ownWindow: v })));
     new Setting(el).setName("Sound").setDesc("Interface sounds, news alerts and the risk-guard alarm (made in the app, no audio files).")
       .addToggle((t) => t.setValue(s.sound).onChange((v) => void this.plugin.updateSettings({ sound: v })));
     new Setting(el).setName("Intro").setDesc("Play the ENGAGE intro when the Command Center opens. The BOOT button plays it any time.")
